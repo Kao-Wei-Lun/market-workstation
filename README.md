@@ -1,82 +1,108 @@
 # Market Workstation
 
-Minimal backend foundation for the shared V1/V2 architecture:
+V1 local daily-data research system for market ETL, indicators, Taiwan derivatives analysis, watchlists, backtesting, and daily reports. The current repository includes:
 - FastAPI API service
-- PostgreSQL-backed SQLAlchemy models
-- Alembic migrations
-- Initial healthcheck endpoint
+- PostgreSQL-backed SQLAlchemy models and Alembic migrations
+- Scheduler and analysis worker foundations
+- Sample bootstrap and local management CLI for first-run development
 
-## Local startup
+## Prerequisites
+
+- Python 3.12
+- PostgreSQL 16 if running without Docker
+- Docker and Docker Compose for the recommended local stack
+
+## Environment setup
 
 1. Create a local environment file:
    `cp .env.example .env`
-2. Install project dependencies into the local Python 3.12 environment:
-   `python -m pip install -e .`
-3. Run the initial migration:
-   `alembic upgrade head`
-4. Run the API locally:
-   `source .venv/bin/activate`
-   `uvicorn apps.api.main:app --reload`
+2. Review the PostgreSQL settings in `.env`.
+3. Leave provider API keys empty for the sample local workflow unless you are wiring a real source.
 
-## Docker Compose startup
+## Local Python setup
 
-1. Create `.env` from `.env.example`.
-2. Start the required services:
-   `docker compose up --build db api`
-3. Apply the migration from the API container:
-   `docker compose run --rm api alembic upgrade head`
+1. Create the virtual environment:
+   `python3 -m venv .venv`
+2. Install the project:
+   `make setup`
+
+## Quickstart
+
+1. Start the local development services:
+   `make dev-up`
+2. Run database migrations:
+   `make migrate`
+3. Seed sample instruments, watchlist membership, and tags:
+   `make seed`
+4. Load sample daily market data:
+   `TRADE_DATE=2026-03-20 make sample-etl`
+5. Compute indicators:
+   `TRADE_DATE=2026-03-20 make indicator-update`
+6. Generate daily reports:
+   `TRADE_DATE=2026-03-20 make generate-reports`
+
+## Running services locally
+
+- API:
+  `make run-api`
+- Scheduler worker:
+  `make run-scheduler`
+- Analysis worker:
+  `make run-analysis`
+
+## Management CLI
+
+All bootstrap commands are available through `scripts/manage.py`:
+- `python scripts/manage.py migrate`
+- `python scripts/manage.py seed`
+- `python scripts/manage.py sample-etl --trade-date 2026-03-20`
+- `python scripts/manage.py indicator-update --trade-date 2026-03-20`
+- `python scripts/manage.py generate-reports --trade-date 2026-03-20`
+
+## Docker Compose notes
+
+- `docker-compose.yml` is set up for local development with `db`, `api`, `scheduler`, and `analysis`.
+- Source code is mounted into the containers so API and worker code changes are reflected without rebuilding the image for every edit.
+- The API service exposes `http://localhost:8000/healthz` and has a compose healthcheck.
+
+## Sample verification
+
+After running the quickstart commands:
+- Open `http://localhost:8000/healthz`
+- Query a report list:
+  `curl "http://localhost:8000/reports?report_date=2026-03-20"`
+- Run the worker job list:
+  `python -m workers.scheduler.main --list-jobs`
+  `python -m workers.analysis.main --list-jobs`
+
+## Make targets
+
+- `make setup`
+- `make migrate`
+- `make seed`
+- `make sample-etl`
+- `make indicator-update`
+- `make generate-reports`
+- `make run-api`
+- `make run-scheduler`
+- `make run-analysis`
+- `make test`
+- `make lint`
+- `make typecheck`
+- `make dev-up`
+- `make dev-down`
+
+## Feature notes
+
+- Connector modules live under `services/connectors/` and stay provider-isolated.
+- The ETL foundation lives under `services/core/etl/` with separate fetch, normalize, validate, and load stages.
+- Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
+- Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
+- Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
+- Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
 
 ## Verification
 
 - `pytest -q`
 - `ruff check .`
 - `mypy .`
-
-## ETL development notes
-
-- Connector modules live under `services/connectors/` and should stay provider-isolated.
-- The ETL foundation lives under `services/core/etl/` with separate fetch, normalize, validate, and load steps.
-- `services/core/ingest_jobs.py` records ingest lifecycle state in `ingest_jobs`.
-- `series_points` is the initial persistence table for macro-style time series ingestion.
-- The current TWSE connector includes one realistic stock daily path; US and macro connectors are provider-driven skeletons intended for mocked tests and future provider-specific expansion.
-
-## Taiwan derivatives analysis
-
-- TAIFEX institutional daily ingestion is implemented through `services/connectors/taifex.py`.
-- Raw institutional rows normalize into `tw_derivatives_daily`, and derived analytics persist in `tw_derivatives_features`.
-- The first feature layer computes `delta_1d`, `delta_5d`, `delta_20d`, `zscore_20d`, `regime_label`, `bias_score`, and `anomaly_flag`.
-- `services/core/derivatives/summary.py` generates a basic daily institutional bias snapshot for reporting and later API/report integration.
-
-## Technical indicators
-
-- Indicator computations live under `services/core/indicators/` and are organized by calculator plus a shared engine.
-- Current persisted indicators: `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
-- Computed outputs are stored in `indicator_values` as instrument/date/indicator/component rows so multi-output indicators remain queryable.
-- `services/core/indicators/service.py` provides the batch compute-and-persist flow on top of stored `daily_bars`.
-
-## Backtesting
-
-- Daily backtesting lives under `services/core/backtesting/` with separate DSL parsing, cost handling, execution, and persistence services.
-- The first engine is long-only, uses one position at a time, and supports price-based or indicator-based rule conditions.
-- Runs persist to `backtest_runs`, trades persist to `backtest_trades`, and strategy definitions persist to `strategies`.
-- API routes are available for create/run, run lookup, and trade listing under `/backtests`.
-
-## Classification and watchlists
-
-- Manual tags are stored in `instrument_tags`, and watchlist membership is stored through `watchlists` and `watchlist_items`.
-- Classification services live under `services/core/classification/` and currently cover manual tag CRUD, watchlist CRUD, and group summary queries.
-- Group summaries reuse stored `daily_bars` and `indicator_values` to report member count, average close change, top movers, and percentage above SMA.
-- API routes are available for basic tag and watchlist management plus tag/watchlist summary lookups.
-
-## Daily reports
-
-- Daily report generation lives under `services/core/reports/` and currently supports market, watchlist, tag-group, Taiwan derivatives, and next-day candidate reports.
-- Each report produces structured content plus markdown and persists to `reports_daily` for later retrieval.
-- Report query APIs are available under `/reports` for lookup by date/type and for listing all reports on a given date.
-
-## Scheduler and workers
-
-- Scheduler and analysis worker entrypoints now live under `workers/scheduler/` and `workers/analysis/`.
-- Registered jobs currently cover daily market ETL, indicator updates, Taiwan derivatives pipeline updates, and daily report generation.
-- Run a one-off worker job locally with `python -m workers.scheduler.main --run-job daily_market_etl --trade-date 2026-03-20` or `python -m workers.analysis.main --run-job daily_report_generation --trade-date 2026-03-20`.
-- Start the scheduler loop with `python -m workers.scheduler.main --start`, and run the analysis heartbeat loop with `python -m workers.analysis.main --loop-heartbeat`.

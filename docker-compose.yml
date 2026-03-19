@@ -24,7 +24,9 @@ services:
       context: .
       dockerfile: infra/docker/api.Dockerfile
     container_name: market_workstation_api
+    init: true
     restart: unless-stopped
+    working_dir: /app
     env_file:
       - .env
     environment:
@@ -41,16 +43,25 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./:/app
+    command: ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   scheduler:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
     container_name: market_workstation_scheduler
+    init: true
     restart: unless-stopped
+    working_dir: /app
     env_file:
       - .env
     environment:
@@ -73,6 +84,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./:/app
     command: ["python", "-m", "workers.scheduler.main", "--start"]
 
   analysis:
@@ -80,7 +93,9 @@ services:
       context: .
       dockerfile: infra/docker/api.Dockerfile
     container_name: market_workstation_analysis
+    init: true
     restart: unless-stopped
+    working_dir: /app
     env_file:
       - .env
     environment:
@@ -98,4 +113,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./:/app
     command: ["python", "-m", "workers.analysis.main", "--loop-heartbeat"]
