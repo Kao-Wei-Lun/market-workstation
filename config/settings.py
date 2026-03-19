@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     postgres_password: str = "change_me"
     database_url: str | None = None
 
+    us_eod_provider: str = "demo"
+    us_eod_base_url: str | None = None
+    us_eod_api_key: str | None = None
+
+    macro_provider: str = "demo"
+    macro_base_url: str | None = None
+    macro_api_key: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

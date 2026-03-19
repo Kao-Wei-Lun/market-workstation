@@ -31,3 +31,11 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - `pytest -q`
 - `ruff check .`
 - `mypy .`
+
+## ETL development notes
+
+- Connector modules live under `services/connectors/` and should stay provider-isolated.
+- The ETL foundation lives under `services/core/etl/` with separate fetch, normalize, validate, and load steps.
+- `services/core/ingest_jobs.py` records ingest lifecycle state in `ingest_jobs`.
+- `series_points` is the initial persistence table for macro-style time series ingestion.
+- The current TWSE connector includes one realistic stock daily path; US and macro connectors are provider-driven skeletons intended for mocked tests and future provider-specific expansion.

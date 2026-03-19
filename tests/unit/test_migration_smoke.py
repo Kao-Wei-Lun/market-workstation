@@ -14,3 +14,4 @@ def test_initial_migration_renders_offline_sql(capsys) -> None:
     assert "CREATE TABLE instruments" in rendered_sql
     assert "CREATE TABLE daily_bars" in rendered_sql
     assert "CREATE TABLE ingest_jobs" in rendered_sql
+    assert "CREATE TABLE series_points" in rendered_sql
