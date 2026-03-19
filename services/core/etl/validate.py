@@ -30,4 +30,35 @@ def validate_normalized_batch(batch: NormalizedDataBatch) -> ValidationResult:
             )
         seen_series_keys.add(series_point_key)
 
+    seen_derivatives_keys: set[tuple[object, str, str, str, str | None, str | None]] = set()
+    for record in batch.tw_derivatives_daily:
+        derivatives_key = (
+            record.trade_date,
+            record.market,
+            record.product_code,
+            record.institution,
+            record.contract_period,
+            record.call_put,
+        )
+        if derivatives_key in seen_derivatives_keys:
+            issues.append(
+                ValidationIssue(
+                    message=(
+                        "duplicate derivatives row for "
+                        f"{record.trade_date} {record.market} {record.product_code} "
+                        f"{record.institution} {record.contract_period} {record.call_put}"
+                    )
+                )
+            )
+        seen_derivatives_keys.add(derivatives_key)
+        if record.long_open_interest < 0 or record.short_open_interest < 0:
+            issues.append(
+                ValidationIssue(
+                    message=(
+                        "negative open interest for "
+                        f"{record.trade_date} {record.market} {record.product_code} {record.institution}"
+                    )
+                )
+            )
+
     return ValidationResult(issues=issues)

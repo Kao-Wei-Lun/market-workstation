@@ -5,6 +5,11 @@ from services.schemas.health import HealthcheckResponse
 from services.schemas.ingest_job import IngestJobCreate, IngestJobRead
 from services.schemas.instrument import InstrumentCreate, InstrumentRead
 from services.schemas.series_point import SeriesPointCreate, SeriesPointRead
+from services.schemas.tw_derivatives_daily import TwDerivativesDailyCreate, TwDerivativesDailyRead
+from services.schemas.tw_derivatives_feature import (
+    TwDerivativesFeatureCreate,
+    TwDerivativesFeatureRead,
+)
 
 __all__ = [
     "DailyBarCreate",
@@ -16,4 +21,8 @@ __all__ = [
     "InstrumentRead",
     "SeriesPointCreate",
     "SeriesPointRead",
+    "TwDerivativesDailyCreate",
+    "TwDerivativesDailyRead",
+    "TwDerivativesFeatureCreate",
+    "TwDerivativesFeatureRead",
 ]

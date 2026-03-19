@@ -36,9 +36,30 @@ class NormalizedSeriesPointRecord(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class NormalizedTwDerivativesDailyRecord(BaseModel):
+    trade_date: date
+    market: str
+    product_code: str
+    product_name: str | None = None
+    contract_period: str | None = None
+    institution: str
+    call_put: str | None = None
+    long_open_interest: int
+    short_open_interest: int
+    net_open_interest: int
+    long_amount: Decimal | None = None
+    short_amount: Decimal | None = None
+    net_amount: Decimal | None = None
+    source_route: str
+    is_options: bool = False
+
+    model_config = ConfigDict(frozen=True)
+
+
 class NormalizedDataBatch(BaseModel):
     daily_bars: list[NormalizedDailyBarRecord] = Field(default_factory=list)
     series_points: list[NormalizedSeriesPointRecord] = Field(default_factory=list)
+    tw_derivatives_daily: list[NormalizedTwDerivativesDailyRecord] = Field(default_factory=list)
 
     model_config = ConfigDict(frozen=True)
 
@@ -46,6 +67,7 @@ class NormalizedDataBatch(BaseModel):
 class LoadResult(BaseModel):
     daily_bars_loaded: int = 0
     series_points_loaded: int = 0
+    tw_derivatives_daily_loaded: int = 0
 
 
 class ValidationIssue(BaseModel):

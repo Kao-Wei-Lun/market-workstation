@@ -8,6 +8,7 @@ from services.connectors.base import (
     SeriesConnector,
 )
 from services.connectors.macro import MacroSeriesConnector
+from services.connectors.taifex import TaifexInstitutionalDailyConnector
 from services.connectors.twse import TwseDailyMarketDataConnector
 from services.connectors.us_eod import UsEodConnector
 
@@ -18,6 +19,7 @@ __all__ = [
     "MacroSeriesConnector",
     "ProviderConnectorConfig",
     "SeriesConnector",
+    "TaifexInstitutionalDailyConnector",
     "TwseDailyMarketDataConnector",
     "UsEodConnector",
 ]
