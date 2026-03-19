@@ -10,11 +10,13 @@ Minimal backend foundation for the shared V1/V2 architecture:
 
 1. Create a local environment file:
    `cp .env.example .env`
-2. Run the API locally:
-   `source .venv/bin/activate`
-   `uvicorn apps.api.main:app --reload`
+2. Install project dependencies into the local Python 3.12 environment:
+   `python -m pip install -e .`
 3. Run the initial migration:
    `alembic upgrade head`
+4. Run the API locally:
+   `source .venv/bin/activate`
+   `uvicorn apps.api.main:app --reload`
 
 ## Docker Compose startup
 
@@ -23,3 +25,9 @@ Minimal backend foundation for the shared V1/V2 architecture:
    `docker compose up --build db api`
 3. Apply the migration from the API container:
    `docker compose run --rm api alembic upgrade head`
+
+## Verification
+
+- `pytest -q`
+- `ruff check .`
+- `mypy .`

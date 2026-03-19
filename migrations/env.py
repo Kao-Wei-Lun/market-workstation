@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 from config.settings import get_settings
 from services.db.base import Base
-from services.models import daily_bar, ingest_job, instrument  # noqa: F401
+from services.models import import_models
 
 config = context.config
 
@@ -16,6 +16,7 @@ if config.config_file_name is not None:
 
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.sqlalchemy_database_uri)
+import_models()
 
 target_metadata = Base.metadata
 
