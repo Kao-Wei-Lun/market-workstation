@@ -1,6 +1,7 @@
 from services.db.base import Base
 from services.models import (
     DailyBar,
+    IndicatorValue,
     IngestJob,
     Instrument,
     SeriesPoint,
@@ -15,6 +16,7 @@ def test_model_metadata_contains_initial_tables() -> None:
 
     assert Instrument.__tablename__ == "instruments"
     assert DailyBar.__tablename__ == "daily_bars"
+    assert IndicatorValue.__tablename__ == "indicator_values"
     assert IngestJob.__tablename__ == "ingest_jobs"
     assert SeriesPoint.__tablename__ == "series_points"
     assert TwDerivativesDaily.__tablename__ == "tw_derivatives_daily"
@@ -22,6 +24,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert {
         "instruments",
         "daily_bars",
+        "indicator_values",
         "ingest_jobs",
         "series_points",
         "tw_derivatives_daily",

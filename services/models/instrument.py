@@ -10,6 +10,7 @@ from services.db.base import Base
 
 if TYPE_CHECKING:
     from services.models.daily_bar import DailyBar
+    from services.models.indicator_value import IndicatorValue
     from services.models.series_point import SeriesPoint
 
 
@@ -38,4 +39,5 @@ class Instrument(Base):
     )
 
     daily_bars: Mapped[list["DailyBar"]] = relationship(back_populates="instrument")
+    indicator_values: Mapped[list["IndicatorValue"]] = relationship(back_populates="instrument")
     series_points: Mapped[list["SeriesPoint"]] = relationship(back_populates="instrument")

@@ -1,6 +1,7 @@
 """ORM model registry."""
 
 from services.models.daily_bar import DailyBar
+from services.models.indicator_value import IndicatorValue
 from services.models.ingest_job import IngestJob
 from services.models.instrument import Instrument
 from services.models.series_point import SeriesPoint
@@ -14,6 +15,7 @@ def import_models() -> None:
 
 __all__ = [
     "DailyBar",
+    "IndicatorValue",
     "IngestJob",
     "Instrument",
     "SeriesPoint",

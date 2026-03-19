@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from services.models.daily_bar import DailyBar
@@ -59,3 +61,17 @@ class DailyBarRepository:
 
         self.session.flush()
         return loaded
+
+    def list_for_instrument(
+        self,
+        instrument_id: int,
+        *,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[DailyBar]:
+        query = self.session.query(DailyBar).filter(DailyBar.instrument_id == instrument_id)
+        if start_date is not None:
+            query = query.filter(DailyBar.trade_date >= start_date)
+        if end_date is not None:
+            query = query.filter(DailyBar.trade_date <= end_date)
+        return query.order_by(DailyBar.trade_date.asc()).all()

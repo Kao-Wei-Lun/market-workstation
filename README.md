@@ -46,3 +46,10 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - Raw institutional rows normalize into `tw_derivatives_daily`, and derived analytics persist in `tw_derivatives_features`.
 - The first feature layer computes `delta_1d`, `delta_5d`, `delta_20d`, `zscore_20d`, `regime_label`, `bias_score`, and `anomaly_flag`.
 - `services/core/derivatives/summary.py` generates a basic daily institutional bias snapshot for reporting and later API/report integration.
+
+## Technical indicators
+
+- Indicator computations live under `services/core/indicators/` and are organized by calculator plus a shared engine.
+- Current persisted indicators: `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
+- Computed outputs are stored in `indicator_values` as instrument/date/indicator/component rows so multi-output indicators remain queryable.
+- `services/core/indicators/service.py` provides the batch compute-and-persist flow on top of stored `daily_bars`.
