@@ -6,10 +6,13 @@ from services.models import (
     IndicatorValue,
     IngestJob,
     Instrument,
+    InstrumentTag,
     SeriesPoint,
     Strategy,
     TwDerivativesDaily,
     TwDerivativesFeature,
+    Watchlist,
+    WatchlistItem,
     import_models,
 )
 
@@ -24,9 +27,12 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert DailyBar.__tablename__ == "daily_bars"
     assert IndicatorValue.__tablename__ == "indicator_values"
     assert IngestJob.__tablename__ == "ingest_jobs"
+    assert InstrumentTag.__tablename__ == "instrument_tags"
     assert SeriesPoint.__tablename__ == "series_points"
     assert TwDerivativesDaily.__tablename__ == "tw_derivatives_daily"
     assert TwDerivativesFeature.__tablename__ == "tw_derivatives_features"
+    assert Watchlist.__tablename__ == "watchlists"
+    assert WatchlistItem.__tablename__ == "watchlist_items"
     assert {
         "instruments",
         "strategies",
@@ -35,7 +41,10 @@ def test_model_metadata_contains_initial_tables() -> None:
         "daily_bars",
         "indicator_values",
         "ingest_jobs",
+        "instrument_tags",
         "series_points",
         "tw_derivatives_daily",
         "tw_derivatives_features",
+        "watchlists",
+        "watchlist_items",
     }.issubset(Base.metadata.tables.keys())

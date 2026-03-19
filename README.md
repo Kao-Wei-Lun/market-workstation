@@ -60,3 +60,10 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - The first engine is long-only, uses one position at a time, and supports price-based or indicator-based rule conditions.
 - Runs persist to `backtest_runs`, trades persist to `backtest_trades`, and strategy definitions persist to `strategies`.
 - API routes are available for create/run, run lookup, and trade listing under `/backtests`.
+
+## Classification and watchlists
+
+- Manual tags are stored in `instrument_tags`, and watchlist membership is stored through `watchlists` and `watchlist_items`.
+- Classification services live under `services/core/classification/` and currently cover manual tag CRUD, watchlist CRUD, and group summary queries.
+- Group summaries reuse stored `daily_bars` and `indicator_values` to report member count, average close change, top movers, and percentage above SMA.
+- API routes are available for basic tag and watchlist management plus tag/watchlist summary lookups.

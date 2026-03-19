@@ -9,6 +9,14 @@ from services.schemas.backtesting import (
     StrategyDefinition,
     StrategyRead,
 )
+from services.schemas.classification import (
+    GroupSummaryRead,
+    InstrumentTagCreate,
+    InstrumentTagRead,
+    WatchlistCreate,
+    WatchlistItemRead,
+    WatchlistRead,
+)
 from services.schemas.daily_bar import DailyBarCreate, DailyBarRead
 from services.schemas.health import HealthcheckResponse
 from services.schemas.indicator_value import IndicatorValueCreate, IndicatorValueRead
@@ -28,11 +36,14 @@ __all__ = [
     "BacktestTradeRead",
     "DailyBarCreate",
     "DailyBarRead",
+    "GroupSummaryRead",
     "HealthcheckResponse",
     "IndicatorValueCreate",
     "IndicatorValueRead",
     "IngestJobCreate",
     "IngestJobRead",
+    "InstrumentTagCreate",
+    "InstrumentTagRead",
     "InstrumentCreate",
     "InstrumentRead",
     "SeriesPointCreate",
@@ -44,4 +55,7 @@ __all__ = [
     "TwDerivativesDailyRead",
     "TwDerivativesFeatureCreate",
     "TwDerivativesFeatureRead",
+    "WatchlistCreate",
+    "WatchlistItemRead",
+    "WatchlistRead",
 ]

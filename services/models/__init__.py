@@ -6,10 +6,13 @@ from services.models.daily_bar import DailyBar
 from services.models.indicator_value import IndicatorValue
 from services.models.ingest_job import IngestJob
 from services.models.instrument import Instrument
+from services.models.instrument_tag import InstrumentTag
 from services.models.series_point import SeriesPoint
 from services.models.strategy import Strategy
 from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.tw_derivatives_feature import TwDerivativesFeature
+from services.models.watchlist import Watchlist
+from services.models.watchlist_item import WatchlistItem
 
 
 def import_models() -> None:
@@ -23,9 +26,12 @@ __all__ = [
     "IndicatorValue",
     "IngestJob",
     "Instrument",
+    "InstrumentTag",
     "SeriesPoint",
     "Strategy",
     "TwDerivativesDaily",
     "TwDerivativesFeature",
+    "Watchlist",
+    "WatchlistItem",
     "import_models",
 ]
