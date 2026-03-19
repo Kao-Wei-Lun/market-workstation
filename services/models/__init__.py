@@ -7,6 +7,7 @@ from services.models.indicator_value import IndicatorValue
 from services.models.ingest_job import IngestJob
 from services.models.instrument import Instrument
 from services.models.instrument_tag import InstrumentTag
+from services.models.report_daily import ReportDaily
 from services.models.series_point import SeriesPoint
 from services.models.strategy import Strategy
 from services.models.tw_derivatives_daily import TwDerivativesDaily
@@ -27,6 +28,7 @@ __all__ = [
     "IngestJob",
     "Instrument",
     "InstrumentTag",
+    "ReportDaily",
     "SeriesPoint",
     "Strategy",
     "TwDerivativesDaily",

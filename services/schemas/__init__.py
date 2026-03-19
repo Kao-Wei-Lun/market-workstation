@@ -22,6 +22,15 @@ from services.schemas.health import HealthcheckResponse
 from services.schemas.indicator_value import IndicatorValueCreate, IndicatorValueRead
 from services.schemas.ingest_job import IngestJobCreate, IngestJobRead
 from services.schemas.instrument import InstrumentCreate, InstrumentRead
+from services.schemas.reporting import (
+    GroupSummarySnapshotContent,
+    MarketSummaryContent,
+    NextDayWatchCandidate,
+    NextDayWatchCandidatesContent,
+    ReportDailyRead,
+    TaiwanDerivativesSummaryContent,
+    WatchlistSummaryContent,
+)
 from services.schemas.series_point import SeriesPointCreate, SeriesPointRead
 from services.schemas.tw_derivatives_daily import TwDerivativesDailyCreate, TwDerivativesDailyRead
 from services.schemas.tw_derivatives_feature import (
@@ -46,15 +55,22 @@ __all__ = [
     "InstrumentTagRead",
     "InstrumentCreate",
     "InstrumentRead",
+    "GroupSummarySnapshotContent",
+    "MarketSummaryContent",
+    "NextDayWatchCandidate",
+    "NextDayWatchCandidatesContent",
+    "ReportDailyRead",
     "SeriesPointCreate",
     "SeriesPointRead",
     "StrategyCreate",
     "StrategyDefinition",
     "StrategyRead",
+    "TaiwanDerivativesSummaryContent",
     "TwDerivativesDailyCreate",
     "TwDerivativesDailyRead",
     "TwDerivativesFeatureCreate",
     "TwDerivativesFeatureRead",
+    "WatchlistSummaryContent",
     "WatchlistCreate",
     "WatchlistItemRead",
     "WatchlistRead",

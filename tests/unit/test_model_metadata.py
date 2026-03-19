@@ -7,6 +7,7 @@ from services.models import (
     IngestJob,
     Instrument,
     InstrumentTag,
+    ReportDaily,
     SeriesPoint,
     Strategy,
     TwDerivativesDaily,
@@ -28,6 +29,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert IndicatorValue.__tablename__ == "indicator_values"
     assert IngestJob.__tablename__ == "ingest_jobs"
     assert InstrumentTag.__tablename__ == "instrument_tags"
+    assert ReportDaily.__tablename__ == "reports_daily"
     assert SeriesPoint.__tablename__ == "series_points"
     assert TwDerivativesDaily.__tablename__ == "tw_derivatives_daily"
     assert TwDerivativesFeature.__tablename__ == "tw_derivatives_features"
@@ -42,6 +44,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "indicator_values",
         "ingest_jobs",
         "instrument_tags",
+        "reports_daily",
         "series_points",
         "tw_derivatives_daily",
         "tw_derivatives_features",

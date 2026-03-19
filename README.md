@@ -67,3 +67,9 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - Classification services live under `services/core/classification/` and currently cover manual tag CRUD, watchlist CRUD, and group summary queries.
 - Group summaries reuse stored `daily_bars` and `indicator_values` to report member count, average close change, top movers, and percentage above SMA.
 - API routes are available for basic tag and watchlist management plus tag/watchlist summary lookups.
+
+## Daily reports
+
+- Daily report generation lives under `services/core/reports/` and currently supports market, watchlist, tag-group, Taiwan derivatives, and next-day candidate reports.
+- Each report produces structured content plus markdown and persists to `reports_daily` for later retrieval.
+- Report query APIs are available under `/reports` for lookup by date/type and for listing all reports on a given date.
