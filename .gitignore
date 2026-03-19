@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual env
+.venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Docker / local runtime
+data/
+logs/
+tmp/
+
+# Alembic / app artifacts
+*.db
+*.sqlite3
+
+# Node
+node_modules/
