@@ -73,3 +73,10 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - Daily report generation lives under `services/core/reports/` and currently supports market, watchlist, tag-group, Taiwan derivatives, and next-day candidate reports.
 - Each report produces structured content plus markdown and persists to `reports_daily` for later retrieval.
 - Report query APIs are available under `/reports` for lookup by date/type and for listing all reports on a given date.
+
+## Scheduler and workers
+
+- Scheduler and analysis worker entrypoints now live under `workers/scheduler/` and `workers/analysis/`.
+- Registered jobs currently cover daily market ETL, indicator updates, Taiwan derivatives pipeline updates, and daily report generation.
+- Run a one-off worker job locally with `python -m workers.scheduler.main --run-job daily_market_etl --trade-date 2026-03-20` or `python -m workers.analysis.main --run-job daily_report_generation --trade-date 2026-03-20`.
+- Start the scheduler loop with `python -m workers.scheduler.main --start`, and run the analysis heartbeat loop with `python -m workers.analysis.main --loop-heartbeat`.

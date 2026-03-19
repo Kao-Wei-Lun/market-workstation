@@ -44,3 +44,58 @@ services:
     command: ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: market_workstation_scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_NAME: ${APP_NAME}
+      APP_VERSION: ${APP_VERSION}
+      DEBUG: ${DEBUG}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: ${DATABASE_URL}
+      SCHEDULER_TIMEZONE: ${SCHEDULER_TIMEZONE}
+      SCHEDULER_DAILY_MARKET_ETL_CRON: ${SCHEDULER_DAILY_MARKET_ETL_CRON}
+      SCHEDULER_INDICATOR_UPDATE_CRON: ${SCHEDULER_INDICATOR_UPDATE_CRON}
+      SCHEDULER_TAIWAN_DERIVATIVES_PIPELINE_CRON: ${SCHEDULER_TAIWAN_DERIVATIVES_PIPELINE_CRON}
+      SCHEDULER_DAILY_REPORT_GENERATION_CRON: ${SCHEDULER_DAILY_REPORT_GENERATION_CRON}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "-m", "workers.scheduler.main", "--start"]
+
+  analysis:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: market_workstation_analysis
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_NAME: ${APP_NAME}
+      APP_VERSION: ${APP_VERSION}
+      DEBUG: ${DEBUG}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: ${DATABASE_URL}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "-m", "workers.analysis.main", "--loop-heartbeat"]

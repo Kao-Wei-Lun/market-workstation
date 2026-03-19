@@ -11,6 +11,9 @@ class IngestJobRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
+    def get(self, job_id: int) -> IngestJob | None:
+        return self.session.get(IngestJob, job_id)
+
     def create(
         self,
         *,

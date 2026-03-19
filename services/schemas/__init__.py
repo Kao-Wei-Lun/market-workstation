@@ -37,6 +37,7 @@ from services.schemas.tw_derivatives_feature import (
     TwDerivativesFeatureCreate,
     TwDerivativesFeatureRead,
 )
+from services.schemas.worker_health import WorkerHealthRead
 
 __all__ = [
     "BacktestCreateRequest",
@@ -74,4 +75,5 @@ __all__ = [
     "WatchlistCreate",
     "WatchlistItemRead",
     "WatchlistRead",
+    "WorkerHealthRead",
 ]

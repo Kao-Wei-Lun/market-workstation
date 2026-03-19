@@ -25,3 +25,4 @@ def test_initial_migration_renders_offline_sql(capsys) -> None:
     assert "CREATE TABLE tw_derivatives_features" in rendered_sql
     assert "CREATE TABLE watchlists" in rendered_sql
     assert "CREATE TABLE watchlist_items" in rendered_sql
+    assert "CREATE TABLE worker_health" in rendered_sql

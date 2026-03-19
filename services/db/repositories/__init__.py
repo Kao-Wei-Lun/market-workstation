@@ -14,6 +14,7 @@ from services.db.repositories.tw_derivatives import (
     TwDerivativesDailyRepository,
     TwDerivativesFeatureRepository,
 )
+from services.db.repositories.worker_health import WorkerHealthRepository
 
 __all__ = [
     "BacktestRunRepository",
@@ -26,4 +27,5 @@ __all__ = [
     "StrategyRepository",
     "TwDerivativesDailyRepository",
     "TwDerivativesFeatureRepository",
+    "WorkerHealthRepository",
 ]

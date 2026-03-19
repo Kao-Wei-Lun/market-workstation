@@ -14,6 +14,7 @@ from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.tw_derivatives_feature import TwDerivativesFeature
 from services.models.watchlist import Watchlist
 from services.models.watchlist_item import WatchlistItem
+from services.models.worker_health import WorkerHealth
 
 
 def import_models() -> None:
@@ -35,5 +36,6 @@ __all__ = [
     "TwDerivativesFeature",
     "Watchlist",
     "WatchlistItem",
+    "WorkerHealth",
     "import_models",
 ]

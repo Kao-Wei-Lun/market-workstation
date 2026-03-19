@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     macro_base_url: str | None = None
     macro_api_key: str | None = None
 
+    scheduler_timezone: str = "Asia/Taipei"
+    scheduler_daily_market_etl_cron: str = "0 18 * * 1-5"
+    scheduler_indicator_update_cron: str = "30 18 * * 1-5"
+    scheduler_taiwan_derivatives_pipeline_cron: str = "40 18 * * 1-5"
+    scheduler_daily_report_generation_cron: str = "0 19 * * 1-5"
+    worker_heartbeat_interval_seconds: int = 60
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

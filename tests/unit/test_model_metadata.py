@@ -14,6 +14,7 @@ from services.models import (
     TwDerivativesFeature,
     Watchlist,
     WatchlistItem,
+    WorkerHealth,
     import_models,
 )
 
@@ -35,6 +36,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert TwDerivativesFeature.__tablename__ == "tw_derivatives_features"
     assert Watchlist.__tablename__ == "watchlists"
     assert WatchlistItem.__tablename__ == "watchlist_items"
+    assert WorkerHealth.__tablename__ == "worker_health"
     assert {
         "instruments",
         "strategies",
@@ -50,4 +52,5 @@ def test_model_metadata_contains_initial_tables() -> None:
         "tw_derivatives_features",
         "watchlists",
         "watchlist_items",
+        "worker_health",
     }.issubset(Base.metadata.tables.keys())
