@@ -1,1 +1,1 @@
-Python
+"""API application package."""
