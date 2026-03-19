@@ -16,8 +16,9 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
 
 1. Create a local environment file:
    `cp .env.example .env`
-2. Review the PostgreSQL settings in `.env`.
-3. Leave provider API keys empty for the sample local workflow unless you are wiring a real source.
+2. For host-side commands such as `make migrate` and `make seed`, keep `POSTGRES_HOST=localhost` in `.env`.
+3. Docker Compose overrides the in-container DB host to `db`, so the same `.env` still works for containers.
+4. Leave provider API keys empty for the sample local workflow unless you are wiring a real source.
 
 ## Local Python setup
 
@@ -62,6 +63,7 @@ All bootstrap commands are available through `scripts/manage.py`:
 ## Docker Compose notes
 
 - `docker-compose.yml` is set up for local development with `db`, `api`, `scheduler`, and `analysis`.
+- Compose now falls back to sane local defaults when `.env` is missing or incomplete.
 - Source code is mounted into the containers so API and worker code changes are reflected without rebuilding the image for every edit.
 - The API service exposes `http://localhost:8000/healthz` and has a compose healthcheck.
 

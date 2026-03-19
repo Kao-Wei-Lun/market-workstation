@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = False
 
-    postgres_host: str = "db"
+    postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str = "market_workstation"
     postgres_user: str = "market_user"
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     worker_heartbeat_interval_seconds: int = 60
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", ".env.example"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

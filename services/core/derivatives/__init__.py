@@ -1,15 +1,5 @@
-"""Taiwan derivatives analysis services."""
+"""Taiwan derivatives analysis package.
 
-from services.core.derivatives.etl import run_taifex_derivatives_ingestion
-from services.core.derivatives.features import compute_tw_derivatives_features
-from services.core.derivatives.summary import (
-    DailyInstitutionalBiasSummary,
-    generate_daily_institutional_bias_summary,
-)
-
-__all__ = [
-    "DailyInstitutionalBiasSummary",
-    "compute_tw_derivatives_features",
-    "generate_daily_institutional_bias_summary",
-    "run_taifex_derivatives_ingestion",
-]
+Import concrete modules directly from this package to avoid circular imports
+during low-level connector and schema initialization.
+"""

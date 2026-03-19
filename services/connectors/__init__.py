@@ -1,25 +1,4 @@
-"""External data source connectors."""
+"""External data connector package.
 
-from services.connectors.base import (
-    ConnectorRequest,
-    DailyBarConnector,
-    FetchResult,
-    ProviderConnectorConfig,
-    SeriesConnector,
-)
-from services.connectors.macro import MacroSeriesConnector
-from services.connectors.taifex import TaifexInstitutionalDailyConnector
-from services.connectors.twse import TwseDailyMarketDataConnector
-from services.connectors.us_eod import UsEodConnector
-
-__all__ = [
-    "ConnectorRequest",
-    "DailyBarConnector",
-    "FetchResult",
-    "MacroSeriesConnector",
-    "ProviderConnectorConfig",
-    "SeriesConnector",
-    "TaifexInstitutionalDailyConnector",
-    "TwseDailyMarketDataConnector",
-    "UsEodConnector",
-]
+Import connector modules directly to keep package initialization lightweight.
+"""
