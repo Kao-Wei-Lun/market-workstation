@@ -53,3 +53,10 @@ Minimal backend foundation for the shared V1/V2 architecture:
 - Current persisted indicators: `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
 - Computed outputs are stored in `indicator_values` as instrument/date/indicator/component rows so multi-output indicators remain queryable.
 - `services/core/indicators/service.py` provides the batch compute-and-persist flow on top of stored `daily_bars`.
+
+## Backtesting
+
+- Daily backtesting lives under `services/core/backtesting/` with separate DSL parsing, cost handling, execution, and persistence services.
+- The first engine is long-only, uses one position at a time, and supports price-based or indicator-based rule conditions.
+- Runs persist to `backtest_runs`, trades persist to `backtest_trades`, and strategy definitions persist to `strategies`.
+- API routes are available for create/run, run lookup, and trade listing under `/backtests`.

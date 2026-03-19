@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,7 +22,7 @@ engine = create_db_engine()
 SessionLocal = create_session_factory(engine)
 
 
-def get_db_session() -> Generator[Session, None, None]:
+async def get_db_session() -> AsyncGenerator[Session, None]:
     session = SessionLocal()
     try:
         yield session

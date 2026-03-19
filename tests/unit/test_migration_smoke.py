@@ -12,6 +12,9 @@ def test_initial_migration_renders_offline_sql(capsys) -> None:
 
     rendered_sql = capsys.readouterr().out
     assert "CREATE TABLE instruments" in rendered_sql
+    assert "CREATE TABLE strategies" in rendered_sql
+    assert "CREATE TABLE backtest_runs" in rendered_sql
+    assert "CREATE TABLE backtest_trades" in rendered_sql
     assert "CREATE TABLE daily_bars" in rendered_sql
     assert "CREATE TABLE ingest_jobs" in rendered_sql
     assert "CREATE TABLE indicator_values" in rendered_sql

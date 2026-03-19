@@ -1,5 +1,14 @@
 """Pydantic schema exports."""
 
+from services.schemas.backtesting import (
+    BacktestCreateRequest,
+    BacktestCreateResponse,
+    BacktestRunRead,
+    BacktestTradeRead,
+    StrategyCreate,
+    StrategyDefinition,
+    StrategyRead,
+)
 from services.schemas.daily_bar import DailyBarCreate, DailyBarRead
 from services.schemas.health import HealthcheckResponse
 from services.schemas.indicator_value import IndicatorValueCreate, IndicatorValueRead
@@ -13,6 +22,10 @@ from services.schemas.tw_derivatives_feature import (
 )
 
 __all__ = [
+    "BacktestCreateRequest",
+    "BacktestCreateResponse",
+    "BacktestRunRead",
+    "BacktestTradeRead",
     "DailyBarCreate",
     "DailyBarRead",
     "HealthcheckResponse",
@@ -24,6 +37,9 @@ __all__ = [
     "InstrumentRead",
     "SeriesPointCreate",
     "SeriesPointRead",
+    "StrategyCreate",
+    "StrategyDefinition",
+    "StrategyRead",
     "TwDerivativesDailyCreate",
     "TwDerivativesDailyRead",
     "TwDerivativesFeatureCreate",
