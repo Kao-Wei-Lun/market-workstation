@@ -2,7 +2,11 @@ from services.db.base import Base
 from services.models import (
     AutoClassificationRule,
     BacktestRun,
+    BacktestSearchResult,
+    BacktestSearchRun,
     BacktestTrade,
+    BacktestWalkForwardRun,
+    BacktestWalkForwardWindow,
     CandidateItem,
     CandidateRun,
     DailyBar,
@@ -31,7 +35,11 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert CandidateItem.__tablename__ == "candidate_items"
     assert Strategy.__tablename__ == "strategies"
     assert BacktestRun.__tablename__ == "backtest_runs"
+    assert BacktestSearchRun.__tablename__ == "backtest_search_runs"
+    assert BacktestSearchResult.__tablename__ == "backtest_search_results"
     assert BacktestTrade.__tablename__ == "backtest_trades"
+    assert BacktestWalkForwardRun.__tablename__ == "backtest_walk_forward_runs"
+    assert BacktestWalkForwardWindow.__tablename__ == "backtest_walk_forward_windows"
     assert DailyBar.__tablename__ == "daily_bars"
     assert IndicatorValue.__tablename__ == "indicator_values"
     assert IngestJob.__tablename__ == "ingest_jobs"
@@ -50,7 +58,11 @@ def test_model_metadata_contains_initial_tables() -> None:
         "candidate_items",
         "strategies",
         "backtest_runs",
+        "backtest_search_runs",
+        "backtest_search_results",
         "backtest_trades",
+        "backtest_walk_forward_runs",
+        "backtest_walk_forward_windows",
         "daily_bars",
         "indicator_values",
         "ingest_jobs",

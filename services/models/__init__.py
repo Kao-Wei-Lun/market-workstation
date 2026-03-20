@@ -2,7 +2,11 @@
 
 from services.models.auto_classification_rule import AutoClassificationRule
 from services.models.backtest_run import BacktestRun
+from services.models.backtest_search_result import BacktestSearchResult
+from services.models.backtest_search_run import BacktestSearchRun
 from services.models.backtest_trade import BacktestTrade
+from services.models.backtest_walk_forward_run import BacktestWalkForwardRun
+from services.models.backtest_walk_forward_window import BacktestWalkForwardWindow
 from services.models.candidate_item import CandidateItem
 from services.models.candidate_run import CandidateRun
 from services.models.daily_bar import DailyBar
@@ -27,7 +31,11 @@ def import_models() -> None:
 __all__ = [
     "AutoClassificationRule",
     "BacktestRun",
+    "BacktestSearchResult",
+    "BacktestSearchRun",
     "BacktestTrade",
+    "BacktestWalkForwardRun",
+    "BacktestWalkForwardWindow",
     "CandidateItem",
     "CandidateRun",
     "DailyBar",

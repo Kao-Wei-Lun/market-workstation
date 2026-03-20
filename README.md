@@ -114,6 +114,7 @@ After running the quickstart commands:
 - Next-day watch candidate runs persist to `candidate_runs` and `candidate_items`, with generation and query APIs exposed under `/candidates`.
 - Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
 - Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
+- Backtesting now supports composite rule trees, parameterized rule operands, optional universe filters, multi-position daily execution controls, parameter search, and walk-forward evaluation APIs.
 
 ## Next-Day Candidates
 
@@ -132,6 +133,19 @@ After running the quickstart commands:
 - Retrieve one bundle section:
   `curl http://localhost:8000/reports/2026-03-20/bundle/sections/technical_breadth_summary`
 - The bundle includes structured sections and markdown-friendly content for market review and next-day planning.
+
+## Advanced Backtesting
+
+- Run a parameterized daily backtest:
+  `curl -X POST http://localhost:8000/backtests/runs -H "Content-Type: application/json" -d '{"name":"SMA template","parameters":{"entry_threshold":"10","exit_threshold":"11"},"definition":{"instrument_id":1,"initial_cash":"100000","position_size":"0.5","max_concurrent_positions":2,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}}}'`
+- Run a parameter search:
+  `curl -X POST http://localhost:8000/backtests/searches -H "Content-Type: application/json" -d '{"name":"SMA grid","definition":{"instrument_id":1,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}},"parameter_space":{"entry_threshold":["10","11"],"exit_threshold":["11","12"]}}'`
+- Run walk-forward evaluation:
+  `curl -X POST http://localhost:8000/backtests/walk-forward -H "Content-Type: application/json" -d '{"name":"SMA walk forward","definition":{"instrument_id":1,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}},"parameter_space":{"entry_threshold":["10","11"],"exit_threshold":["11","12"]},"train_window_days":60,"test_window_days":20}'`
+- Retrieve search results:
+  `curl http://localhost:8000/backtests/searches/<search_run_id>/results`
+- Retrieve walk-forward windows:
+  `curl http://localhost:8000/backtests/walk-forward/<walk_forward_run_id>/windows`
 
 ## Verification
 

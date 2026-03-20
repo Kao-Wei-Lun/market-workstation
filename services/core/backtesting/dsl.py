@@ -12,6 +12,7 @@ def evaluate_rule(
     trade_date: date,
     price_values: dict[str, Decimal],
     indicator_values: dict[tuple[date, str, str, str], Decimal],
+    parameters: dict[str, Decimal] | None = None,
 ) -> bool:
     if rule.all is not None:
         return all(
@@ -20,6 +21,7 @@ def evaluate_rule(
                 trade_date=trade_date,
                 price_values=price_values,
                 indicator_values=indicator_values,
+                parameters=parameters,
             )
             for child in rule.all
         )
@@ -30,6 +32,7 @@ def evaluate_rule(
                 trade_date=trade_date,
                 price_values=price_values,
                 indicator_values=indicator_values,
+                parameters=parameters,
             )
             for child in rule.any
         )
@@ -39,12 +42,14 @@ def evaluate_rule(
         trade_date=trade_date,
         price_values=price_values,
         indicator_values=indicator_values,
+        parameters=parameters,
     )
     right = resolve_operand(
         rule.right,
         trade_date=trade_date,
         price_values=price_values,
         indicator_values=indicator_values,
+        parameters=parameters,
     )
     if left is None or right is None or rule.operator is None:
         return False
@@ -57,6 +62,7 @@ def resolve_operand(
     trade_date: date,
     price_values: dict[str, Decimal],
     indicator_values: dict[tuple[date, str, str, str], Decimal],
+    parameters: dict[str, Decimal] | None = None,
 ) -> Decimal | None:
     if operand is None:
         return None
@@ -72,6 +78,8 @@ def resolve_operand(
             operand.parameter_signature or "",
         )
         return indicator_values.get(key)
+    if operand.kind == "parameter":
+        return (parameters or {}).get(operand.parameter_name or "")
     return None
 
 

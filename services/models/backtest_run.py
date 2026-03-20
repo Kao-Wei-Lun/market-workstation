@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, JSON, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from services.db.base import Base
@@ -29,6 +29,8 @@ class BacktestRun(Base):
     fee_paid: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     tax_paid: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     slippage_paid: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
+    resolved_parameters_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    metrics_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     notes: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

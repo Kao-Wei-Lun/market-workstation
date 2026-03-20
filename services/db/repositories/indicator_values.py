@@ -70,3 +70,28 @@ class IndicatorValueRepository:
         if end_date is not None:
             query = query.filter(IndicatorValue.trade_date <= end_date)
         return query.order_by(IndicatorValue.trade_date.asc()).all()
+
+    def list_for_instruments(
+        self,
+        instrument_ids: list[int],
+        *,
+        indicator_name: str | None = None,
+        component: str | None = None,
+        parameter_signature: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[IndicatorValue]:
+        if not instrument_ids:
+            return []
+        query = self.session.query(IndicatorValue).filter(IndicatorValue.instrument_id.in_(instrument_ids))
+        if indicator_name is not None:
+            query = query.filter(IndicatorValue.indicator_name == indicator_name)
+        if component is not None:
+            query = query.filter(IndicatorValue.component == component)
+        if parameter_signature is not None:
+            query = query.filter(IndicatorValue.parameter_signature == parameter_signature)
+        if start_date is not None:
+            query = query.filter(IndicatorValue.trade_date >= start_date)
+        if end_date is not None:
+            query = query.filter(IndicatorValue.trade_date <= end_date)
+        return query.order_by(IndicatorValue.instrument_id.asc(), IndicatorValue.trade_date.asc()).all()

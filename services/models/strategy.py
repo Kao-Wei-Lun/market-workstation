@@ -17,7 +17,7 @@ class Strategy(Base):
     __tablename__ = "strategies"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), nullable=False)
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     definition_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timezone
+from decimal import Decimal
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from services.core.backtesting.dsl import parse_strategy_definition
-from services.core.backtesting.engine import execute_backtest
+from services.core.backtesting.engine import BacktestExecutionResult, execute_backtest
+from services.core.backtesting.universe import resolve_universe_instrument_ids
 from services.db.repositories.backtests import (
     BacktestRunRepository,
     BacktestTradeRepository,
@@ -14,7 +19,7 @@ from services.db.repositories.indicator_values import IndicatorValueRepository
 from services.models.backtest_run import BacktestRun
 from services.models.backtest_trade import BacktestTrade
 from services.models.strategy import Strategy
-from services.schemas.backtesting import BacktestCreateRequest
+from services.schemas.backtesting import BacktestCreateRequest, StrategyDefinition
 
 
 def create_and_run_backtest(session: Session, request: BacktestCreateRequest) -> tuple[Strategy, BacktestRun]:
@@ -25,11 +30,44 @@ def create_and_run_backtest(session: Session, request: BacktestCreateRequest) ->
         description=request.description,
         definition_json=request.definition.model_dump(mode="json"),
     )
+    run = execute_strategy(
+        session,
+        strategy=strategy,
+        strategy_definition=strategy_definition,
+        parameters=request.parameters,
+    )
+    return strategy, run
 
-    bars = DailyBarRepository(session).list_for_instrument(strategy_definition.instrument_id)
-    indicator_values = IndicatorValueRepository(session).list_for_instrument(strategy_definition.instrument_id)
-    execution = execute_backtest(strategy_definition, bars=bars, indicator_values=indicator_values)
 
+def execute_strategy(
+    session: Session,
+    *,
+    strategy: Strategy,
+    strategy_definition: StrategyDefinition,
+    parameters: dict[str, Decimal] | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> BacktestRun:
+    instrument_ids = resolve_universe_instrument_ids(session, strategy_definition)
+    bars = DailyBarRepository(session).list_for_instruments(
+        instrument_ids,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    indicator_values = IndicatorValueRepository(session).list_for_instruments(
+        instrument_ids,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    bars_by_instrument: dict[int, list[Any]] = {}
+    for bar in bars:
+        bars_by_instrument.setdefault(bar.instrument_id, []).append(bar)
+    execution = execute_backtest(
+        strategy_definition,
+        bars=bars_by_instrument,
+        indicator_values=indicator_values,
+        parameters=parameters,
+    )
     run = BacktestRunRepository(session).create(
         BacktestRun(
             strategy_id=strategy.id,
@@ -43,6 +81,8 @@ def create_and_run_backtest(session: Session, request: BacktestCreateRequest) ->
             fee_paid=execution.fee_paid,
             tax_paid=execution.tax_paid,
             slippage_paid=execution.slippage_paid,
+            resolved_parameters_json=_serialize_decimal_mapping(parameters or {}),
+            metrics_json=execution.metrics.as_dict(),
             notes=execution.notes,
             started_at=execution.started_at,
             finished_at=execution.finished_at,
@@ -69,7 +109,7 @@ def create_and_run_backtest(session: Session, request: BacktestCreateRequest) ->
             for trade in execution.trades
         ]
     )
-    return strategy, run
+    return run
 
 
 def get_backtest_run(session: Session, run_id: int) -> BacktestRun | None:
@@ -78,3 +118,21 @@ def get_backtest_run(session: Session, run_id: int) -> BacktestRun | None:
 
 def list_backtest_trades(session: Session, run_id: int) -> list[BacktestTrade]:
     return BacktestTradeRepository(session).list_for_run(run_id)
+
+
+def ranking_score_from_execution(execution: BacktestExecutionResult, ranking_metric: str) -> Decimal:
+    if ranking_metric == "sharpe":
+        return execution.metrics.sharpe_ratio
+    if ranking_metric == "cagr":
+        return execution.metrics.cagr_pct
+    if ranking_metric == "max_drawdown":
+        return Decimal("0") - execution.metrics.max_drawdown_pct
+    return execution.metrics.score
+
+
+def now_utc() -> datetime:
+    return datetime.now(tz=timezone.utc)
+
+
+def _serialize_decimal_mapping(values: dict[str, Decimal]) -> dict[str, str]:
+    return {key: str(value) for key, value in values.items()}

@@ -75,3 +75,19 @@ class DailyBarRepository:
         if end_date is not None:
             query = query.filter(DailyBar.trade_date <= end_date)
         return query.order_by(DailyBar.trade_date.asc()).all()
+
+    def list_for_instruments(
+        self,
+        instrument_ids: list[int],
+        *,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[DailyBar]:
+        if not instrument_ids:
+            return []
+        query = self.session.query(DailyBar).filter(DailyBar.instrument_id.in_(instrument_ids))
+        if start_date is not None:
+            query = query.filter(DailyBar.trade_date >= start_date)
+        if end_date is not None:
+            query = query.filter(DailyBar.trade_date <= end_date)
+        return query.order_by(DailyBar.instrument_id.asc(), DailyBar.trade_date.asc()).all()

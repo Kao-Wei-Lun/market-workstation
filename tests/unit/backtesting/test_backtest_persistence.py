@@ -104,5 +104,7 @@ def test_backtest_run_and_trade_persistence() -> None:
 
     assert persisted_run is not None
     assert persisted_run.total_trades == 1
+    assert persisted_run.resolved_parameters_json == {}
+    assert "score" in persisted_run.metrics_json
     assert len(trades) == 1
     assert trades[0].run_id == run.id
