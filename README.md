@@ -150,7 +150,19 @@ After running the quickstart commands:
 ## API Output And Export
 
 - Dashboard overview:
-  `curl "http://localhost:8000/dashboard/overview/latest?trade_date=2026-03-20&watchlist_id=1"`
+  `curl "http://localhost:8000/api/dashboard/overview?trade_date=2026-03-20&watchlist_id=1&tag=semiconductor"`
+- Watchlist dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/watchlists/1?trade_date=2026-03-20"`
+- Group dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/groups/semiconductor?trade_date=2026-03-20"`
+- Latest candidates dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/candidates/latest?candidate_date=2026-03-20&limit=10&offset=0"`
+- Latest derivatives dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-20"`
+- Latest backtests dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/backtests/latest?limit=5"`
+- Latest reports dashboard payload:
+  `curl "http://localhost:8000/api/dashboard/reports/latest?report_date=2026-03-20&limit=10&offset=0"`
 - Latest derivatives bias summary:
   `curl http://localhost:8000/derivatives/summary/latest`
 - List latest reports:
@@ -168,6 +180,8 @@ After running the quickstart commands:
 - List backtest runs or export trades:
   `curl http://localhost:8000/backtests/runs`
   `curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"`
+
+Dashboard-oriented APIs now return a consistent top-level structure with `meta`, `summary_cards`, `highlights`, `ranked_lists`, and typed `data` payloads, which is intended to reduce frontend-side reshaping work.
 
 ## Verification
 

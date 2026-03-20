@@ -95,7 +95,7 @@ async def test_report_query_routes(
     assert latest_response.status_code == 200
     assert len(latest_response.json()) == 3
     assert dashboard_response.status_code == 200
-    assert dashboard_response.json()["market_snapshot"]["instrument_count"] == 3
+    assert dashboard_response.json()["data"]["market_snapshot"]["instrument_count"] == 3
     assert derivatives_response.status_code == 200
     assert derivatives_response.json()["trade_date"] == report_date.isoformat()
     assert missing_response.status_code == 404
