@@ -39,3 +39,10 @@ export function formatTitle(input: string): string {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
+export function formatList(value: string[] | null | undefined, emptyText = "n/a"): string {
+  if (!Array.isArray(value) || value.length === 0) {
+    return emptyText;
+  }
+  return value.join(", ");
+}

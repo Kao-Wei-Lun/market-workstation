@@ -1,4 +1,6 @@
 import { getJson } from "@/api/http";
+import { normalizeCandidateItem } from "@/api/candidates";
+import type { CandidateSummarySnapshotApiRead } from "@/types/api";
 import type {
   BacktestsDashboardRead,
   CandidatesDashboardRead,
@@ -17,7 +19,7 @@ interface OverviewParams {
 }
 
 export async function fetchOverview(params: OverviewParams = {}): Promise<DashboardOverviewRead> {
-  return getJson<DashboardOverviewRead>("/api/dashboard/overview", {
+  const response = await getJson<DashboardOverviewRead>("/api/dashboard/overview", {
     params: {
       trade_date: params.tradeDate,
       watchlist_id: params.watchlistId,
@@ -25,6 +27,7 @@ export async function fetchOverview(params: OverviewParams = {}): Promise<Dashbo
       top_n: params.topN,
     },
   });
+  return normalizeOverviewDashboard(response);
 }
 
 export async function fetchWatchlistDashboard(
@@ -56,13 +59,14 @@ export async function fetchCandidatesDashboard(params: {
   limit?: number;
   offset?: number;
 } = {}): Promise<CandidatesDashboardRead> {
-  return getJson<CandidatesDashboardRead>("/api/dashboard/candidates/latest", {
+  const response = await getJson<CandidatesDashboardRead>("/api/dashboard/candidates/latest", {
     params: {
       candidate_date: params.candidateDate,
       limit: params.limit,
       offset: params.offset,
     },
   });
+  return normalizeCandidatesDashboard(response);
 }
 
 export async function fetchDerivativesDashboard(tradeDate?: string): Promise<DerivativesDashboardRead> {
@@ -89,4 +93,34 @@ export async function fetchReportsDashboard(params: {
       offset: params.offset,
     },
   });
+}
+
+function normalizeOverviewDashboard(response: DashboardOverviewRead): DashboardOverviewRead {
+  if (!response.data.candidate_summary) {
+    return response;
+  }
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      candidate_summary: normalizeCandidateSummarySnapshot(response.data.candidate_summary as CandidateSummarySnapshotApiRead),
+    },
+  };
+}
+
+function normalizeCandidatesDashboard(response: CandidatesDashboardRead): CandidatesDashboardRead {
+  if (!response.data) {
+    return response;
+  }
+  return {
+    ...response,
+    data: normalizeCandidateSummarySnapshot(response.data as CandidateSummarySnapshotApiRead),
+  };
+}
+
+function normalizeCandidateSummarySnapshot(snapshot: CandidateSummarySnapshotApiRead) {
+  return {
+    ...snapshot,
+    top_items: (snapshot.top_items ?? []).map(normalizeCandidateItem),
+  };
 }

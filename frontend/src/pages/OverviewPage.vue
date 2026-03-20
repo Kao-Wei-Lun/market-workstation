@@ -133,7 +133,7 @@ import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { DashboardOverviewRead } from "@/types/dashboard";
-import { formatDate, formatNumber, formatPercent } from "@/utils/formatters";
+import { formatDate, formatList, formatNumber, formatPercent } from "@/utils/formatters";
 
 const overview = ref<DashboardOverviewRead | null>(null);
 const isLoading = ref(false);
@@ -167,7 +167,7 @@ const candidateRows = computed(() =>
     rank: item.rank,
     symbol: item.symbol,
     score: Number(item.score),
-    reasons: item.candidate_reasons.join(", "),
+    reasons: formatList(item.candidate_reasons, "No reasons"),
   })) ?? [],
 );
 

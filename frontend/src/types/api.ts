@@ -16,6 +16,21 @@ export interface WatchlistItemRead {
   created_at: string;
 }
 
+export interface CandidateItemApiRead {
+  id: number;
+  run_id: number;
+  instrument_id: number;
+  candidate_date: string;
+  symbol: string;
+  score: string;
+  rank: number;
+  candidate_reasons?: string[] | null;
+  candidate_reasons_json?: string[] | null;
+  supporting_metrics?: Record<string, unknown> | null;
+  supporting_metrics_json?: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface ReportSectionRead {
   title: string;
   section_type: string;
@@ -43,6 +58,11 @@ export interface DailyReportBundleContent {
 export interface CandidateRunWithItemsRead {
   run: CandidateRunRead;
   items: CandidateItemRead[];
+}
+
+export interface CandidateSummarySnapshotApiRead {
+  run: CandidateRunRead;
+  top_items?: CandidateItemApiRead[] | null;
 }
 
 export interface BacktestCreateResponse {

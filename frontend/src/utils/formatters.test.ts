@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDateTime, formatNumber, formatPercent, formatTitle } from "@/utils/formatters";
+import { formatDate, formatDateTime, formatList, formatNumber, formatPercent, formatTitle } from "@/utils/formatters";
 
 describe("formatters", () => {
   it("formats numbers and falls back safely", () => {
@@ -13,5 +13,11 @@ describe("formatters", () => {
     expect(formatDateTime("2024-01-05T12:34:56")).toBe("2024-01-05 12:34");
     expect(formatPercent("12.345")).toBe("12.35%");
     expect(formatTitle("daily_report_bundle")).toBe("Daily Report Bundle");
+  });
+
+  it("formats optional lists safely", () => {
+    expect(formatList(["alpha", "beta"])).toBe("alpha, beta");
+    expect(formatList([])).toBe("n/a");
+    expect(formatList(undefined, "No reasons")).toBe("No reasons");
   });
 });

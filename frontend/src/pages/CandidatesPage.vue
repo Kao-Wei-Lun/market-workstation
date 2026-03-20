@@ -111,7 +111,7 @@ import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { CandidateItemRead, CandidateRunRead, CandidatesDashboardRead } from "@/types/dashboard";
-import { formatDate, formatNumber } from "@/utils/formatters";
+import { formatDate, formatList, formatNumber } from "@/utils/formatters";
 import { filterRowsByQuery } from "@/utils/presentation";
 
 const dashboard = ref<CandidatesDashboardRead | null>(null);
@@ -166,7 +166,7 @@ const itemRows = computed(() =>
     rank: item.rank,
     symbol: item.symbol,
     score: Number(item.score),
-    reasons: item.candidate_reasons.join(", "),
+    reasons: formatList(item.candidate_reasons, "No reasons"),
   })),
 );
 
