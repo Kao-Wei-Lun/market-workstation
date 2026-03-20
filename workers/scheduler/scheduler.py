@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -17,9 +17,9 @@ def build_scheduler(
     *,
     session_factory: sessionmaker[Session] = SessionLocal,
     worker_name: str = "scheduler",
-) -> BackgroundScheduler:
+) -> BlockingScheduler:
     settings = get_settings()
-    scheduler = BackgroundScheduler(timezone=settings.scheduler_timezone)
+    scheduler = BlockingScheduler(timezone=settings.scheduler_timezone)
     for job in list_registered_jobs():
         scheduler.add_job(
             run_scheduled_job,

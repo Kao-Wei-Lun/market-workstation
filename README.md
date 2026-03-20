@@ -70,12 +70,16 @@ All bootstrap commands are available through `scripts/manage.py`:
 ## Sample verification
 
 After running the quickstart commands:
+- Open `http://localhost:8000/health`
 - Open `http://localhost:8000/healthz`
 - Query a report list:
   `curl "http://localhost:8000/reports?report_date=2026-03-20"`
 - Run the worker job list:
   `python -m workers.scheduler.main --list-jobs`
   `python -m workers.analysis.main --list-jobs`
+- Verify the scheduler stays up:
+  `docker compose ps`
+  `docker compose logs scheduler --tail=100`
 
 ## Make targets
 

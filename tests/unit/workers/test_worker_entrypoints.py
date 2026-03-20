@@ -19,6 +19,26 @@ def test_scheduler_entrypoint_runs_single_job(monkeypatch) -> None:
     assert captured["job_name"] == "daily_market_etl"
 
 
+def test_scheduler_entrypoint_starts_foreground_scheduler(monkeypatch) -> None:
+    state = {"heartbeat_called": False, "scheduler_started": False}
+
+    class _FakeScheduler:
+        def start(self) -> None:
+            state["scheduler_started"] = True
+
+    def fake_record_worker_idle_heartbeat(**kwargs) -> None:
+        state["heartbeat_called"] = True
+
+    monkeypatch.setattr(scheduler_main, "record_worker_idle_heartbeat", fake_record_worker_idle_heartbeat)
+    monkeypatch.setattr(scheduler_main, "build_scheduler", lambda worker_name: _FakeScheduler())
+
+    exit_code = scheduler_main.main(["--start", "--worker-name", "scheduler-test"])
+
+    assert exit_code == 0
+    assert state["heartbeat_called"] is True
+    assert state["scheduler_started"] is True
+
+
 def test_analysis_entrypoint_writes_single_heartbeat(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
