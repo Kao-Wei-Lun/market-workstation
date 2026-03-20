@@ -169,6 +169,13 @@ def run_sample_daily_market_etl(session: Session, *, trade_date: date) -> Sample
             volume_base=1_500_000,
             market="TW",
         ),
+        "^TWII": _build_price_series(
+            trade_date=trade_date,
+            start_price=Decimal("21800"),
+            daily_step=Decimal("45"),
+            volume_base=3_200_000,
+            market="TW",
+        ),
         "AAPL": _build_price_series(
             trade_date=trade_date,
             start_price=Decimal("180"),

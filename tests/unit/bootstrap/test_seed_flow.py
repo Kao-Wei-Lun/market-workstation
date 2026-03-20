@@ -58,9 +58,11 @@ def test_sample_etl_loads_seeded_daily_bars() -> None:
 
     result = run_sample_daily_market_etl(session, trade_date=date(2024, 1, 31))
 
-    assert result.instruments_processed == 2
-    assert result.daily_bars_loaded == 60
-    assert session.query(DailyBar).count() == 60
+    assert result.instruments_processed == 3
+    assert result.daily_bars_loaded == 90
+    assert session.query(DailyBar).count() == 90
+    twii = session.query(Instrument).filter(Instrument.symbol == "^TWII").one()
+    assert session.query(DailyBar).filter(DailyBar.instrument_id == twii.id).count() == 30
 
 
 def test_load_instrument_universe_supports_broader_v1_preset_idempotently() -> None:
@@ -106,7 +108,10 @@ def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables(
     assert first.tw_derivatives_features_persisted > 0
     assert first.tw_institutional_spot_loaded > 0
 
-    assert session.query(DailyBar).count() == 60
+    assert first.daily_bars_loaded == 90
+    assert session.query(DailyBar).count() == 90
+    twii = session.query(Instrument).filter(Instrument.symbol == "^TWII").one()
+    assert session.query(DailyBar).filter(DailyBar.instrument_id == twii.id).count() == 30
     assert session.query(CandidateRun).count() == 1
     assert session.query(CandidateItem).count() == second.candidate_items_created
     assert session.query(Strategy).count() == 1
