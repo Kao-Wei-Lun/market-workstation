@@ -6,6 +6,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from sqlalchemy import func
 
 from services.core.bootstrap import (
     DEFAULT_DEMO_TRADE_DATE,
@@ -17,6 +18,10 @@ from services.core.bootstrap import (
 )
 from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
+from services.models.backtest_run import BacktestRun
+from services.models.candidate_run import CandidateRun
+from services.models.report_daily import ReportDaily
+from services.models.tw_derivatives_daily import TwDerivativesDaily
 from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
 from config.universe import describe_universe_preset, list_available_universe_presets
 
@@ -60,6 +65,10 @@ def main(argv: list[str] | None = None) -> int:
 
     smoke_parser = subparsers.add_parser("smoke-test", help="Run local startup smoke checks.")
     smoke_parser.add_argument("--api-base-url", default="http://localhost:8000")
+
+    verify_parser = subparsers.add_parser("verify-v1", help="Run local V1 release-readiness checks.")
+    verify_parser.add_argument("--api-base-url", default="http://localhost:8000")
+    verify_parser.add_argument("--trade-date", type=date.fromisoformat, default=DEFAULT_DEMO_TRADE_DATE)
 
     args = parser.parse_args(argv)
 
@@ -161,6 +170,33 @@ def main(argv: list[str] | None = None) -> int:
             f"checked_symbols={','.join(smoke_result.checked_symbols)}"
         )
         return 0 if smoke_result.passed else 1
+
+    if args.command == "verify-v1":
+        with SessionLocal() as session:
+            demo_result = generate_demo_data(session, trade_date=args.trade_date)
+            smoke_result = run_smoke_test(session, api_base_url=args.api_base_url)
+            candidate_runs = session.query(func.count(CandidateRun.id)).scalar() or 0
+            backtest_runs = session.query(func.count(BacktestRun.id)).scalar() or 0
+            reports = session.query(func.count(ReportDaily.id)).scalar() or 0
+            derivatives_rows = session.query(func.count(TwDerivativesDaily.id)).scalar() or 0
+        passed = bool(
+            smoke_result.passed
+            and candidate_runs > 0
+            and backtest_runs > 0
+            and reports > 0
+            and derivatives_rows > 0
+        )
+        print(
+            "V1 verify result: "
+            f"passed={passed}, "
+            f"trade_date={demo_result.trade_date.isoformat()}, "
+            f"smoke_test_passed={smoke_result.passed}, "
+            f"candidate_runs={candidate_runs}, "
+            f"backtest_runs={backtest_runs}, "
+            f"reports={reports}, "
+            f"tw_derivatives_daily={derivatives_rows}"
+        )
+        return 0 if passed else 1
 
     parser.print_help()
     return 1

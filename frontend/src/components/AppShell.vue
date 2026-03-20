@@ -25,7 +25,7 @@
         <div class="topbar-meta">
           <strong>{{ currentPageTitle }}</strong>
           <span v-if="currentPageDescription" class="muted">{{ currentPageDescription }}</span>
-          <span class="muted">API 位址 {{ appStore.apiBaseUrl }}</span>
+          <span class="muted">API 端點 {{ appStore.apiBaseUrl }}</span>
         </div>
       </header>
       <main class="page">

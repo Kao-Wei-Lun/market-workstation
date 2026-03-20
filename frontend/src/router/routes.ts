@@ -12,8 +12,8 @@ import WatchlistsPage from "@/pages/WatchlistsPage.vue";
 
 export const routes: RouteRecordRaw[] = [
   { path: "/", name: "overview", component: OverviewPage, meta: { label: "總覽", title: "市場總覽", description: "每日市場快照與跨頁面檢視入口。" } },
-  { path: "/coverage", name: "coverage", component: CoveragePage, meta: { label: "資料覆蓋", title: "資料覆蓋", description: "檢查 universe preset、已載入標的與 bootstrap 狀態。" } },
-  { path: "/operations", name: "operations", component: OperationsPage, meta: { label: "系統狀態", title: "系統狀態", description: "檢查資料新鮮度、ingest jobs 與 worker 健康狀態。" } },
+  { path: "/coverage", name: "coverage", component: CoveragePage, meta: { label: "資料覆蓋", title: "資料覆蓋", description: "檢查資料範圍預設集、已載入標的與初始化狀態。" } },
+  { path: "/operations", name: "operations", component: OperationsPage, meta: { label: "系統狀態", title: "系統狀態", description: "檢查資料新鮮度、匯入工作與 worker 健康狀態。" } },
   { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "觀察清單", title: "觀察清單", description: "檢視觀察清單成員、掃描訊號與摘要指標。" } },
   { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "標籤群組", title: "標籤群組", description: "檢視標籤群組、群組強弱與掃描脈絡。" } },
   { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "候選清單", title: "隔日候選清單", description: "檢視隔日候選名單、評分理由與排名拆解。" } },

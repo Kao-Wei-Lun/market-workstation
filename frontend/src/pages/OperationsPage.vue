@@ -3,7 +3,7 @@
     <PageHeader
       eyebrow="管理"
       title="系統狀態"
-      description="檢查最近資料更新、ingest jobs、worker heartbeat 與本機系統健康狀態。"
+      description="檢查最近資料更新、匯入工作、worker 心跳與本機系統健康狀態。"
     />
 
     <FilterBar title="作業檢視" description="調整近期工作筆數與 worker 過舊判定門檻。">
@@ -28,7 +28,7 @@
       :as-of-date="status?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(status?.meta.generated_at)"
       :item-count="status?.meta.item_count"
-      hint="此頁面整合資料新鮮度、工作紀錄與 worker heartbeat。"
+      hint="此頁面整合資料新鮮度、工作紀錄與 worker 心跳。"
       demo-hint="若工作紀錄為空，可先執行 make demo-data 或手動跑 sample-etl / generate-reports。"
       :show-refresh="true"
       @refresh="loadStatus"
@@ -44,7 +44,7 @@
     <template v-else-if="status">
       <SummaryCardGrid :cards="status.summary_cards" />
 
-      <DetailPanel title="營運重點" description="快速檢查最近 jobs、資料集與 worker 是否正常。">
+      <DetailPanel title="營運重點" description="快速檢查最近工作、資料集與 worker 是否正常。">
         <ul class="highlights">
           <li v-for="item in status.highlights" :key="item">{{ item }}</li>
         </ul>
@@ -60,7 +60,7 @@
         />
         <MiniBarChart
           title="工作狀態統計"
-          description="顯示 ingest jobs 的狀態分布。"
+          description="顯示匯入工作的狀態分布。"
           :points="jobStatusChartPoints"
           empty-message="目前沒有工作狀態統計。"
         />
@@ -78,12 +78,12 @@
         />
         <SortableTableSection
           title="最近 ETL / Ingest Jobs"
-          description="查看近期排程或手動執行的工作狀態。"
+          description="查看近期排程或手動執行的匯入工作狀態。"
           :columns="jobColumns"
           :rows="jobRows"
           default-sort-by="started_at"
           default-sort-direction="desc"
-          empty-message="目前沒有 ingest job 紀錄。"
+          empty-message="目前沒有匯入工作紀錄。"
         />
         <SortableTableSection
           title="Worker 心跳"

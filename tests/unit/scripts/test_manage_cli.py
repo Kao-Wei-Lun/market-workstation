@@ -30,6 +30,16 @@ class _DemoDataResult:
 
 
 @dataclass(frozen=True)
+class _VerifySmokeResult:
+    database_connectivity_ok: bool
+    api_health_ok: bool
+    schema_reachable: bool
+    sample_data_ok: bool
+    checked_symbols: list[str]
+    passed: bool
+
+
+@dataclass(frozen=True)
 class _UniverseLoadResult:
     preset_name: str
     description: str
@@ -212,9 +222,68 @@ def test_manage_smoke_test_dispatches_service(monkeypatch, capsys) -> None:
     assert "database_connectivity_ok=True" in output
 
 
+def test_manage_verify_v1_runs_demo_and_smoke_checks(monkeypatch, capsys) -> None:
+    from datetime import date
+
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _verify_session_context())
+    monkeypatch.setattr(
+        manage,
+        "generate_demo_data",
+        lambda session, trade_date: _DemoDataResult(
+            trade_date=date(2026, 3, 20),
+            daily_bars_loaded=60,
+            indicator_values_persisted=120,
+            tw_derivatives_features_persisted=10,
+            candidate_items_created=5,
+            backtest_trades_created=4,
+            reports_persisted=3,
+        ),
+    )
+    monkeypatch.setattr(
+        manage,
+        "run_smoke_test",
+        lambda session, api_base_url: _VerifySmokeResult(
+            database_connectivity_ok=True,
+            api_health_ok=True,
+            schema_reachable=True,
+            sample_data_ok=True,
+            checked_symbols=["2330"],
+            passed=True,
+        ),
+    )
+
+    exit_code = manage.main(["verify-v1", "--api-base-url", "http://localhost:8000", "--trade-date", "2026-03-20"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "passed=True" in output
+    assert "candidate_runs=1" in output
+
+
 class _session_context:
     def __enter__(self):
         return object()
 
     def __exit__(self, exc_type, exc, tb) -> None:
         return None
+
+
+class _FakeCountQuery:
+    def __init__(self, count: int) -> None:
+        self.count = count
+
+    def scalar(self) -> int:
+        return self.count
+
+
+class _verify_session_context:
+    def __enter__(self):
+        return _FakeVerifySession()
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+
+class _FakeVerifySession:
+    def query(self, _expression):
+        return _FakeCountQuery(1)

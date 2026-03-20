@@ -3,13 +3,13 @@
     <PageHeader
       eyebrow="管理"
       title="資料覆蓋"
-      description="檢查目前 universe preset、已載入標的、分類分布與本機 bootstrap 狀態。"
+      description="檢查目前資料範圍預設集、已載入標的、分類分布與本機初始化狀態。"
     />
 
-    <FilterBar title="Coverage 篩選" description="切換 preset，查看目前本機資料覆蓋與 bootstrap 進度。">
+    <FilterBar title="資料覆蓋篩選" description="切換預設集，查看目前本機資料覆蓋與初始化進度。">
       <div class="form-inline">
         <div class="field-group">
-          <label for="coverage-preset">Universe preset</label>
+          <label for="coverage-preset">資料範圍預設集</label>
           <select id="coverage-preset" v-model="selectedPreset" @change="loadCoverage">
             <option v-for="preset in availablePresets" :key="preset" :value="preset">
               {{ preset }}
@@ -24,11 +24,11 @@
     </FilterBar>
 
     <PageStatusBar
-      title="Coverage 狀態"
+      title="資料覆蓋狀態"
       :generated-at="formatDateTime(coverage?.meta.generated_at)"
       :item-count="coverage?.meta.item_count"
-      hint="此頁顯示 config preset 與資料庫實際載入狀態的對照。"
-      demo-hint="可先用 make list-universes 與 make load-universe 檢查或補齊 universe。"
+      hint="此頁顯示預設集定義與資料庫實際載入狀態的對照。"
+      demo-hint="可先用 make list-universes 與 make load-universe 檢查或補齊資料範圍。"
       :show-refresh="true"
       @refresh="loadCoverage"
     />
@@ -43,7 +43,7 @@
     <template v-else-if="coverage">
       <SummaryCardGrid :cards="coverage.summary_cards" />
 
-      <DetailPanel title="Coverage 重點" description="快速檢查 preset 與已載入資料的整體狀態。">
+      <DetailPanel title="資料覆蓋重點" description="快速檢查預設集與已載入資料的整體狀態。">
         <template #header>
           <span class="pill info">{{ coverage.data.preset.preset_name }}</span>
         </template>
@@ -70,26 +70,26 @@
 
       <div class="page-section-grid">
         <SortableTableSection
-          title="Universe 區段"
-          description="逐一檢視各 scope 的 preset 宣告與已載入進度。"
+          title="範圍區段"
+          description="逐一檢視各區段的預設宣告與已載入進度。"
           :columns="scopeColumns"
           :rows="scopeRows"
           default-sort-by="loaded_instruments"
           default-sort-direction="desc"
-          empty-message="目前沒有 scope coverage 資料。"
+          empty-message="目前沒有區段覆蓋資料。"
         />
         <SortableTableSection
-          title="Market 統計"
+          title="市場統計"
           description="依市場別彙整目前資料庫中已啟用標的數。"
           :columns="categoryColumns"
           :rows="marketRows"
           default-sort-by="instrument_count"
           default-sort-direction="desc"
-          empty-message="目前沒有 market 統計。"
+          empty-message="目前沒有市場統計。"
         />
         <SortableTableSection
           title="資料來源統計"
-          description="依 provider/source route 檢查目前本機已載入來源。"
+          description="依 provider / source route 檢查目前本機已載入來源。"
           :columns="categoryColumns"
           :rows="sourceRouteRows"
           default-sort-by="instrument_count"
@@ -132,7 +132,7 @@ const scopeColumns = [
   { key: "market", label: "市場" },
   { key: "asset_type", label: "資產類型" },
   { key: "loaded_instruments", label: "已載入標的" },
-  { key: "configured_instruments", label: "Preset 標的" },
+  { key: "configured_instruments", label: "預設標的" },
   { key: "watchlists", label: "觀察清單" },
   { key: "sample_symbols", label: "範例代號" },
 ];
@@ -150,10 +150,10 @@ const presetMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Preset 名稱", value: preset.preset_name, hint: "目前查詢對象" },
+    { label: "預設集名稱", value: preset.preset_name, hint: "目前查詢對象" },
     { label: "宣告標的", value: formatNumber(preset.configured_instrument_count), hint: "config 內定義" },
-    { label: "宣告清單", value: formatNumber(preset.configured_watchlist_count), hint: "preset watchlists" },
-    { label: "Coverage 區段", value: formatNumber(preset.scopes_declared), hint: "scope definitions" },
+    { label: "宣告清單", value: formatNumber(preset.configured_watchlist_count), hint: "預設觀察清單" },
+    { label: "覆蓋區段", value: formatNumber(preset.scopes_declared), hint: "區段定義數" },
   ];
 });
 

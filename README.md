@@ -1,312 +1,347 @@
 # Market Workstation
 
-V1 local daily-data research system for market ETL, indicators, Taiwan derivatives analysis, watchlists, backtesting, and daily reports. The current repository includes:
-- FastAPI API service
-- PostgreSQL-backed SQLAlchemy models and Alembic migrations
-- Scheduler and analysis worker foundations
-- Vue 3 + Vite frontend dashboard foundation
-- Sample bootstrap and local management CLI for first-run development
+本專案是 V1 本機日線研究工作站，目標是把收盤後研究流程整合成一套可啟動、可 demo、可檢查的單機系統。現階段重點是：
 
-## Prerequisites
+- 日線 ETL 與資料載入
+- 技術指標計算與儲存
+- 台灣法人期貨／選擇權日資料分析
+- 觀察清單、群組、scanner 與候選清單
+- 日線回測、參數搜尋、walk-forward
+- 每日報表與 dashboard 聚合 API
+- Vue 3 前端儀表板，預設介面語言為繁體中文
+
+V1 不包含即時行情、即時警示、訂單執行或多使用者能力；這些會留給 V2。
+
+## V1 範圍
+
+V1 目前提供：
+
+- FastAPI API 服務
+- PostgreSQL + SQLAlchemy + Alembic
+- scheduler / analysis worker 基礎
+- provider-isolated connectors
+- config-driven universe bootstrap
+- demo data 產生流程
+- 前端研究儀表板與管理頁面
+
+V1 建議用途：
+
+- 本機收盤後資料檢查
+- 候選標的盤後複核
+- 報表閱讀與隔日規劃
+- 基礎日線策略研究與回測
+- universe / ETL / worker 狀態檢查
+
+## 系統需求
 
 - Python 3.12
-- PostgreSQL 16 if running without Docker
-- Docker and Docker Compose for the recommended local stack
+- PostgreSQL 16
+- Docker / Docker Compose
+- Node.js 18+（前端開發建議）
 
-## Environment setup
+## 環境設定
 
-1. Create a local environment file:
-   `cp .env.example .env`
-2. For host-side commands such as `make migrate` and `make seed`, keep `POSTGRES_HOST=localhost` in `.env`.
-3. Docker Compose overrides the in-container DB host to `db`, so the same `.env` still works for containers.
-4. Leave provider API keys empty for the sample local workflow unless you are wiring a real source.
+1. 建立環境檔：
 
-## Local Python setup
+```bash
+cp .env.example .env
+```
 
-1. Create the virtual environment:
-   `python3 -m venv .venv`
-2. Install the project:
-   `make setup`
+2. 若在 host 端直接執行 `make migrate`、`make seed`、`make demo-data`，請保持：
 
-## Quickstart
+```bash
+POSTGRES_HOST=localhost
+```
 
-1. Start the local development services:
-   `make dev-up`
-2. Run database migrations:
-   `make migrate`
-3. Seed sample instruments, watchlist membership, and tags:
-   `make seed`
-4. Inspect available universe presets and scopes when you want broader coverage:
-   `make list-universes`
-5. Load the broader V1 research universe when you want more than the minimal sample set:
-   `make load-universe`
-6. Generate deterministic frontend-visible demo data:
-   `make demo-data`
-7. Run the startup smoke test:
-   `make smoke-test`
-8. Start the frontend:
-   `make run-frontend`
+3. Docker Compose 內會覆寫 DB host 為 `db`，因此同一份 `.env` 可以同時支援 host 與 container。
 
-## Running services locally
+4. 本機 demo flow 不需要填寫外部 provider key。
 
-- API:
-  `make run-api`
-- Scheduler worker:
-  `make run-scheduler`
-- Analysis worker:
-  `make run-analysis`
-- Frontend:
-  `make run-frontend`
+## 安裝
 
-## Management CLI
+```bash
+python3 -m venv .venv
+make setup
+make frontend-install
+```
 
-All bootstrap commands are available through `scripts/manage.py`:
-- `python scripts/manage.py migrate`
-- `python scripts/manage.py seed`
-- `python scripts/manage.py list-universes`
-- `python scripts/manage.py load-universe --preset v1_market_expanded`
-- `python scripts/manage.py load-universe --preset v1_market_expanded --scope macro_series_core`
-- `python scripts/manage.py demo-data --trade-date 2026-03-20`
-- `python scripts/manage.py sample-etl --trade-date 2026-03-20`
-- `python scripts/manage.py indicator-update --trade-date 2026-03-20`
-- `python scripts/manage.py generate-reports --trade-date 2026-03-20`
-- `python scripts/manage.py smoke-test --api-base-url http://localhost:8000`
+## 快速啟動
 
-## Docker Compose notes
+最短可見成果流程：
 
-- `docker-compose.yml` is set up for local development with `db`, `api`, `scheduler`, and `analysis`.
-- The compose stack also includes an optional `frontend` service on `http://localhost:5173`.
-- Compose now falls back to sane local defaults when `.env` is missing or incomplete.
-- Source code is mounted into the containers so API and worker code changes are reflected without rebuilding the image for every edit.
-- The API service exposes `http://localhost:8000/healthz` and has a compose healthcheck.
+```bash
+make dev-up
+make migrate
+make seed
+make demo-data
+make smoke-test
+make run-frontend
+```
 
-## Sample verification
+啟動後可檢查：
 
-After running the quickstart commands:
-- Open `http://localhost:8000/health`
-- Open `http://localhost:8000/healthz`
-- Open `http://localhost:5173`
-- Run `make smoke-test`
-- Query a report list:
-  `curl "http://localhost:8000/reports?report_date=2026-03-20"`
-- Run the worker job list:
-  `python -m workers.scheduler.main --list-jobs`
-  `python -m workers.analysis.main --list-jobs`
-- Verify the scheduler stays up:
-  `docker compose ps`
-  `docker compose logs scheduler --tail=100`
+- API: `http://localhost:8000/health`
+- API: `http://localhost:8000/healthz`
+- Frontend: `http://localhost:5173`
 
-## Make targets
+## Seed / Universe / Demo Data 的差異
 
-- `make setup`
-- `make migrate`
-- `make seed`
-- `make list-universes`
-- `make load-universe`
+### `make seed`
+
+只建立最小參考資料：
+
+- sample instruments
+- sample watchlists
+- sample tags
+
+用途：
+
+- smoke test
+- 最小初始化
+- 後續 demo-data 的基底
+
+### `make list-universes`
+
+列出可用 universe preset 與 scope。
+
+### `make load-universe`
+
+載入較完整的 V1 研究 universe。預設 preset 為 `v1_market_expanded`，目前涵蓋：
+
+- 台灣股票 / ETF / 主要指數
+- 精選美股 / ETF / 主要指數
+- 全球主要指數
+- 原物料
+- macro series
+
+也可只載入特定 scope，例如：
+
+```bash
+python scripts/manage.py load-universe --preset v1_market_expanded --scope macro_series_core
+```
+
+### `make demo-data`
+
+建立前端可見的本機示範資料，內容包含：
+
+- daily bars
+- indicator values
+- Taiwan derivatives demo rows / features
+- candidate run / candidate items
+- backtest run / trades
+- daily reports / daily report bundle
+
+`make demo-data` 針對同一 `TRADE_DATE` 設計為可重跑，不應不斷膨脹重複的 demo run。
+
+## 日常 demo flow
+
+若要讓前端幾乎每一頁都有可看資料，建議流程：
+
+```bash
+make migrate
+make seed
+make load-universe
+make demo-data
+make smoke-test
+make run-frontend
+```
+
+執行後，以下端點應有可見內容：
+
+```bash
+curl http://localhost:8000/candidates/runs
+curl http://localhost:8000/backtests/runs
+curl http://localhost:8000/reports/latest
+curl http://localhost:8000/derivatives/summary/latest
+curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"
+curl "http://localhost:8000/api/system/status?job_limit=20&worker_stale_minutes=30"
+```
+
+## 常用命令
+
+### 啟動與管理
+
+```bash
+make dev-up
+make dev-down
+make run-api
+make run-scheduler
+make run-analysis
+make run-frontend
+```
+
+### 初始化與資料
+
+```bash
+make migrate
+make seed
+make list-universes
+make load-universe
+make demo-data
+make sample-etl
+make indicator-update
+make generate-reports
+make smoke-test
+make verify-v1
+```
+
+### 驗證與品質
+
+```bash
+make test
+make lint
+make typecheck
+make frontend-test
+make frontend-build
+make release-check
+```
+
+## `scripts/manage.py`
+
+管理 CLI 提供：
+
+```bash
+python scripts/manage.py migrate
+python scripts/manage.py seed
+python scripts/manage.py list-universes
+python scripts/manage.py load-universe --preset v1_market_expanded
+python scripts/manage.py demo-data --trade-date 2026-03-20
+python scripts/manage.py sample-etl --trade-date 2026-03-20
+python scripts/manage.py indicator-update --trade-date 2026-03-20
+python scripts/manage.py generate-reports --trade-date 2026-03-20
+python scripts/manage.py smoke-test --api-base-url http://localhost:8000
+python scripts/manage.py verify-v1 --api-base-url http://localhost:8000 --trade-date 2026-03-20
+```
+
+## Frontend 使用流程
+
+前端目前主要頁面：
+
+- 總覽
+- 資料覆蓋
+- 系統狀態
+- 觀察清單
+- 標籤群組
+- 候選清單
+- 報表
+- 回測
+- 衍生性商品
+
+前端特性：
+
+- 預設介面語言為繁體中文
+- 以 route query 保留頁面篩選狀態
+- 以 dashboard aggregate API 減少前端自行重組資料
+- 各頁面統一使用 loading / empty / error state
+- 報表與候選頁提供較深的 drill-down
+- 管理頁提供 universe coverage、資料新鮮度、ingest jobs、worker heartbeat 可視性
+
+`VITE_API_BASE_URL` 可在 `.env` 或 `frontend/.env.example` 中設定，典型本機值為：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+## API 與可視化重點
+
+### Dashboard APIs
+
+```bash
+curl "http://localhost:8000/api/dashboard/overview?trade_date=2026-03-20&watchlist_id=1&tag=semiconductor"
+curl "http://localhost:8000/api/dashboard/candidates/latest?candidate_date=2026-03-20&limit=10"
+curl "http://localhost:8000/api/dashboard/reports/latest?report_date=2026-03-20&limit=10"
+curl "http://localhost:8000/api/dashboard/backtests/latest?limit=5"
+curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-20"
+```
+
+### 管理 / 可見性 APIs
+
+```bash
+curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"
+curl "http://localhost:8000/api/system/status?job_limit=20&worker_stale_minutes=30"
+```
+
+### 報表 / 候選 / 匯出
+
+```bash
+curl http://localhost:8000/reports/latest
+curl http://localhost:8000/reports/2026-03-20/bundle
+curl "http://localhost:8000/reports/2026-03-20/bundle/export?export_format=csv"
+curl "http://localhost:8000/candidates/runs?candidate_date=2026-03-20"
+curl "http://localhost:8000/candidates/runs/<run_id>/export?export_format=csv"
+curl http://localhost:8000/backtests/runs
+curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"
+curl "http://localhost:8000/scanner/export?trade_date=2026-03-20&watchlist_id=1&export_format=csv"
+```
+
+## Release / 驗收
+
+建議閱讀：
+
+- [V1 Release Checklist](docs/v1-release-checklist.md)
+
+最小 release-candidate 驗證流程：
+
+```bash
+make migrate
+make seed
+make load-universe
+make demo-data
+make smoke-test
+make release-check
+```
+
+`make release-check` 會串起：
+
 - `make demo-data`
-- `make sample-etl`
-- `make indicator-update`
-- `make generate-reports`
 - `make smoke-test`
-- `make run-api`
-- `make run-scheduler`
-- `make run-analysis`
-- `make frontend-install`
-- `make run-frontend`
-- `make frontend-build`
-- `make frontend-test`
 - `make test`
 - `make lint`
 - `make typecheck`
-- `make dev-up`
-- `make dev-down`
+- `make frontend-test`
+- `make frontend-build`
+- `make verify-v1`
 
-## Feature notes
+其中 `make verify-v1` 會再確認：
 
-- Connector modules live under `services/connectors/` and stay provider-isolated.
-- The ETL foundation lives under `services/core/etl/` with separate fetch, normalize, validate, and load stages.
-- Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, `Bollinger Bands`, `ADX/DMI`, `ATR`, `Stochastic`, `OBV`, `Ichimoku`, `Supertrend`, `Keltner Channel`, `CCI`, `ROC`, `MFI`, `Williams %R`, `Donchian Channel`, and `Parabolic SAR`.
-- Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
-- Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
-- Daily reporting now includes a richer persisted `daily_report_bundle` with structured sections for market summary, watchlist highlights, group scanner highlights, derivatives context, next-day candidates, top movers, and technical breadth.
-- Next-day watch candidate runs persist to `candidate_runs` and `candidate_items`, with generation and query APIs exposed under `/candidates`.
-- Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
-- Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
-- Backtesting now supports composite rule trees, parameterized rule operands, optional universe filters, multi-position daily execution controls, parameter search, and walk-forward evaluation APIs.
+- smoke test 成功
+- candidate runs 可見
+- backtest runs 可見
+- reports 可見
+- Taiwan derivatives 資料可見
 
-## Seed vs Demo Data
+## 已知限制
 
-- `make seed` only creates reference data such as instruments, watchlists, and tags.
-- `make load-universe` loads the broader V1 research preset from `config/universes/v1_market_expanded/`, including:
-  - Taiwan equities / ETFs / major indices
-  - curated US equities / ETFs / major indices
-  - major global indices
-  - commodity instruments
-  - macro-series instruments
-  - explicit provider routing via `source_route`
-- `make list-universes` shows which presets and scope keys are available.
-- `load-universe` can be limited to a single scope, for example:
-  `python scripts/manage.py load-universe --preset v1_market_expanded --scope macro_series_core`
-- `make demo-data` builds on `seed` and generates deterministic frontend-visible datasets for local development:
-  - daily bars
-  - indicator values
-  - Taiwan derivatives rows and features
-  - a candidate run with items
-  - a backtest run with trades
-  - persisted daily reports and a report bundle
-- `make demo-data` is designed to be repeatable for the same `TRADE_DATE` without growing duplicate demo backtests or candidate runs.
+V1 目前仍有以下限制：
 
-## Frontend Demo Flow
+- 不含 realtime market data
+- 不含 alerting / push notification
+- 不含 production auth / multi-user
+- universe 仍以 config-driven preset 為主，尚未完成 full-market registry auto-sync
+- 報表 markdown rendering 為 lightweight parser，不是完整 markdown engine
+- 前端目前以本機單人研究使用為前提，未針對大型資料量做完整 pagination / caching
 
-- For a visibly usable local frontend, this is the shortest path:
-  `make migrate`
-  `make seed`
-  `make demo-data`
-  `make run-frontend`
-- After running demo data generation, these endpoints should return non-empty payloads:
-  `curl http://localhost:8000/backtests/runs`
-  `curl http://localhost:8000/candidates/runs`
-  `curl http://localhost:8000/reports/latest`
-  `curl http://localhost:8000/derivatives/summary/latest`
+## V2 方向
 
-## Next-Day Candidates
+V2 預計延伸：
 
-- Generate a persisted candidate run:
-  `curl -X POST http://localhost:8000/candidates/runs -H "Content-Type: application/json" -d '{"candidate_date":"2026-03-20","top_n":10}'`
-- Get the latest run for a date:
-  `curl http://localhost:8000/candidates/runs/by-date/2026-03-20`
-- List candidate items for a run:
-  `curl http://localhost:8000/candidates/runs/<run_id>/items`
-- The daily next-day candidates report reuses the same scoring service as the candidate run API.
+- realtime worker
+- realtime data model / subscriptions
+- 富邦等券商 / 行情 API connector
+- 即時群組與 watchlist 查詢
+- 即時警示
+- 更完整的 health / lag / reconnect metrics
 
-## Daily Report Bundle
+V1 與 V2 會維持同一套基礎架構：API + workers + PostgreSQL + connector isolation。
 
-- Retrieve the richer daily report bundle:
-  `curl http://localhost:8000/reports/2026-03-20/bundle`
-- Retrieve one bundle section:
-  `curl http://localhost:8000/reports/2026-03-20/bundle/sections/technical_breadth_summary`
-- The bundle includes structured sections and markdown-friendly content for market review and next-day planning.
+## 驗證
 
-## Advanced Backtesting
+目前建議的完整檢查：
 
-- Run a parameterized daily backtest:
-  `curl -X POST http://localhost:8000/backtests/runs -H "Content-Type: application/json" -d '{"name":"SMA template","parameters":{"entry_threshold":"10","exit_threshold":"11"},"definition":{"instrument_id":1,"initial_cash":"100000","position_size":"0.5","max_concurrent_positions":2,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}}}'`
-- Run a parameter search:
-  `curl -X POST http://localhost:8000/backtests/searches -H "Content-Type: application/json" -d '{"name":"SMA grid","definition":{"instrument_id":1,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}},"parameter_space":{"entry_threshold":["10","11"],"exit_threshold":["11","12"]}}'`
-- Run walk-forward evaluation:
-  `curl -X POST http://localhost:8000/backtests/walk-forward -H "Content-Type: application/json" -d '{"name":"SMA walk forward","definition":{"instrument_id":1,"entry_rule":{"left":{"kind":"price","field":"close"},"operator":"gt","right":{"kind":"parameter","parameter_name":"entry_threshold"}},"exit_rule":{"left":{"kind":"price","field":"close"},"operator":"lt","right":{"kind":"parameter","parameter_name":"exit_threshold"}}},"parameter_space":{"entry_threshold":["10","11"],"exit_threshold":["11","12"]},"train_window_days":60,"test_window_days":20}'`
-- Retrieve search results:
-  `curl http://localhost:8000/backtests/searches/<search_run_id>/results`
-- Retrieve walk-forward windows:
-  `curl http://localhost:8000/backtests/walk-forward/<walk_forward_run_id>/windows`
-
-## API Output And Export
-
-- Dashboard overview:
-  `curl "http://localhost:8000/api/dashboard/overview?trade_date=2026-03-20&watchlist_id=1&tag=semiconductor"`
-- Watchlist dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/watchlists/1?trade_date=2026-03-20"`
-- Group dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/groups/semiconductor?trade_date=2026-03-20"`
-- Latest candidates dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/candidates/latest?candidate_date=2026-03-20&limit=10&offset=0"`
-- Latest derivatives dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-20"`
-- Latest backtests dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/backtests/latest?limit=5"`
-- Latest reports dashboard payload:
-  `curl "http://localhost:8000/api/dashboard/reports/latest?report_date=2026-03-20&limit=10&offset=0"`
-- Universe / coverage visibility payload:
-  `curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"`
-- System / ingest / worker status payload:
-  `curl "http://localhost:8000/api/system/status?job_limit=20&worker_stale_minutes=30"`
-- Latest derivatives bias summary:
-  `curl http://localhost:8000/derivatives/summary/latest`
-- List latest reports:
-  `curl http://localhost:8000/reports/latest`
-- Export a report bundle as CSV:
-  `curl "http://localhost:8000/reports/2026-03-20/bundle/export?export_format=csv"`
-- List candidate runs or filter candidate items:
-  `curl "http://localhost:8000/candidates/runs?candidate_date=2026-03-20"`
-  `curl "http://localhost:8000/candidates/items?candidate_date=2026-03-20&symbol=2330"`
-- Export a candidate run:
-  `curl "http://localhost:8000/candidates/runs/<run_id>/export?export_format=csv"`
-- Query scanner summaries and export them:
-  `curl "http://localhost:8000/scanner/summary?trade_date=2026-03-20&tag=semiconductor"`
-  `curl "http://localhost:8000/scanner/export?trade_date=2026-03-20&watchlist_id=1&export_format=csv"`
-- List backtest runs or export trades:
-  `curl http://localhost:8000/backtests/runs`
-  `curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"`
-
-Dashboard-oriented APIs now return a consistent top-level structure with `meta`, `summary_cards`, `highlights`, `ranked_lists`, and typed `data` payloads, which is intended to reduce frontend-side reshaping work.
-
-## Frontend Dashboard
-
-- The frontend lives under `frontend/` and uses Vue 3, Vite, TypeScript, Vue Router, Pinia, and Axios.
-- Overview, 資料覆蓋, 系統狀態, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives now use the existing backend APIs for local single-user review.
-- The frontend reads aggregate dashboard payloads from `/api/dashboard/...` and also fetches page-specific detail data from `/watchlists`, `/candidates`, `/reports`, `/backtests`, and `/derivatives`.
-- The current frontend pass adds practical UI helpers across the pages:
-  - filter bars for page scope and quick search
-  - sortable data tables for runs, items, and report lists
-  - lightweight bar charts for rankings and breadth-style summaries
-  - detail panels and metric grids for selected run/report/derivatives context
-  - route-query-backed page filters so deeper views can be opened directly from overview links
-  - status strips that show `generated_at`, `as_of_date`, refresh actions, and demo-data hints
-  - Traditional Chinese (`zh-TW`) UI labels across navigation, page headings, filters, tables, and state messages
-  - richer Candidates and Reports drill-down flows, including 候選分數拆解、scanner/watchlist/tag 脈絡、報表 section 快速切換，以及 markdown/structured payload 並排閱讀
-  - management-style pages for universe/bootstrap coverage, recent dataset freshness, ingest job history, and worker heartbeat visibility
-- Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
-- Typical local setting:
-  `VITE_API_BASE_URL=http://localhost:8000`
-- For local development:
-  `make frontend-install`
-  `make run-frontend`
-- For Docker Compose development:
-  `make dev-up`
-  Then open `http://localhost:5173`.
-- The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
-- Practical daily flow:
-  start from Overview, then click candidate symbols, report titles, backtest runs, or the current watchlist/group pills to jump into the deeper filtered page with the same context preserved in the URL query string.
-- Candidates page workflow:
-  use 日期、代號搜尋、分數/名次排序快速收斂名單，再從右側明細檢查候選理由、評分拆解與 scanner / watchlist / tag 關聯，必要時直接跳到同日報表或相關群組。
-- Reports page workflow:
-  先用快速日期或日期欄位鎖定當日 bundle，再用 section 導覽清單切換閱讀 markdown 與 structured payload；頁面會顯示目前 section 的行數、欄位數與相關導頁，若 payload 含群組、候選代號或觀察清單資訊，可直接跳往對應頁面延伸查看。
-- 資料覆蓋頁 workflow:
-  先切換 preset 檢查 config 宣告，再對照 scope 載入數、market/source route 統計，確認 `make load-universe` 是否已把目標 universe 匯入本機。
-- 系統狀態頁 workflow:
-  先看資料集最新日期與筆數，再檢查最近 ingest jobs 與 worker heartbeat；若頁面為空，通常代表只做了 `seed` 尚未跑 `demo-data`、`sample-etl` 或報表/排程工作。
-- The frontend currently uses Traditional Chinese as the default UI language. Backend-generated content may still include source-side labels or markdown text depending on the stored data, but the main navigation, controls, and page chrome are now zh-TW.
-- The API now allows local frontend origins by default through CORS:
-  `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
-- Override allowed browser origins with `CORS_ALLOWED_ORIGINS` in `.env` if your frontend runs on a different host or port.
-- If the frontend shows an API error that mentions a network or CORS problem, verify:
-  `curl http://localhost:8000/health`
-  and confirm `VITE_API_BASE_URL` points at that API origin.
-
-## V1 Data Coverage Strategy
-
-- Recommended local progression:
-  1. `make seed`
-  2. `make load-universe`
-  3. `make demo-data`
-- `seed` keeps the repo-friendly minimal sample set for smoke tests and deterministic demo generation.
-- `load-universe` expands the instrument master toward practical V1 usage through config-driven manifests under `config/universes/`.
-- `config/universes/v1_market_expanded/` is now split into documentation-friendly segments:
-  - `manifest.json` for preset metadata and scope definitions
-  - `tw.json`, `us.json`, `global.json`, `commodities.json`, `macro.json` for instrument groups
-  - `watchlists.json` for preset watchlists
-- The current broader preset is intentionally explicit:
-  - Taiwan daily coverage defaults to `twse_openapi` for listed names and declares a `tw_equities_full` scope for future official full-market registry sync.
-  - Curated US names use `us_eod_provider`.
-  - Global indices use `us_eod_provider` or `manual_csv` depending on the asset.
-  - Commodities and macro series use `macro_series_provider`.
-- Scope-based local loading is supported for controlled initialization, for example just `macro_series_core` or just `us_equities_curated`.
-- This keeps provider routing visible in the instrument master and leaves room for later connector expansion without changing the database model.
-- 日常檢查 coverage/bootstrapping 是否完成時，可直接看前端的「資料覆蓋」頁，或呼叫 `/api/system/coverage`。
-- 檢查最近資料更新、排程工作與 worker 心跳時，可看前端的「系統狀態」頁，或呼叫 `/api/system/status`。
-
-## Verification
-
-- `pytest -q`
-- `ruff check .`
-- `mypy .`
+```bash
+pytest -q
+ruff check .
+mypy .
+npm --prefix frontend run test
+npm --prefix frontend run build
+```

@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl indicator-update generate-reports smoke-test verify-v1 release-check run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -34,6 +34,9 @@ generate-reports:
 smoke-test:
 	$(PYTHON) scripts/manage.py smoke-test --api-base-url $${API_BASE_URL:-http://localhost:8000}
 
+verify-v1:
+	$(PYTHON) scripts/manage.py verify-v1 --api-base-url $${API_BASE_URL:-http://localhost:8000} --trade-date $${TRADE_DATE:-2026-03-20}
+
 run-api:
 	$(PYTHON) -m uvicorn apps.api.main:app --reload
 
@@ -66,6 +69,8 @@ format:
 
 typecheck:
 	$(PYTHON) -m mypy .
+
+release-check: demo-data smoke-test test lint typecheck frontend-test frontend-build verify-v1
 
 dev-up:
 	docker compose up --build -d db api scheduler analysis frontend

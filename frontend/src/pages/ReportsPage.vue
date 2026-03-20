@@ -3,12 +3,12 @@
     <PageHeader
       eyebrow="儀表板"
       title="報表"
-      description="查看最新生成的日報、bundle 區塊與前端可直接呈現的報表內容。"
+      description="查看最新生成的日報、報表彙整區塊與前端可直接呈現的報表內容。"
     />
 
     <FilterBar
       title="報表探索"
-      description="依日期瀏覽報表 bundle，並聚焦單一區塊。"
+      description="依日期瀏覽報表彙整內容，並聚焦單一區塊。"
     >
       <div class="form-inline">
         <div class="field-group">
@@ -20,7 +20,7 @@
           </select>
         </div>
         <div class="field-group">
-          <label for="report-date">彙整日期</label>
+          <label for="report-date">報表日期</label>
           <input id="report-date" v-model="selectedReportDate" type="date" @change="loadReports" />
         </div>
         <div class="field-group">
@@ -70,7 +70,7 @@
       :generated-at="formatDateTime(dashboard?.meta.generated_at)"
       :item-count="dashboard?.meta.item_count"
       hint="報表頁整合 bundle 區塊、markdown 內容與單筆報表列。"
-      demo-hint="若尚無報表資料，請執行 make demo-data 產生示範 bundle。"
+      demo-hint="若尚無報表資料，請執行 make demo-data 產生示範報表彙整。"
       :show-refresh="true"
       @refresh="loadReports"
     />
@@ -85,7 +85,7 @@
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
       title="尚無報表資料"
-      message="後端目前還沒有保存的日報。執行 make demo-data 後即可產生可重複的本機報表 bundle。"
+      message="後端目前還沒有保存的日報。執行 make demo-data 後即可產生可重複的本機報表彙整。"
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
@@ -139,7 +139,7 @@
       <DetailPanel
         v-if="selectedSection"
         title="區塊摘要"
-        description="顯示目前 section 的欄位規模、閱讀密度與可延伸查看的導頁。"
+        description="顯示目前區塊的欄位規模、閱讀密度與可延伸查看的導頁。"
       >
         <template #header>
           <div class="detail-actions">
@@ -153,14 +153,14 @@
 
       <EmptyState
         v-else-if="selectedReportDate"
-        title="該日期尚無 bundle"
-        message="目前找不到此日期的 bundle。請切換日期或先重新產生日報。"
+        title="該日期尚無報表彙整"
+        message="目前找不到此日期的報表彙整。請切換日期或先重新產生日報。"
       />
 
       <div v-if="selectedSection" class="page-section-grid">
         <ReportSectionNavigator
           title="區塊導覽"
-          description="快速切換 bundle 內的重點區塊，方便逐段閱讀日報。"
+          description="快速切換報表彙整內的重點區塊，方便逐段閱讀日報。"
           :sections="sectionSummaries"
           :selected-key="selectedSection.section_type"
           @select="handleSectionSelect"
