@@ -286,3 +286,49 @@ async def test_market_structure_chart_api_returns_summary_and_series() -> None:
     assert payload["summary"]["overall_regime"] == "bullish"
     assert "spot_net_amount" in payload["available_series"]
     assert payload["flow_points"][-1]["spot_net_amount"] == "500000000.0000"
+
+
+@pytest.mark.asyncio
+async def test_market_structure_chart_uses_aggregate_option_features_for_bias() -> None:
+    session = _build_session()
+    _seed_chart_data(session)
+
+    derivative_option = (
+        session.query(TwDerivativesDaily)
+        .filter(TwDerivativesDaily.product_code == "TXO")
+        .one()
+    )
+    session.query(TwDerivativesFeature).filter(TwDerivativesFeature.product_code == "TXO").delete()
+    session.add(
+        TwDerivativesFeature(
+            daily_record_id=derivative_option.id,
+            trade_date=date(2024, 2, 5),
+            market="TAIFEX",
+            product_code="TXO",
+            contract_period="202402",
+            institution="foreign_investors",
+            call_put=None,
+            delta_1d=Decimal("5"),
+            delta_5d=Decimal("10"),
+            delta_20d=Decimal("15"),
+            zscore_20d=Decimal("1.4"),
+            regime_label="bullish",
+            bias_score=Decimal("2.4"),
+            anomaly_flag=False,
+        )
+    )
+    session.commit()
+
+    async def override_db():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/charts/market-structure/^TWII")
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["flow_points"][-1]["options_directional_bias"] == "2.400000"

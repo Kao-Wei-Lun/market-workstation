@@ -430,7 +430,7 @@ def _build_market_structure_points(
     for trade_date in trade_dates:
         features = feature_by_date.get(trade_date, [])
         summary = generate_institutional_flow_summary(trade_date, features)
-        options_features = [feature for feature in features if feature.call_put is not None]
+        options_features = [feature for feature in features if _is_option_feature(feature)]
         options_directional_bias = (
             sum((feature.bias_score for feature in options_features), Decimal("0")) / Decimal(len(options_features))
             if options_features
@@ -471,6 +471,11 @@ def _empty_market_structure_bucket() -> dict[str, Decimal | int | None]:
         "bearish_count": 0,
         "anomaly_count": 0,
     }
+
+
+def _is_option_feature(feature: TwDerivativesFeature) -> bool:
+    product_code = feature.product_code.upper()
+    return feature.call_put is not None or feature.market.lower() == "options" or product_code.endswith("O")
 
 
 def _direction_label(value: Decimal | None) -> str:

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from html.parser import HTMLParser
 from typing import Any
+
+import httpx
 
 from services.connectors.base import ConnectorRequest, ProviderConnectorConfig, SeriesConnector
 from services.schemas.etl import NormalizedDataBatch, NormalizedTwDerivativesDailyRecord
@@ -10,11 +13,13 @@ from services.schemas.etl import NormalizedDataBatch, NormalizedTwDerivativesDai
 
 class TaifexInstitutionalDailyConnector(SeriesConnector):
     source_route = "taifex_open_data"
+    futures_url = "https://www.taifex.com.tw/enl/eng3/futContractsDate"
+    options_url = "https://www.taifex.com.tw/enl/eng3/optContractsDate"
 
     def __init__(self, config: ProviderConnectorConfig | None = None) -> None:
         config = config or ProviderConnectorConfig(
             provider_name=self.source_route,
-            base_url="https://www.taifex.com.tw/cht/3/futContractsDate",
+            base_url=self.futures_url,
         )
         super().__init__(config)
 
@@ -22,12 +27,16 @@ class TaifexInstitutionalDailyConnector(SeriesConnector):
         if request.trade_date is None:
             msg = "TAIFEX connector requires trade_date"
             raise ValueError(msg)
-        if self.config.base_url is None:
-            msg = "TAIFEX base_url is required"
-            raise ValueError(msg)
 
         params = {"queryDate": request.trade_date.strftime("%Y/%m/%d")}
-        payload = self._get_json(self.config.base_url, params)
+        futures_html = self._get_text(self.futures_url, params)
+        options_html = self._get_text(self.options_url, params)
+        payload = {
+            "rows": [
+                *self._extract_rows_from_html(futures_html, market="futures"),
+                *self._extract_rows_from_html(options_html, market="options"),
+            ]
+        }
         return self._build_fetch_result(payload)
 
     def normalize(self, payload: dict[str, Any], request: ConnectorRequest) -> NormalizedDataBatch:
@@ -120,3 +129,136 @@ class TaifexInstitutionalDailyConnector(SeriesConnector):
         if long_amount is None or short_amount is None:
             return None
         return long_amount - short_amount
+
+    def _get_text(self, url: str, params: dict[str, str]) -> str:
+        with httpx.Client(timeout=self.config.timeout_seconds) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.text
+
+    def _extract_rows_from_html(self, html: str, *, market: str) -> list[dict[str, Any]]:
+        parser = _SimpleHtmlTableParser()
+        parser.feed(html)
+        rows: list[dict[str, Any]] = []
+        for table in parser.tables:
+            parsed = self._extract_rows_from_table(table, market=market)
+            if parsed:
+                rows.extend(parsed)
+        return rows
+
+    def _extract_rows_from_table(self, table: list[list[str]], *, market: str) -> list[dict[str, Any]]:
+        normalized_table = [[cell.strip() for cell in row] for row in table if any(cell.strip() for cell in row)]
+        if not normalized_table:
+            return []
+
+        header_index = self._find_header_row_index(normalized_table)
+        if header_index is None:
+            return []
+
+        headers = normalized_table[header_index]
+        if len(headers) < 15:
+            return []
+        contract_index = self._find_header_index(headers, "contract code", "商品代號")
+        item_index = self._find_header_index(headers, "item", "身份別")
+        if contract_index is None or item_index is None:
+            return []
+
+        extracted_rows: list[dict[str, Any]] = []
+        last_contract_code = ""
+        for row in normalized_table[header_index + 1 :]:
+            if len(row) < max(contract_index, item_index) + 1 or len(row) < 6:
+                continue
+            contract_code = row[contract_index].strip() or last_contract_code
+            last_contract_code = contract_code or last_contract_code
+            institution_label = row[item_index].strip()
+            institution = self._normalize_institution(institution_label)
+            if not contract_code or institution is None:
+                continue
+
+            metrics = row[-6:]
+            extracted_rows.append(
+                {
+                    "date": None,
+                    "market": market,
+                    "product_code": contract_code,
+                    "product_name": contract_code,
+                    "contract_period": None,
+                    "institution": institution,
+                    "call_put": None,
+                    "long_open_interest": self._parse_int(metrics[0]),
+                    "long_amount": self._parse_optional_decimal(metrics[1]),
+                    "short_open_interest": self._parse_int(metrics[2]),
+                    "short_amount": self._parse_optional_decimal(metrics[3]),
+                    "net_open_interest": self._parse_int(metrics[4]),
+                    "net_amount": self._parse_optional_decimal(metrics[5]),
+                }
+            )
+        return extracted_rows
+
+    @staticmethod
+    def _find_header_row_index(rows: list[list[str]]) -> int | None:
+        for index, row in enumerate(rows):
+            lower_cells = " ".join(cell.lower() for cell in row[:4])
+            if "contract code" in lower_cells and "item" in lower_cells:
+                return index
+            if "商品代號" in lower_cells and "身份別" in lower_cells:
+                return index
+        return None
+
+    @staticmethod
+    def _find_header_index(headers: list[str], *patterns: str) -> int | None:
+        lowered = [header.lower() for header in headers]
+        for index, header in enumerate(lowered):
+            if any(pattern.lower() in header for pattern in patterns):
+                return index
+        return None
+
+    @staticmethod
+    def _normalize_institution(value: str) -> str | None:
+        mapping = {
+            "dealers": "dealers",
+            "investment trust": "investment_trust",
+            "fini": "foreign_investors",
+        }
+        return mapping.get(value.lower())
+
+
+class _SimpleHtmlTableParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tables: list[list[list[str]]] = []
+        self._current_table: list[list[str]] | None = None
+        self._current_row: list[str] | None = None
+        self._current_cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        del attrs
+        if tag == "table":
+            self._current_table = []
+            return
+        if self._current_table is None:
+            return
+        if tag == "tr":
+            self._current_row = []
+            return
+        if tag in {"td", "th"}:
+            self._current_cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_cell is not None:
+            self._current_cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"td", "th"} and self._current_cell is not None and self._current_row is not None:
+            self._current_row.append(" ".join(part.strip() for part in self._current_cell if part.strip()))
+            self._current_cell = None
+            return
+        if tag == "tr" and self._current_table is not None and self._current_row is not None:
+            if self._current_row:
+                self._current_table.append(self._current_row)
+            self._current_row = None
+            return
+        if tag == "table" and self._current_table is not None:
+            if self._current_table:
+                self.tables.append(self._current_table)
+            self._current_table = None
