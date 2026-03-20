@@ -26,6 +26,7 @@ from services.models.report_daily import ReportDaily
 from services.models.strategy import Strategy
 from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.tw_derivatives_feature import TwDerivativesFeature
+from services.models.tw_institutional_spot_daily import TwInstitutionalSpotDaily
 from services.models.watchlist import Watchlist
 from services.models.watchlist_item import WatchlistItem
 
@@ -103,6 +104,7 @@ def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables(
     assert first.backtest_trades_created > 0
     assert first.reports_persisted > 0
     assert first.tw_derivatives_features_persisted > 0
+    assert first.tw_institutional_spot_loaded > 0
 
     assert session.query(DailyBar).count() == 60
     assert session.query(CandidateRun).count() == 1
@@ -112,6 +114,7 @@ def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables(
     assert session.query(BacktestTrade).count() == second.backtest_trades_created
     assert session.query(TwDerivativesDaily).count() == 42
     assert session.query(TwDerivativesFeature).count() == 42
+    assert session.query(TwInstitutionalSpotDaily).count() == 21
     assert session.query(ReportDaily).count() > 0
 
     latest_summary = get_latest_institutional_bias_summary(session)

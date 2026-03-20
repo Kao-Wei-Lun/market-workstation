@@ -40,10 +40,12 @@ describe("charts utils", () => {
     expect(
       formatFlowHighlight({
         trade_date: "2024-01-01",
+        spot_net_amount: "100",
         futures_net_open_interest: 100,
         futures_net_amount: "1",
         options_net_open_interest: 50,
         options_net_amount: "1",
+        options_directional_bias: "0.8",
         average_bias_score: "1.2",
         bullish_count: 1,
         bearish_count: 0,

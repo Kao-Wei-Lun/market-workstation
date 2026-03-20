@@ -2,16 +2,21 @@
   <div class="page-grid">
     <PageHeader
       eyebrow="圖表"
-      title="大盤與法人流圖"
-      description="查看台灣大盤日線 K 線圖，並疊合外資期貨／選擇權流向 foundation。"
+      title="市場結構圖"
+      description="以大盤日線對照外資現貨、期貨、選擇權方向與 bias，作為盤後研究入口。"
     >
       <div class="page-actions">
         <RouterLink class="pill link-pill" :to="{ name: 'derivatives' }">查看衍生性商品摘要</RouterLink>
-        <RouterLink class="pill link-pill" :to="{ name: 'reports' }">查看每日報表</RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
+          查看當日報表
+        </RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'candidates', query: { candidateDate: selectedTradeDate || undefined } }">
+          查看候選
+        </RouterLink>
       </div>
     </PageHeader>
 
-    <FilterBar title="市場圖表篩選" description="切換指數、日期區間、技術指標與畫線工具。">
+    <FilterBar title="市場結構篩選" description="切換指數、日期區間、顯示序列與畫線工具。">
       <div class="form-inline">
         <div class="field-group wide-field">
           <label for="market-chart-symbol">指數</label>
@@ -54,40 +59,59 @@
             {{ indicator.toUpperCase() }}
           </label>
         </div>
+        <div class="series-toggles">
+          <label class="toggle-pill"><input v-model="showSpot" type="checkbox" /> 現貨買賣超</label>
+          <label class="toggle-pill"><input v-model="showFutures" type="checkbox" /> 期貨淨部位</label>
+          <label class="toggle-pill"><input v-model="showOptions" type="checkbox" /> 選擇權方向</label>
+          <label class="toggle-pill"><input v-model="showBias" type="checkbox" /> Bias 線</label>
+        </div>
       </div>
     </FilterBar>
 
     <PageStatusBar
-      title="大盤圖表狀態"
-      :as-of-date="chartData?.instrument.latest_data_date ?? null"
+      title="市場結構資料狀態"
+      :as-of-date="marketStructure?.summary.trade_date ?? chartData?.instrument.latest_data_date ?? null"
       :generated-at="null"
       :item-count="chartData?.candles.length"
-      hint="目前以台灣指數日線為主，並提供外資期貨／選擇權流向合成 foundation。"
-      demo-hint="若無資料，請先執行 make demo-data 或載入相關 universe。"
+      hint="同一頁整合大盤日線、外資現貨、期貨、選擇權方向與 bias interpretation。"
+      demo-hint="若內容為空，請先執行 make demo-data 或補載相關日資料。"
       :show-refresh="true"
       @refresh="loadChart"
     />
 
-    <LoadingState v-if="isLoading" message="正在載入大盤與法人流圖..." />
+    <LoadingState v-if="isLoading" message="正在載入市場結構圖..." />
     <ErrorState
       v-else-if="errorMessage"
-      title="市場圖表載入失敗"
-      message="無法載入大盤 K 線或法人流向資料。"
+      title="市場結構圖載入失敗"
+      message="無法載入大盤、外資流向或市場結構摘要。"
       :detail="errorMessage"
     />
     <EmptyState
       v-else-if="!chartData || !chartData.candles.length"
-      title="尚無市場圖表資料"
-      message="目前選定指數尚未有可顯示的日線資料。"
+      title="尚無市場結構資料"
+      message="目前選定指數尚未有可顯示的大盤日線與結構資料。"
     />
-    <template v-else>
+    <template v-else-if="chartData && marketStructure">
       <div class="page-section-grid">
-        <DetailPanel title="市場摘要" description="整理目前指數日線與法人流向 foundation 的核心資訊。">
+        <DetailPanel title="市場結構摘要" description="快速檢查目前 regime、方向與分歧訊號。">
           <MetricGrid :metrics="marketMetrics" />
+        </DetailPanel>
+        <DetailPanel title="解讀提示" description="將外資現貨、期貨、選擇權與大盤方向整理成可直接閱讀的提示。">
+          <template #header>
+            <div class="detail-actions">
+              <RouterLink class="detail-link" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
+                查看同日報表
+              </RouterLink>
+              <RouterLink class="detail-link" :to="{ name: 'derivatives' }">查看衍生性商品頁</RouterLink>
+            </div>
+          </template>
+          <ul class="highlights">
+            <li v-for="item in interpretationHighlights" :key="item">{{ item }}</li>
+          </ul>
         </DetailPanel>
         <ChartAnnotationsPanel
           :annotations="chartData.annotations"
-          description="大盤頁的畫線與個股頁分開保存，適合保留長期觀察區間。"
+          description="市場結構頁的畫線可保留對大盤的重要區間與關鍵轉折。"
           @remove="handleRemoveAnnotation"
           @clear="handleClearAnnotations"
         />
@@ -95,28 +119,40 @@
 
       <CandlestickChart
         title="大盤日線 K 線圖"
-        description="使用 index 日線與已保存的技術指標作為 overlay。"
+        description="顯示指數日線、成交量與已保存的技術指標 overlay。"
         :candles="chartData.candles"
         :indicators="visibleIndicators"
         :annotations="chartData.annotations"
         :active-tool="activeTool"
         :draft-trend-start="trendDraft"
-        empty-message="目前沒有指數日線資料。"
+        empty-message="目前沒有大盤日線資料。"
         @plot-click="handlePlotClick"
       />
 
-      <InstitutionalFlowChart
-        title="外資期貨／選擇權流向"
-        description="以大盤日期軸對齊外資期貨、選擇權淨未平倉與 bias score。"
-        :flow-points="flowData?.flow_points ?? []"
-        empty-message="目前沒有可用的法人流向資料。"
+      <MarketStructureFlowChart
+        title="外資市場結構流向"
+        description="同步顯示現貨買賣超、期貨淨部位、選擇權方向與 bias 線。點擊日期可切換下方明細。"
+        :flow-points="marketStructure.flow_points"
+        :show-spot="showSpot"
+        :show-futures="showFutures"
+        :show-options="showOptions"
+        :show-bias="showBias"
+        :selected-trade-date="selectedTradeDate"
+        empty-message="目前沒有可用的市場結構序列。"
+        @select-trade-date="handleSelectTradeDate"
       />
 
-      <DetailPanel title="法人流向重點" description="這個 foundation 先支援大盤＋外資期權流向，現貨流向後續再補。">
-        <ul class="highlights">
-          <li v-for="item in (flowData?.summary_highlights ?? [])" :key="item">{{ item }}</li>
-        </ul>
-      </DetailPanel>
+      <div class="page-section-grid">
+        <DetailPanel title="選定日期明細" description="以選定日期作為簡易 tooltip / 檢視面板，方便日常複盤。">
+          <MetricGrid :metrics="selectedDateMetrics" />
+        </DetailPanel>
+        <MiniBarChart
+          title="流向強弱"
+          description="比較選定日期的現貨、期貨與選擇權方向強度。"
+          :points="selectedDateChartPoints"
+          empty-message="請先選擇一個日期。"
+        />
+      </div>
     </template>
   </div>
 </template>
@@ -125,7 +161,14 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
-import { clearChartAnnotations, createChartAnnotation, deleteChartAnnotation, fetchChartData, fetchChartInstruments, fetchInstitutionalFlowChart } from "@/api/charts";
+import {
+  clearChartAnnotations,
+  createChartAnnotation,
+  deleteChartAnnotation,
+  fetchChartData,
+  fetchChartInstruments,
+  fetchMarketStructureChart,
+} from "@/api/charts";
 import { normalizeApiError } from "@/api/http";
 import CandlestickChart from "@/components/CandlestickChart.vue";
 import ChartAnnotationsPanel from "@/components/ChartAnnotationsPanel.vue";
@@ -133,21 +176,28 @@ import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
 import FilterBar from "@/components/FilterBar.vue";
-import InstitutionalFlowChart from "@/components/InstitutionalFlowChart.vue";
 import LoadingState from "@/components/LoadingState.vue";
+import MarketStructureFlowChart from "@/components/MarketStructureFlowChart.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
+import MiniBarChart from "@/components/MiniBarChart.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import PageStatusBar from "@/components/PageStatusBar.vue";
-import type { ChartDataRead, ChartIndicatorSeriesRead, ChartInstrumentRead, InstitutionalFlowChartRead } from "@/types/charts";
+import type {
+  ChartDataRead,
+  ChartIndicatorSeriesRead,
+  ChartInstrumentRead,
+  InstitutionalFlowPointRead,
+  MarketStructureChartRead,
+} from "@/types/charts";
 import type { ChartPlotClickPayload } from "@/utils/charts";
-import { buildDateRange, formatFlowHighlight } from "@/utils/charts";
-import { formatDate, formatNumber } from "@/utils/formatters";
+import { buildDateRange, latestCandle, parseNumeric } from "@/utils/charts";
+import { formatDate, formatNumber, formatPercent } from "@/utils/formatters";
 
 const route = useRoute();
 const router = useRouter();
 const instruments = ref<ChartInstrumentRead[]>([]);
 const chartData = ref<ChartDataRead | null>(null);
-const flowData = ref<InstitutionalFlowChartRead | null>(null);
+const marketStructure = ref<MarketStructureChartRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const selectedSymbol = ref("");
@@ -156,6 +206,11 @@ const dateTo = ref("");
 const selectedIndicators = ref<string[]>(["sma", "ema"]);
 const activeTool = ref("none");
 const trendDraft = ref<ChartPlotClickPayload | null>(null);
+const showSpot = ref(true);
+const showFutures = ref(true);
+const showOptions = ref(true);
+const showBias = ref(true);
+const selectedTradeDate = ref("");
 
 const availableIndicators = ["sma", "ema", "bollinger", "supertrend"];
 
@@ -163,17 +218,64 @@ const visibleIndicators = computed<ChartIndicatorSeriesRead[]>(() =>
   (chartData.value?.indicators ?? []).filter((series) => selectedIndicators.value.includes(series.indicator_name)),
 );
 
-const marketMetrics = computed(() => {
-  if (!chartData.value) {
+const selectedFlowPoint = computed<InstitutionalFlowPointRead | null>(() => {
+  const points = marketStructure.value?.flow_points ?? [];
+  if (!points.length) {
+    return null;
+  }
+  return points.find((point) => point.trade_date === selectedTradeDate.value) ?? points[points.length - 1];
+});
+
+const interpretationHighlights = computed(() => {
+  if (!marketStructure.value) {
     return [];
   }
-  const latestFlowPoint = flowData.value?.flow_points.length ? flowData.value.flow_points[flowData.value.flow_points.length - 1] : null;
+  return [
+    ...marketStructure.value.summary.highlights,
+    ...marketStructure.value.summary.divergence_hints,
+    ...marketStructure.value.summary.anomaly_hints,
+  ];
+});
+
+const marketMetrics = computed(() => {
+  if (!chartData.value || !marketStructure.value) {
+    return [];
+  }
+  const latest = latestCandle(chartData.value.candles);
   return [
     { label: "指數", value: `${chartData.value.instrument.symbol} / ${chartData.value.instrument.name}`, hint: "大盤標的" },
-    { label: "最新資料", value: formatDate(chartData.value.instrument.latest_data_date), hint: "日線日期" },
-    { label: "K 線筆數", value: formatNumber(chartData.value.candles.length), hint: "載入筆數" },
-    { label: "法人流向", value: formatFlowHighlight(latestFlowPoint), hint: "最新流向摘要" },
-    { label: "畫線數量", value: formatNumber(chartData.value.annotations.length), hint: "本機持久化注記" },
+    { label: "最新日期", value: formatDate(marketStructure.value.summary.trade_date), hint: "市場結構日期" },
+    { label: "收盤", value: formatNumber(latest?.close ?? null), hint: "最新 close" },
+    { label: "漲跌幅", value: formatPercent(latest?.change_percent ?? null), hint: "當日變化" },
+    { label: "Regime", value: marketStructure.value.summary.overall_regime, hint: "法人偏向結論" },
+    { label: "現貨方向", value: marketStructure.value.summary.spot_direction, hint: "外資現貨" },
+    { label: "期貨方向", value: marketStructure.value.summary.futures_direction, hint: "外資期貨" },
+    { label: "選擇權方向", value: marketStructure.value.summary.options_direction, hint: "外資選擇權" },
+  ];
+});
+
+const selectedDateMetrics = computed(() => {
+  if (!selectedFlowPoint.value) {
+    return [];
+  }
+  return [
+    { label: "交易日期", value: formatDate(selectedFlowPoint.value.trade_date), hint: "目前選定日期" },
+    { label: "現貨買賣超", value: formatNumber(selectedFlowPoint.value.spot_net_amount), hint: "外資現貨淨額" },
+    { label: "期貨淨部位", value: formatNumber(selectedFlowPoint.value.futures_net_open_interest), hint: "淨未平倉口數" },
+    { label: "選擇權方向", value: formatNumber(selectedFlowPoint.value.options_directional_bias), hint: "方向性 bias" },
+    { label: "整體 bias", value: formatNumber(selectedFlowPoint.value.average_bias_score), hint: "法人平均分數" },
+    { label: "異常數", value: formatNumber(selectedFlowPoint.value.anomaly_count), hint: "異常提示" },
+  ];
+});
+
+const selectedDateChartPoints = computed(() => {
+  if (!selectedFlowPoint.value) {
+    return [];
+  }
+  return [
+    { label: "現貨", value: parseNumeric(selectedFlowPoint.value.spot_net_amount) ?? 0, tone: "positive" as const },
+    { label: "期貨", value: selectedFlowPoint.value.futures_net_open_interest, tone: "info" as const },
+    { label: "選擇權", value: (parseNumeric(selectedFlowPoint.value.options_directional_bias) ?? 0) * 100, tone: "negative" as const },
   ];
 });
 
@@ -202,21 +304,22 @@ async function loadChart(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    const [chartResponse, flowResponse] = await Promise.all([
+    const [chartResponse, structureResponse] = await Promise.all([
       fetchChartData(selectedSymbol.value, {
         dateFrom: dateFrom.value || undefined,
         dateTo: dateTo.value || undefined,
         indicatorNames: selectedIndicators.value,
-        viewKind: "index",
+        viewKind: "market_flow",
       }),
-      fetchInstitutionalFlowChart(selectedSymbol.value, {
+      fetchMarketStructureChart(selectedSymbol.value, {
         dateFrom: dateFrom.value || undefined,
         dateTo: dateTo.value || undefined,
       }),
     ]);
     chartData.value = chartResponse;
-    flowData.value = flowResponse;
-    await router.replace({ name: "market-charts", query: { symbol: selectedSymbol.value } });
+    marketStructure.value = structureResponse;
+    selectedTradeDate.value = structureResponse.summary.trade_date ?? "";
+    await router.replace({ name: "market-charts", query: { symbol: selectedSymbol.value, tradeDate: selectedTradeDate.value || undefined } });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {
@@ -231,6 +334,10 @@ function applyQuickRange(days: number): void {
   void loadChart();
 }
 
+function handleSelectTradeDate(tradeDate: string): void {
+  selectedTradeDate.value = tradeDate;
+}
+
 async function handlePlotClick(payload: ChartPlotClickPayload): Promise<void> {
   if (!selectedSymbol.value || activeTool.value === "none") {
     return;
@@ -239,7 +346,7 @@ async function handlePlotClick(payload: ChartPlotClickPayload): Promise<void> {
     if (activeTool.value === "horizontal_line") {
       await createChartAnnotation({
         symbol: selectedSymbol.value,
-        view_kind: "index",
+        view_kind: "market_flow",
         annotation_type: "horizontal_line",
         label: `水平 ${payload.price}`,
         payload_json: { price: payload.price, trade_date: payload.tradeDate },
@@ -250,7 +357,7 @@ async function handlePlotClick(payload: ChartPlotClickPayload): Promise<void> {
     } else {
       await createChartAnnotation({
         symbol: selectedSymbol.value,
-        view_kind: "index",
+        view_kind: "market_flow",
         annotation_type: "trend_line",
         label: `趨勢 ${trendDraft.value.tradeDate}`,
         payload_json: {
@@ -282,7 +389,7 @@ async function handleClearAnnotations(): Promise<void> {
     return;
   }
   try {
-    await clearChartAnnotations(selectedSymbol.value, "index");
+    await clearChartAnnotations(selectedSymbol.value, "market_flow");
     trendDraft.value = null;
     await loadChart();
   } catch (error) {
@@ -298,6 +405,7 @@ watch(selectedIndicators, () => {
 
 onMounted(async () => {
   selectedSymbol.value = String(route.query.symbol ?? "");
+  selectedTradeDate.value = String(route.query.tradeDate ?? "");
   await loadInstrumentOptions();
   if (selectedSymbol.value) {
     await loadChart();
@@ -321,7 +429,8 @@ onMounted(async () => {
 }
 
 .quick-range,
-.indicator-toggles {
+.indicator-toggles,
+.series-toggles {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;

@@ -10,6 +10,7 @@ from services.core.charts import (
     list_chart_instruments,
     load_chart_data,
     load_institutional_flow_chart,
+    load_market_structure_chart,
 )
 from services.db.session import get_db_session
 from services.schemas.charts import (
@@ -18,6 +19,7 @@ from services.schemas.charts import (
     ChartDataRead,
     ChartInstrumentRead,
     InstitutionalFlowChartRead,
+    MarketStructureChartRead,
 )
 
 router = APIRouter(prefix="/api/charts", tags=["charts"])
@@ -71,6 +73,24 @@ async def get_institutional_flow_chart_route(
 ) -> InstitutionalFlowChartRead:
     try:
         return load_institutional_flow_chart(
+            session,
+            symbol=symbol,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/market-structure/{symbol}", response_model=MarketStructureChartRead)
+async def get_market_structure_chart_route(
+    symbol: str,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    session: Session = Depends(get_db_session),
+) -> MarketStructureChartRead:
+    try:
+        return load_market_structure_chart(
             session,
             symbol=symbol,
             date_from=date_from,

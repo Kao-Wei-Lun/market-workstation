@@ -16,7 +16,7 @@
           查看個股圖表
         </RouterLink>
         <RouterLink class="pill link-pill" :to="{ name: 'market-charts' }">
-          查看大盤圖表
+          查看市場結構圖
         </RouterLink>
         <RouterLink
           v-if="selectedWatchlistId"

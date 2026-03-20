@@ -4,7 +4,13 @@
       eyebrow="儀表板"
       title="報表"
       description="查看最新生成的日報、報表彙整區塊與前端可直接呈現的報表內容。"
-    />
+    >
+      <div class="page-actions">
+        <RouterLink class="pill link-pill" :to="{ name: 'market-charts', query: { tradeDate: selectedReportDate || undefined } }">
+          查看市場結構圖
+        </RouterLink>
+      </div>
+    </PageHeader>
 
     <FilterBar
       title="報表探索"
@@ -467,6 +473,12 @@ watch([reportTypeFilter, searchQuery, selectedSectionType, selectedReportDate], 
 </script>
 
 <style scoped>
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .highlights {
   margin: 0;
   padding-left: 1.1rem;

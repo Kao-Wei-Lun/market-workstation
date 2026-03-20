@@ -4,7 +4,11 @@
       eyebrow="儀表板"
       title="衍生性商品"
       description="查看台灣法人衍生性商品偏向摘要、異常數與重點觀察。"
-    />
+    >
+      <div class="page-actions">
+        <RouterLink class="pill link-pill" :to="{ name: 'market-charts' }">查看市場結構圖</RouterLink>
+      </div>
+    </PageHeader>
 
     <FilterBar
       title="衍生性商品檢視"
@@ -78,6 +82,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 
 import { fetchDerivativesDashboard } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
@@ -165,5 +170,11 @@ onMounted(loadDerivatives);
 .highlights {
   margin: 0;
   padding-left: 1.1rem;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 </style>

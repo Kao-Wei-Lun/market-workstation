@@ -20,6 +20,7 @@ from services.models.series_point import SeriesPoint
 from services.models.strategy import Strategy
 from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.tw_derivatives_feature import TwDerivativesFeature
+from services.models.tw_institutional_spot_daily import TwInstitutionalSpotDaily
 from services.models.watchlist import Watchlist
 from services.models.watchlist_item import WatchlistItem
 from services.models.worker_health import WorkerHealth
@@ -50,6 +51,7 @@ __all__ = [
     "Strategy",
     "TwDerivativesDaily",
     "TwDerivativesFeature",
+    "TwInstitutionalSpotDaily",
     "Watchlist",
     "WatchlistItem",
     "WorkerHealth",

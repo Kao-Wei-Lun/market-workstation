@@ -17,6 +17,7 @@ from services.models.indicator_value import IndicatorValue
 from services.models.instrument import Instrument
 from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.tw_derivatives_feature import TwDerivativesFeature
+from services.models.tw_institutional_spot_daily import TwInstitutionalSpotDaily
 
 
 def _build_session() -> Session:
@@ -148,6 +149,17 @@ def _seed_chart_data(session: Session) -> None:
             ),
         ]
     )
+    session.add(
+        TwInstitutionalSpotDaily(
+            trade_date=trade_date,
+            market="TW",
+            institution="foreign_investors",
+            buy_amount=Decimal("3000000000"),
+            sell_amount=Decimal("2500000000"),
+            net_amount=Decimal("500000000"),
+            source_route="demo_seed",
+        )
+    )
     session.commit()
 
 
@@ -213,3 +225,27 @@ async def test_institutional_flow_chart_api_returns_combined_daily_view() -> Non
     assert len(payload["flow_points"]) == 5
     assert payload["flow_points"][-1]["futures_net_open_interest"] == 300
     assert payload["flow_points"][-1]["options_net_open_interest"] == 300
+    assert payload["flow_points"][-1]["spot_net_amount"] == "500000000.0000"
+
+
+@pytest.mark.asyncio
+async def test_market_structure_chart_api_returns_summary_and_series() -> None:
+    session = _build_session()
+    _seed_chart_data(session)
+
+    async def override_db():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/charts/market-structure/^TWII")
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["instrument"]["symbol"] == "^TWII"
+    assert payload["summary"]["overall_regime"] == "bullish"
+    assert "spot_net_amount" in payload["available_series"]
+    assert payload["flow_points"][-1]["spot_net_amount"] == "500000000.0000"

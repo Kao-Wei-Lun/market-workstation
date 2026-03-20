@@ -19,7 +19,7 @@ export const routes: RouteRecordRaw[] = [
   { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "觀察清單", title: "觀察清單", description: "檢視觀察清單成員、掃描訊號與摘要指標。" } },
   { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "標籤群組", title: "標籤群組", description: "檢視標籤群組、群組強弱與掃描脈絡。" } },
   { path: "/charts/stocks", name: "stock-charts", component: StockChartsPage, meta: { label: "個股圖表", title: "個股 K 線圖", description: "查看個股／ETF 日線、成交量、指標覆蓋與畫線。" } },
-  { path: "/charts/market", name: "market-charts", component: MarketChartsPage, meta: { label: "大盤圖表", title: "大盤與法人流圖", description: "查看大盤日線 K 線與外資期權流向 foundation。" } },
+  { path: "/charts/market", name: "market-charts", component: MarketChartsPage, meta: { label: "市場結構圖", title: "市場結構圖", description: "查看大盤日線、外資現貨／期貨／選擇權方向與研究摘要。" } },
   { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "候選清單", title: "隔日候選清單", description: "檢視隔日候選名單、評分理由與排名拆解。" } },
   { path: "/reports", name: "reports", component: ReportsPage, meta: { label: "報表", title: "每日報表", description: "檢視日報彙整區塊與已保存的報表內容。" } },
   { path: "/backtests", name: "backtests", component: BacktestsPage, meta: { label: "回測", title: "回測研究", description: "檢視近期研究回測、核心指標與交易明細。" } },

@@ -16,6 +16,7 @@ from services.core.classification.watchlists import add_instrument_to_watchlist,
 from services.core.derivatives.features import compute_tw_derivatives_features
 from services.core.etl.pipeline import run_ingestion_pipeline
 from services.db.repositories.tw_derivatives import TwDerivativesDailyRepository, TwDerivativesFeatureRepository
+from services.db.repositories.tw_institutional_spot import TwInstitutionalSpotDailyRepository
 from services.models.backtest_run import BacktestRun
 from services.models.backtest_trade import BacktestTrade
 from services.models.candidate_item import CandidateItem
@@ -77,6 +78,7 @@ class DemoDataResult:
     indicator_values_persisted: int
     tw_derivatives_daily_loaded: int
     tw_derivatives_features_persisted: int
+    tw_institutional_spot_loaded: int
     candidate_runs_created: int
     candidate_items_created: int
     backtest_runs_created: int
@@ -212,7 +214,7 @@ def generate_demo_data(session: Session, *, trade_date: date = DEFAULT_DEMO_TRAD
     etl_result = run_sample_daily_market_etl(session, trade_date=trade_date)
 
     indicator_result = run_indicator_update_job(session, trade_date)
-    derivatives_daily_loaded, derivatives_features_persisted = _seed_demo_derivatives_data(
+    derivatives_daily_loaded, derivatives_features_persisted, spot_loaded = _seed_demo_derivatives_data(
         session,
         trade_date=trade_date,
     )
@@ -241,6 +243,7 @@ def generate_demo_data(session: Session, *, trade_date: date = DEFAULT_DEMO_TRAD
         indicator_values_persisted=indicator_result.metrics.get("indicator_values_persisted", 0),
         tw_derivatives_daily_loaded=derivatives_daily_loaded,
         tw_derivatives_features_persisted=derivatives_features_persisted,
+        tw_institutional_spot_loaded=spot_loaded,
         candidate_runs_created=int(candidate_run.id > 0),
         candidate_items_created=len(candidate_items),
         backtest_runs_created=int(backtest_run_id > 0),
@@ -341,12 +344,27 @@ def _build_price_series(
     return rows
 
 
-def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[int, int]:
+def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[int, int, int]:
     records: list[NormalizedTwDerivativesDailyRecord] = []
+    spot_loaded = 0
+    spot_repository = TwInstitutionalSpotDailyRepository(session)
     for index in range(21):
         current_date = trade_date - timedelta(days=20 - index)
         foreign_net = 180 + (index * 18)
         dealer_net = -60 + (index * 5)
+        spot_net = Decimal("-1200000000") + (Decimal(index) * Decimal("185000000"))
+        spot_buy = Decimal("2600000000") + (Decimal(index) * Decimal("120000000"))
+        spot_sell = spot_buy - spot_net
+        spot_repository.upsert(
+            trade_date=current_date,
+            market="TW",
+            institution="foreign_investors",
+            buy_amount=spot_buy,
+            sell_amount=spot_sell,
+            net_amount=spot_net,
+            source_route="demo_seed",
+        )
+        spot_loaded += 1
         records.extend(
             [
                 NormalizedTwDerivativesDailyRecord(
@@ -397,7 +415,7 @@ def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[
     features = compute_tw_derivatives_features(all_records)
     features_persisted = TwDerivativesFeatureRepository(session).replace_many(features)
     session.commit()
-    return daily_loaded, features_persisted
+    return daily_loaded, features_persisted, spot_loaded
 
 
 def _delete_existing_demo_candidate_runs(session: Session, *, candidate_date: date) -> None:

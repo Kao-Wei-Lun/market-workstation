@@ -67,10 +67,12 @@ export interface ChartAnnotationCreateRequest {
 
 export interface InstitutionalFlowPointRead {
   trade_date: string;
+  spot_net_amount: string | null;
   futures_net_open_interest: number;
   futures_net_amount: string | null;
   options_net_open_interest: number;
   options_net_amount: string | null;
+  options_directional_bias: string | null;
   average_bias_score: string | null;
   bullish_count: number;
   bearish_count: number;
@@ -83,4 +85,23 @@ export interface InstitutionalFlowChartRead {
   flow_points: InstitutionalFlowPointRead[];
   spot_flow_available: boolean;
   summary_highlights: string[];
+}
+
+export interface MarketStructureSummaryRead {
+  trade_date: string | null;
+  overall_regime: string;
+  spot_direction: string;
+  futures_direction: string;
+  options_direction: string;
+  divergence_hints: string[];
+  anomaly_hints: string[];
+  highlights: string[];
+}
+
+export interface MarketStructureChartRead {
+  instrument: ChartInstrumentRead;
+  candles: ChartCandleRead[];
+  flow_points: InstitutionalFlowPointRead[];
+  available_series: string[];
+  summary: MarketStructureSummaryRead;
 }

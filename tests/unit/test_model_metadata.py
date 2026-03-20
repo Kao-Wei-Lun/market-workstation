@@ -20,6 +20,7 @@ from services.models import (
     Strategy,
     TwDerivativesDaily,
     TwDerivativesFeature,
+    TwInstitutionalSpotDaily,
     Watchlist,
     WatchlistItem,
     WorkerHealth,
@@ -50,6 +51,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert SeriesPoint.__tablename__ == "series_points"
     assert TwDerivativesDaily.__tablename__ == "tw_derivatives_daily"
     assert TwDerivativesFeature.__tablename__ == "tw_derivatives_features"
+    assert TwInstitutionalSpotDaily.__tablename__ == "tw_institutional_spot_daily"
     assert Watchlist.__tablename__ == "watchlists"
     assert WatchlistItem.__tablename__ == "watchlist_items"
     assert WorkerHealth.__tablename__ == "worker_health"
@@ -74,6 +76,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "series_points",
         "tw_derivatives_daily",
         "tw_derivatives_features",
+        "tw_institutional_spot_daily",
         "watchlists",
         "watchlist_items",
         "worker_health",

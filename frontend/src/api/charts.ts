@@ -5,6 +5,7 @@ import type {
   ChartDataRead,
   ChartInstrumentRead,
   InstitutionalFlowChartRead,
+  MarketStructureChartRead,
 } from "@/types/charts";
 
 export async function fetchChartInstruments(params: {
@@ -47,6 +48,18 @@ export async function fetchInstitutionalFlowChart(
   params: { dateFrom?: string; dateTo?: string } = {},
 ): Promise<InstitutionalFlowChartRead> {
   return getJson<InstitutionalFlowChartRead>(`/api/charts/institutional-flow/${symbol}`, {
+    params: {
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+    },
+  });
+}
+
+export async function fetchMarketStructureChart(
+  symbol: string,
+  params: { dateFrom?: string; dateTo?: string } = {},
+): Promise<MarketStructureChartRead> {
+  return getJson<MarketStructureChartRead>(`/api/charts/market-structure/${symbol}`, {
     params: {
       date_from: params.dateFrom,
       date_to: params.dateTo,

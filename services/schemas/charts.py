@@ -67,10 +67,12 @@ class ChartDataRead(BaseModel):
 
 class InstitutionalFlowPointRead(BaseModel):
     trade_date: date
+    spot_net_amount: Decimal | None = None
     futures_net_open_interest: int
     futures_net_amount: Decimal | None = None
     options_net_open_interest: int
     options_net_amount: Decimal | None = None
+    options_directional_bias: Decimal | None = None
     average_bias_score: Decimal | None = None
     bullish_count: int = 0
     bearish_count: int = 0
@@ -83,3 +85,22 @@ class InstitutionalFlowChartRead(BaseModel):
     flow_points: list[InstitutionalFlowPointRead] = Field(default_factory=list)
     spot_flow_available: bool = False
     summary_highlights: list[str] = Field(default_factory=list)
+
+
+class MarketStructureSummaryRead(BaseModel):
+    trade_date: date | None = None
+    overall_regime: str = "neutral"
+    spot_direction: str = "neutral"
+    futures_direction: str = "neutral"
+    options_direction: str = "neutral"
+    divergence_hints: list[str] = Field(default_factory=list)
+    anomaly_hints: list[str] = Field(default_factory=list)
+    highlights: list[str] = Field(default_factory=list)
+
+
+class MarketStructureChartRead(BaseModel):
+    instrument: ChartInstrumentRead
+    candles: list[ChartCandleRead] = Field(default_factory=list)
+    flow_points: list[InstitutionalFlowPointRead] = Field(default_factory=list)
+    available_series: list[str] = Field(default_factory=list)
+    summary: MarketStructureSummaryRead
