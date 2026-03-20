@@ -9,7 +9,9 @@ from alembic.config import Config
 
 from services.core.bootstrap import (
     DEFAULT_DEMO_TRADE_DATE,
+    DEFAULT_V1_UNIVERSE_PRESET,
     generate_demo_data,
+    load_instrument_universe,
     run_sample_daily_market_etl,
     seed_sample_reference_data,
 )
@@ -26,6 +28,14 @@ def main(argv: list[str] | None = None) -> int:
     migrate_parser.add_argument("--revision", default="head")
 
     subparsers.add_parser("seed", help="Seed sample reference data.")
+
+    universe_parser = subparsers.add_parser("load-universe", help="Load a broader instrument universe preset.")
+    universe_parser.add_argument("--preset", default=DEFAULT_V1_UNIVERSE_PRESET)
+    universe_parser.add_argument(
+        "--skip-watchlists",
+        action="store_true",
+        help="Load instruments and tags without preset watchlists.",
+    )
 
     demo_data_parser = subparsers.add_parser("demo-data", help="Generate frontend-visible local demo data.")
     demo_data_parser.add_argument("--trade-date", type=date.fromisoformat, default=DEFAULT_DEMO_TRADE_DATE)
@@ -57,6 +67,26 @@ def main(argv: list[str] | None = None) -> int:
             f"instruments_created={seed_result.instruments_created}, "
             f"watchlists_created={seed_result.watchlists_created}, "
             f"tags_created={seed_result.tags_created}"
+        )
+        return 0
+
+    if args.command == "load-universe":
+        with SessionLocal() as session:
+            result = load_instrument_universe(
+                session,
+                preset_name=args.preset,
+                include_watchlists=not args.skip_watchlists,
+            )
+        print(
+            "Loaded instrument universe: "
+            f"preset={result.preset_name}, "
+            f"scopes_declared={result.scopes_declared}, "
+            f"instruments_created={result.instruments_created}, "
+            f"instruments_updated={result.instruments_updated}, "
+            f"tags_created={result.tags_created}, "
+            f"watchlists_created={result.watchlists_created}, "
+            f"watchlist_items_added={result.watchlist_items_added}, "
+            f"total_instruments={result.total_instruments}"
         )
         return 0
 

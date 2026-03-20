@@ -29,6 +29,20 @@ class _DemoDataResult:
     reports_persisted: int
 
 
+@dataclass(frozen=True)
+class _UniverseLoadResult:
+    preset_name: str
+    description: str
+    scopes_declared: int
+    instruments_created: int
+    instruments_updated: int
+    tags_created: int
+    watchlists_created: int
+    watchlist_items_added: int
+    total_instruments: int
+    available_presets: tuple[str, ...]
+
+
 def test_manage_migrate_dispatches_to_alembic(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
@@ -56,6 +70,33 @@ def test_manage_seed_dispatches_to_seed_service(monkeypatch, capsys) -> None:
 
     assert exit_code == 0
     assert "instruments_created=3" in output
+
+
+def test_manage_load_universe_dispatches_to_universe_service(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "load_instrument_universe",
+        lambda session, preset_name, include_watchlists: _UniverseLoadResult(
+            preset_name=preset_name,
+            description="demo",
+            scopes_declared=1,
+            instruments_created=20,
+            instruments_updated=5,
+            tags_created=40,
+            watchlists_created=2,
+            watchlist_items_added=9,
+            total_instruments=25,
+            available_presets=("sample_reference", "v1_market_expanded"),
+        ),
+    )
+
+    exit_code = manage.main(["load-universe", "--preset", "v1_market_expanded"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "preset=v1_market_expanded" in output
+    assert "instruments_created=20" in output
 
 
 def test_manage_demo_data_dispatches_to_demo_service(monkeypatch, capsys) -> None:

@@ -1,0 +1,89 @@
+{
+  "preset_name": "v1_market_expanded",
+  "description": "Broader V1 universe covering Taiwan core daily market instruments, curated US names, major global indices, commodities, and macro series.",
+  "scopes": [
+    {
+      "key": "tw_equities_full",
+      "label": "Taiwan listed equities full market",
+      "market": "TW",
+      "asset_type": "stock",
+      "source_route": "twse_openapi",
+      "coverage": "full_market_registry_sync",
+      "description": "Target full TWSE/TPEX listed-equity daily coverage through an official listing sync flow while keeping source routing explicit."
+    }
+  ],
+  "instruments": [
+    { "symbol": "2330", "name": "TSMC", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "semiconductor"] },
+    { "symbol": "2317", "name": "Hon Hai", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "electronics"] },
+    { "symbol": "2454", "name": "MediaTek", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "semiconductor"] },
+    { "symbol": "2308", "name": "Delta Electronics", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "electronics"] },
+    { "symbol": "2603", "name": "Evergreen Marine", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "shipping"] },
+    { "symbol": "2881", "name": "Fubon Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"] },
+    { "symbol": "2882", "name": "Cathay Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"] },
+    { "symbol": "2884", "name": "E.Sun Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"] },
+    { "symbol": "0050", "name": "Yuanta Taiwan 50 ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "broad-market"] },
+    { "symbol": "0056", "name": "Yuanta High Dividend ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"] },
+    { "symbol": "006208", "name": "Fubon Taiwan 50 ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "broad-market"] },
+    { "symbol": "00878", "name": "Cathay Sustainable High Dividend ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"] },
+    { "symbol": "00919", "name": "Capital Taiwan Dividend Plus ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"] },
+    { "symbol": "^TWII", "name": "TAIEX", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "broad-market"] },
+    { "symbol": "^TPEX", "name": "TPEx OTC Index", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "small-cap"] },
+
+    { "symbol": "AAPL", "name": "Apple", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"] },
+    { "symbol": "MSFT", "name": "Microsoft", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"] },
+    { "symbol": "NVDA", "name": "NVIDIA", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-ai"] },
+    { "symbol": "AMZN", "name": "Amazon", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-growth"] },
+    { "symbol": "GOOGL", "name": "Alphabet", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"] },
+    { "symbol": "META", "name": "Meta Platforms", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"] },
+    { "symbol": "TSLA", "name": "Tesla", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-growth"] },
+    { "symbol": "AMD", "name": "AMD", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-semiconductor"] },
+    { "symbol": "SPY", "name": "SPDR S&P 500 ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "broad-market"] },
+    { "symbol": "QQQ", "name": "Invesco QQQ", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "growth"] },
+    { "symbol": "IWM", "name": "iShares Russell 2000 ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "small-cap"] },
+    { "symbol": "SOXX", "name": "iShares Semiconductor ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "semiconductor"] },
+
+    { "symbol": "^GSPC", "name": "S&P 500", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-benchmark"] },
+    { "symbol": "^IXIC", "name": "NASDAQ Composite", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-growth"] },
+    { "symbol": "^DJI", "name": "Dow Jones Industrial Average", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-benchmark"] },
+    { "symbol": "^NDX", "name": "NASDAQ 100", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-growth"] },
+    { "symbol": "^RUT", "name": "Russell 2000", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "small-cap"] },
+    { "symbol": "^FTSE", "name": "FTSE 100", "market": "GLOBAL", "asset_type": "index", "currency": "GBP", "timezone": "Europe/London", "source_route": "manual_csv", "tags": ["global-index", "europe"] },
+    { "symbol": "^GDAXI", "name": "DAX", "market": "GLOBAL", "asset_type": "index", "currency": "EUR", "timezone": "Europe/Berlin", "source_route": "manual_csv", "tags": ["global-index", "europe"] },
+    { "symbol": "^N225", "name": "Nikkei 225", "market": "GLOBAL", "asset_type": "index", "currency": "JPY", "timezone": "Asia/Tokyo", "source_route": "manual_csv", "tags": ["global-index", "asia"] },
+    { "symbol": "^HSI", "name": "Hang Seng Index", "market": "GLOBAL", "asset_type": "index", "currency": "HKD", "timezone": "Asia/Hong_Kong", "source_route": "manual_csv", "tags": ["global-index", "asia"] },
+
+    { "symbol": "GC=F", "name": "Gold Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "precious-metal"] },
+    { "symbol": "SI=F", "name": "Silver Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "precious-metal"] },
+    { "symbol": "CL=F", "name": "WTI Crude Oil Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "energy"] },
+    { "symbol": "HG=F", "name": "Copper Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "industrial-metal"] },
+
+    { "symbol": "VIX", "name": "CBOE Volatility Index", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "risk"] },
+    { "symbol": "DXY", "name": "US Dollar Index", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "fx"] },
+    { "symbol": "US10Y", "name": "US 10Y Treasury Yield", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "rates"] },
+    { "symbol": "FEDFUNDS", "name": "Effective Federal Funds Rate", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "rates"] },
+    { "symbol": "CPIAUCSL", "name": "US CPI", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "inflation"] },
+    { "symbol": "UNRATE", "name": "US Unemployment Rate", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "labor"] }
+  ],
+  "watchlists": [
+    {
+      "name": "tw-core",
+      "description": "Taiwan core research watchlist",
+      "symbols": ["2330", "2317", "2454", "2308", "0050", "0056", "^TWII"]
+    },
+    {
+      "name": "us-core",
+      "description": "Curated US growth and benchmark universe",
+      "symbols": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "QQQ", "SPY", "SOXX"]
+    },
+    {
+      "name": "global-risk",
+      "description": "Global index and commodity risk dashboard",
+      "symbols": ["^GSPC", "^IXIC", "^N225", "^HSI", "GC=F", "CL=F", "VIX", "DXY", "US10Y"]
+    },
+    {
+      "name": "macro-dashboard",
+      "description": "Macro and policy monitoring list",
+      "symbols": ["VIX", "DXY", "US10Y", "FEDFUNDS", "CPIAUCSL", "UNRATE"]
+    }
+  ]
+}

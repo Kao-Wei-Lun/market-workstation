@@ -5,7 +5,13 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from services.core.bootstrap import DEFAULT_DEMO_TRADE_DATE, generate_demo_data, run_sample_daily_market_etl, seed_sample_reference_data
+from services.core.bootstrap import (
+    DEFAULT_DEMO_TRADE_DATE,
+    generate_demo_data,
+    load_instrument_universe,
+    run_sample_daily_market_etl,
+    seed_sample_reference_data,
+)
 from services.core.derivatives.summary import get_latest_institutional_bias_summary
 from services.db.base import Base
 from services.models import import_models
@@ -43,7 +49,7 @@ def test_seed_sample_reference_data_is_idempotent() -> None:
     assert session.query(Instrument).count() == 3
     assert session.query(Watchlist).count() == 1
     assert session.query(WatchlistItem).count() == 2
-    assert session.query(InstrumentTag).count() == 5
+    assert session.query(InstrumentTag).count() == 7
 
 
 def test_sample_etl_loads_seeded_daily_bars() -> None:
@@ -54,6 +60,25 @@ def test_sample_etl_loads_seeded_daily_bars() -> None:
     assert result.instruments_processed == 2
     assert result.daily_bars_loaded == 60
     assert session.query(DailyBar).count() == 60
+
+
+def test_load_instrument_universe_supports_broader_v1_preset_idempotently() -> None:
+    session = _build_session()
+
+    first = load_instrument_universe(session, preset_name="v1_market_expanded")
+    second = load_instrument_universe(session, preset_name="v1_market_expanded")
+
+    assert first.total_instruments > 20
+    assert first.scopes_declared == 1
+    assert first.watchlists_created >= 1
+    assert first.watchlist_items_added >= 1
+
+    assert second.instruments_created == 0
+    assert session.query(Instrument).filter(Instrument.market == "TW").count() >= 10
+    assert session.query(Instrument).filter(Instrument.market == "US").count() >= 8
+    assert session.query(Instrument).filter(Instrument.asset_type == "macro").count() >= 4
+    assert session.query(Watchlist).count() >= 4
+    assert session.query(InstrumentTag).count() > 20
 
 
 def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables() -> None:

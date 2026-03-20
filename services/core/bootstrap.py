@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from config.universe import list_available_universe_presets, load_universe_preset
 from services.core.backtesting.service import create_and_run_backtest
 from services.core.candidates.service import generate_and_persist_candidate_run
 from services.connectors.base import ConnectorRequest
@@ -29,36 +30,10 @@ from services.schemas.backtesting import BacktestCreateRequest
 from services.schemas.etl import NormalizedTwDerivativesDailyRecord
 from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
 
-SAMPLE_INSTRUMENT_DEFINITIONS = [
-    {
-        "symbol": "2330",
-        "name": "TSMC",
-        "market": "TW",
-        "asset_type": "stock",
-        "currency": "TWD",
-        "timezone": "Asia/Taipei",
-        "source_route": "twse_openapi",
-    },
-    {
-        "symbol": "AAPL",
-        "name": "Apple",
-        "market": "US",
-        "asset_type": "stock",
-        "currency": "USD",
-        "timezone": "America/New_York",
-        "source_route": "us_eod_provider",
-    },
-    {
-        "symbol": "^TWII",
-        "name": "TAIEX",
-        "market": "TW",
-        "asset_type": "index",
-        "currency": "TWD",
-        "timezone": "Asia/Taipei",
-        "source_route": "manual_csv",
-    },
-]
-SAMPLE_INSTRUMENT_SYMBOLS = {item["symbol"] for item in SAMPLE_INSTRUMENT_DEFINITIONS}
+SAMPLE_UNIVERSE_PRESET = "sample_reference"
+DEFAULT_V1_UNIVERSE_PRESET = "v1_market_expanded"
+SAMPLE_UNIVERSE = load_universe_preset(SAMPLE_UNIVERSE_PRESET)
+SAMPLE_INSTRUMENT_SYMBOLS = {item.symbol for item in SAMPLE_UNIVERSE.instruments}
 DEFAULT_DEMO_TRADE_DATE = date(2026, 3, 20)
 DEMO_BACKTEST_NAME = "Demo Time Exit Trend"
 DEMO_BACKTEST_DESCRIPTION = "Deterministic local demo backtest"
@@ -75,6 +50,20 @@ class SeedResult:
 class SampleEtlResult:
     instruments_processed: int
     daily_bars_loaded: int
+
+
+@dataclass(frozen=True)
+class UniverseLoadResult:
+    preset_name: str
+    description: str
+    scopes_declared: int
+    instruments_created: int
+    instruments_updated: int
+    tags_created: int
+    watchlists_created: int
+    watchlist_items_added: int
+    total_instruments: int
+    available_presets: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -95,28 +84,72 @@ class DemoDataResult:
 
 
 def seed_sample_reference_data(session: Session) -> SeedResult:
-    instruments_created = 0
-    tags_created = 0
-    for payload in SAMPLE_INSTRUMENT_DEFINITIONS:
-        instrument, created = _upsert_instrument(session, **payload)
-        instruments_created += int(created)
-        tags_created += _ensure_tag(session, instrument.id, "sample")
-        if instrument.symbol == "2330":
-            tags_created += _ensure_tag(session, instrument.id, "semiconductor")
-        if instrument.symbol == "AAPL":
-            tags_created += _ensure_tag(session, instrument.id, "us-tech")
+    result = load_instrument_universe(session, preset_name=SAMPLE_UNIVERSE_PRESET)
+    return SeedResult(
+        instruments_created=result.instruments_created,
+        watchlists_created=result.watchlists_created,
+        tags_created=result.tags_created,
+    )
 
-    watchlist, created = _ensure_watchlist(session, name="sample-core", description="Sample development watchlist")
-    watchlists_created = int(created)
-    for symbol in ["2330", "AAPL"]:
-        instrument = session.query(Instrument).filter(Instrument.symbol == symbol).one()
-        _ensure_watchlist_item(session, watchlist.id, instrument.id)
+
+def load_instrument_universe(
+    session: Session,
+    *,
+    preset_name: str = DEFAULT_V1_UNIVERSE_PRESET,
+    include_watchlists: bool = True,
+) -> UniverseLoadResult:
+    preset = load_universe_preset(preset_name)
+
+    instruments_created = 0
+    instruments_updated = 0
+    tags_created = 0
+    watchlists_created = 0
+    watchlist_items_added = 0
+    symbol_to_instrument_id: dict[str, int] = {}
+
+    for definition in preset.instruments:
+        instrument, created = _upsert_instrument(
+            session,
+            symbol=definition.symbol,
+            name=definition.name,
+            market=definition.market,
+            asset_type=definition.asset_type,
+            currency=definition.currency,
+            timezone=definition.timezone,
+            source_route=definition.source_route,
+        )
+        instruments_created += int(created)
+        instruments_updated += int(not created)
+        symbol_to_instrument_id[definition.symbol] = instrument.id
+        for tag in definition.tags:
+            tags_created += _ensure_tag(session, instrument.id, tag)
+
+    if include_watchlists:
+        for watchlist_definition in preset.watchlists:
+            watchlist, created = _ensure_watchlist(
+                session,
+                name=watchlist_definition.name,
+                description=watchlist_definition.description,
+            )
+            watchlists_created += int(created)
+            for symbol in watchlist_definition.symbols:
+                instrument_id = symbol_to_instrument_id.get(symbol)
+                if instrument_id is None:
+                    continue
+                watchlist_items_added += _ensure_watchlist_item(session, watchlist.id, instrument_id)
 
     session.commit()
-    return SeedResult(
+    return UniverseLoadResult(
+        preset_name=preset.preset_name,
+        description=preset.description,
+        scopes_declared=len(preset.scopes),
         instruments_created=instruments_created,
-        watchlists_created=watchlists_created,
+        instruments_updated=instruments_updated,
         tags_created=tags_created,
+        watchlists_created=watchlists_created,
+        watchlist_items_added=watchlist_items_added,
+        total_instruments=len(preset.instruments),
+        available_presets=tuple(list_available_universe_presets()),
     )
 
 
@@ -255,7 +288,7 @@ def _ensure_tag(session: Session, instrument_id: int, tag: str) -> int:
     return 1
 
 
-def _ensure_watchlist_item(session: Session, watchlist_id: int, instrument_id: int) -> None:
+def _ensure_watchlist_item(session: Session, watchlist_id: int, instrument_id: int) -> int:
     existing = (
         session.query(WatchlistItem)
         .filter(
@@ -266,6 +299,8 @@ def _ensure_watchlist_item(session: Session, watchlist_id: int, instrument_id: i
     )
     if existing is None:
         add_instrument_to_watchlist(session, watchlist_id=watchlist_id, instrument_id=instrument_id)
+        return 1
+    return 0
 
 
 def _build_price_series(

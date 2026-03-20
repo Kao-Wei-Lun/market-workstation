@@ -1,0 +1,44 @@
+{
+  "preset_name": "sample_reference",
+  "description": "Small deterministic local sample universe used by seed and demo-data.",
+  "scopes": [],
+  "instruments": [
+    {
+      "symbol": "2330",
+      "name": "TSMC",
+      "market": "TW",
+      "asset_type": "stock",
+      "currency": "TWD",
+      "timezone": "Asia/Taipei",
+      "source_route": "twse_openapi",
+      "tags": ["sample", "semiconductor", "tw-core"]
+    },
+    {
+      "symbol": "AAPL",
+      "name": "Apple",
+      "market": "US",
+      "asset_type": "stock",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "source_route": "us_eod_provider",
+      "tags": ["sample", "us-tech"]
+    },
+    {
+      "symbol": "^TWII",
+      "name": "TAIEX",
+      "market": "TW",
+      "asset_type": "index",
+      "currency": "TWD",
+      "timezone": "Asia/Taipei",
+      "source_route": "manual_csv",
+      "tags": ["sample", "tw-index"]
+    }
+  ],
+  "watchlists": [
+    {
+      "name": "sample-core",
+      "description": "Sample development watchlist",
+      "symbols": ["2330", "AAPL"]
+    }
+  ]
+}

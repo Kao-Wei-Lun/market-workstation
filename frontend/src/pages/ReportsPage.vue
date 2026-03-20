@@ -21,20 +21,16 @@
         </div>
         <div class="field-group">
           <label for="report-date">彙整日期</label>
-          <select id="report-date" v-model="selectedReportDate" @change="loadReports">
-            <option value="">最新</option>
-            <option
-              v-for="report in latestReports"
-              :key="`${report.report_date}-${report.report_type}-${report.id}`"
-              :value="report.report_date"
-            >
-              {{ formatDate(report.report_date) }}
-            </option>
-          </select>
+          <input id="report-date" v-model="selectedReportDate" type="date" @change="loadReports" />
         </div>
         <div class="field-group">
           <label for="report-type-filter">報表類型</label>
-          <input id="report-type-filter" v-model="reportTypeFilter" placeholder="daily_report_bundle / market_summary" />
+          <select id="report-type-filter" v-model="reportTypeFilter" @change="loadReports">
+            <option value="">全部類型</option>
+            <option v-for="reportType in availableReportTypes" :key="reportType" :value="reportType">
+              {{ reportType }}
+            </option>
+          </select>
         </div>
         <div class="field-group">
           <label for="report-section">報表區塊</label>
@@ -143,6 +139,27 @@
         </div>
       </DetailPanel>
 
+      <DetailPanel
+        v-if="selectedSection"
+        title="區塊摘要"
+        description="顯示目前 section 的欄位規模、閱讀密度與可延伸查看的導頁。"
+      >
+        <template #header>
+          <div class="detail-actions">
+            <RouterLink v-for="link in reportRelatedLinks" :key="link.label" class="detail-link" :to="link.to">
+              {{ link.label }}
+            </RouterLink>
+          </div>
+        </template>
+        <MetricGrid :metrics="selectedSectionMetrics" />
+      </DetailPanel>
+
+      <EmptyState
+        v-else-if="selectedReportDate"
+        title="該日期尚無 bundle"
+        message="目前找不到此日期的 bundle。請切換日期或先重新產生日報。"
+      />
+
       <div v-if="selectedSection" class="page-section-grid">
         <MarkdownSection
           title="目前報表區塊"
@@ -186,7 +203,7 @@ import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { DailyReportBundleContent } from "@/types/api";
 import type { ReportDailyRead, ReportsDashboardRead } from "@/types/dashboard";
 import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
-import { buildReportRelatedLinks } from "@/utils/reports";
+import { buildReportRelatedLinks, buildReportSectionMetrics, listAvailableReportTypes } from "@/utils/reports";
 import type { TableRow } from "@/utils/presentation";
 import { filterRowsByQuery, makeLinkedCell } from "@/utils/presentation";
 
@@ -238,7 +255,11 @@ const selectedSection = computed(() => {
 
 const selectedReport = computed(() => latestReports.value.find((report) => report.id === selectedReportId.value) ?? null);
 const selectedReportRowKey = computed(() => (selectedReportId.value ? String(selectedReportId.value) : null));
+const availableReportTypes = computed(() => listAvailableReportTypes(latestReports.value));
 const reportRelatedLinks = computed(() => buildReportRelatedLinks(bundle.value, selectedSection.value));
+const selectedSectionMetrics = computed(() =>
+  buildReportSectionMetrics(bundle.value, selectedSection.value, reportRelatedLinks.value.length),
+);
 
 const bundleMetrics = computed(() => {
   if (!bundle.value) {
@@ -303,18 +324,10 @@ async function loadReports(): Promise<void> {
     ]);
     dashboard.value = dashboardResponse;
     latestReports.value = latestReportsResponse;
-    selectedReportDate.value =
-      selectedReportDate.value || latestReportsResponse[0]?.report_date || dashboardResponse.meta.as_of_date || "";
+    selectedReportDate.value = selectedReportDate.value || latestReportsResponse[0]?.report_date || dashboardResponse.meta.as_of_date || "";
     await loadSelectedBundle();
     selectedReportId.value = selectedReportId.value ?? latestReportsResponse[0]?.id ?? null;
-    await router.replace({
-      query: {
-        limit: String(limit.value),
-        reportDate: selectedReportDate.value || undefined,
-        reportType: reportTypeFilter.value || undefined,
-        section: selectedSectionType.value || undefined,
-      },
-    });
+    syncRouteQuery();
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {

@@ -36,11 +36,13 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
    `make migrate`
 3. Seed sample instruments, watchlist membership, and tags:
    `make seed`
-4. Generate deterministic frontend-visible demo data:
+4. Load the broader V1 research universe when you want more than the minimal sample set:
+   `make load-universe`
+5. Generate deterministic frontend-visible demo data:
    `make demo-data`
-5. Run the startup smoke test:
+6. Run the startup smoke test:
    `make smoke-test`
-6. Start the frontend:
+7. Start the frontend:
    `make run-frontend`
 
 ## Running services locally
@@ -59,6 +61,7 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
 All bootstrap commands are available through `scripts/manage.py`:
 - `python scripts/manage.py migrate`
 - `python scripts/manage.py seed`
+- `python scripts/manage.py load-universe --preset v1_market_expanded`
 - `python scripts/manage.py demo-data --trade-date 2026-03-20`
 - `python scripts/manage.py sample-etl --trade-date 2026-03-20`
 - `python scripts/manage.py indicator-update --trade-date 2026-03-20`
@@ -94,6 +97,7 @@ After running the quickstart commands:
 - `make setup`
 - `make migrate`
 - `make seed`
+- `make load-universe`
 - `make demo-data`
 - `make sample-etl`
 - `make indicator-update`
@@ -128,6 +132,13 @@ After running the quickstart commands:
 ## Seed vs Demo Data
 
 - `make seed` only creates reference data such as instruments, watchlists, and tags.
+- `make load-universe` loads the broader V1 research preset from `config/universes/v1_market_expanded.json`, including:
+  - Taiwan core stocks, ETFs, and major indices
+  - a curated US stock and ETF universe
+  - major global indices
+  - commodity instruments
+  - macro-series instruments
+  - explicit provider routing via `source_route`
 - `make demo-data` builds on `seed` and generates deterministic frontend-visible datasets for local development:
   - daily bars
   - indicator values
@@ -246,7 +257,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 - Candidates page workflow:
   use 日期、代號搜尋、分數/名次排序快速收斂名單，再從右側明細檢查候選理由、評分拆解與 scanner / watchlist / tag 關聯，必要時直接跳到同日報表或相關群組。
 - Reports page workflow:
-  先用日期與類型鎖定當日 bundle，再用 section 快速切換閱讀 markdown 與 structured payload；若 payload 含群組、候選代號或觀察清單資訊，可直接跳往對應頁面延伸查看。
+  先用日期與類型鎖定當日 bundle，再用 section 快速切換閱讀 markdown 與 structured payload；頁面現在會額外顯示 section 摘要、區塊欄位數與可延伸的相關導頁，若 payload 含群組、候選代號或觀察清單資訊，可直接跳往對應頁面延伸查看。
 - The frontend currently uses Traditional Chinese as the default UI language. Backend-generated content may still include source-side labels or markdown text depending on the stored data, but the main navigation, controls, and page chrome are now zh-TW.
 - The API now allows local frontend origins by default through CORS:
   `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
@@ -254,6 +265,21 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 - If the frontend shows an API error that mentions a network or CORS problem, verify:
   `curl http://localhost:8000/health`
   and confirm `VITE_API_BASE_URL` points at that API origin.
+
+## V1 Data Coverage Strategy
+
+- Recommended local progression:
+  1. `make seed`
+  2. `make load-universe`
+  3. `make demo-data`
+- `seed` keeps the repo-friendly minimal sample set for smoke tests and deterministic demo generation.
+- `load-universe` expands the instrument master toward practical V1 usage through config-driven manifests under `config/universes/`.
+- The current broader preset is intentionally explicit:
+  - Taiwan daily coverage defaults to `twse_openapi` for listed names and declares a `tw_equities_full` scope for future official full-market registry sync.
+  - Curated US names use `us_eod_provider`.
+  - Global indices use `us_eod_provider` or `manual_csv` depending on the asset.
+  - Commodities and macro series use `macro_series_provider`.
+- This keeps provider routing visible in the instrument master and leaves room for later connector expansion without changing the database model.
 
 ## Verification
 
