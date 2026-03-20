@@ -110,8 +110,19 @@ After running the quickstart commands:
 - Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
 - Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
 - Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
+- Next-day watch candidate runs persist to `candidate_runs` and `candidate_items`, with generation and query APIs exposed under `/candidates`.
 - Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
 - Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
+
+## Next-Day Candidates
+
+- Generate a persisted candidate run:
+  `curl -X POST http://localhost:8000/candidates/runs -H "Content-Type: application/json" -d '{"candidate_date":"2026-03-20","top_n":10}'`
+- Get the latest run for a date:
+  `curl http://localhost:8000/candidates/runs/by-date/2026-03-20`
+- List candidate items for a run:
+  `curl http://localhost:8000/candidates/runs/<run_id>/items`
+- The daily next-day candidates report reuses the same scoring service as the candidate run API.
 
 ## Verification
 

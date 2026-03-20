@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from services.core.candidates.service import build_candidate_generation
 from services.core.classification.summary import summarize_tag_group, summarize_watchlist_group
 from services.core.derivatives.summary import generate_daily_institutional_bias_summary
 from services.core.reports.base import GeneratedReport
@@ -14,6 +15,7 @@ from services.models.instrument import Instrument
 from services.models.tw_derivatives_feature import TwDerivativesFeature
 from services.models.watchlist import Watchlist
 from services.schemas.classification import GroupMemberChange, GroupSummaryRead
+from services.schemas.candidates import CandidateSummaryRead
 from services.schemas.reporting import (
     GroupSummarySnapshotContent,
     MarketSummaryContent,
@@ -224,76 +226,37 @@ def generate_next_day_watch_candidates_report(
     *,
     report_date: date,
 ) -> GeneratedReport[NextDayWatchCandidatesContent]:
-    bars = (
-        session.query(DailyBar, Instrument)
-        .join(Instrument, Instrument.id == DailyBar.instrument_id)
-        .filter(DailyBar.trade_date == report_date)
-        .order_by(Instrument.symbol.asc())
-        .all()
-    )
-    instrument_ids = [bar.instrument_id for bar, _instrument in bars]
-    sma_map = _load_indicator_value_map(
-        session,
-        instrument_ids=instrument_ids,
-        trade_date=report_date,
-        indicator_name="sma",
-        component="value",
-        parameter_signature="period=20",
-    )
-    rsi_map = _load_indicator_value_map(
-        session,
-        instrument_ids=instrument_ids,
-        trade_date=report_date,
-        indicator_name="rsi",
-        component="value",
-        parameter_signature="period=14",
-    )
-
-    candidates: list[NextDayWatchCandidate] = []
-    for bar, instrument in bars:
-        reasons: list[str] = []
-        sma20 = sma_map.get(bar.instrument_id)
-        rsi14 = rsi_map.get(bar.instrument_id)
-        change_percent = _resolve_close_change_pct(bar)
-
-        if sma20 is not None and bar.close > sma20:
-            reasons.append("close_above_sma20")
-        if rsi14 is not None and Decimal("50") <= rsi14 <= Decimal("70"):
-            reasons.append("rsi14_bullish_range")
-        if change_percent > 0:
-            reasons.append("positive_close_change")
-
-        if len(reasons) < 2:
-            continue
-
-        candidates.append(
-            NextDayWatchCandidate(
-                instrument_id=instrument.id,
-                symbol=instrument.symbol,
-                close=bar.close,
-                change_percent=change_percent,
-                sma20=sma20,
-                rsi14=rsi14,
-                reasons=reasons,
-            )
+    generation = build_candidate_generation(session, candidate_date=report_date, top_n=10)
+    summary = generation.summary
+    candidates = [
+        NextDayWatchCandidate(
+            instrument_id=item.instrument_id,
+            symbol=item.symbol,
+            candidate_date=item.candidate_date,
+            score=item.score,
+            rank=item.rank,
+            reasons=item.candidate_reasons,
+            supporting_metrics=item.supporting_metrics,
         )
-
-    candidates.sort(key=lambda item: (len(item.reasons), item.change_percent), reverse=True)
+        for item in generation.items
+    ]
     content = NextDayWatchCandidatesContent(
         trade_date=report_date,
         candidate_count=len(candidates),
-        candidates=candidates[:10],
+        summary=CandidateSummaryRead.model_validate(summary),
+        candidates=candidates,
     )
     markdown_text = "\n".join(
         [
             f"# Next-Day Watch Candidates {report_date.isoformat()}",
             "",
             f"- Candidate count: {content.candidate_count}",
+            f"- Derivatives regime: {content.summary.overall_derivatives_regime}",
             "",
             "## Candidates",
             *[
-                f"- {candidate.symbol}: change {candidate.change_percent}%, "
-                f"SMA20={candidate.sma20}, RSI14={candidate.rsi14}, reasons={', '.join(candidate.reasons)}"
+                f"- #{candidate.rank} {candidate.symbol}: score {candidate.score}, "
+                f"reasons={', '.join(candidate.reasons)}"
                 for candidate in content.candidates
             ],
         ]

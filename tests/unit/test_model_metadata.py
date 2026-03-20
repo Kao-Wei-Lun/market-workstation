@@ -3,6 +3,8 @@ from services.models import (
     AutoClassificationRule,
     BacktestRun,
     BacktestTrade,
+    CandidateItem,
+    CandidateRun,
     DailyBar,
     IndicatorValue,
     IngestJob,
@@ -25,6 +27,8 @@ def test_model_metadata_contains_initial_tables() -> None:
 
     assert Instrument.__tablename__ == "instruments"
     assert AutoClassificationRule.__tablename__ == "auto_classification_rules"
+    assert CandidateRun.__tablename__ == "candidate_runs"
+    assert CandidateItem.__tablename__ == "candidate_items"
     assert Strategy.__tablename__ == "strategies"
     assert BacktestRun.__tablename__ == "backtest_runs"
     assert BacktestTrade.__tablename__ == "backtest_trades"
@@ -42,6 +46,8 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert {
         "instruments",
         "auto_classification_rules",
+        "candidate_runs",
+        "candidate_items",
         "strategies",
         "backtest_runs",
         "backtest_trades",

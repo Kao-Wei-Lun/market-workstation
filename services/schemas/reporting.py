@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from services.core.derivatives.summary import DailyInstitutionalBiasSummary
+from services.schemas.candidates import CandidateSummaryRead
 from services.schemas.classification import GroupMemberChange, GroupSummaryRead
 
 
@@ -43,16 +44,17 @@ class TaiwanDerivativesSummaryContent(BaseModel):
 class NextDayWatchCandidate(BaseModel):
     instrument_id: int
     symbol: str
-    close: Decimal
-    change_percent: Decimal
-    sma20: Decimal | None = None
-    rsi14: Decimal | None = None
+    candidate_date: date
+    score: Decimal
+    rank: int
     reasons: list[str] = Field(default_factory=list)
+    supporting_metrics: dict[str, Any] = Field(default_factory=dict)
 
 
 class NextDayWatchCandidatesContent(BaseModel):
     trade_date: date
     candidate_count: int
+    summary: CandidateSummaryRead
     candidates: list[NextDayWatchCandidate]
 
 

@@ -3,6 +3,8 @@
 from services.models.auto_classification_rule import AutoClassificationRule
 from services.models.backtest_run import BacktestRun
 from services.models.backtest_trade import BacktestTrade
+from services.models.candidate_item import CandidateItem
+from services.models.candidate_run import CandidateRun
 from services.models.daily_bar import DailyBar
 from services.models.indicator_value import IndicatorValue
 from services.models.ingest_job import IngestJob
@@ -26,6 +28,8 @@ __all__ = [
     "AutoClassificationRule",
     "BacktestRun",
     "BacktestTrade",
+    "CandidateItem",
+    "CandidateRun",
     "DailyBar",
     "IndicatorValue",
     "IngestJob",

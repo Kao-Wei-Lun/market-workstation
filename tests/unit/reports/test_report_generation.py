@@ -58,4 +58,6 @@ def test_report_generators_build_structured_content_and_markdown(
 
     assert candidates_report.content.candidate_count == 2
     assert candidates_report.content.candidates[0].symbol == "2330"
+    assert candidates_report.content.candidates[0].rank == 1
+    assert candidates_report.content.summary.overall_derivatives_regime == "neutral"
     assert "close_above_sma20" in candidates_report.content.candidates[0].reasons
