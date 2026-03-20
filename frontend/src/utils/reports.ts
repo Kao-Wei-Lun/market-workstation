@@ -20,6 +20,7 @@ export interface ReportSectionSummaryItem {
   sectionType: string;
   payloadFieldCount: number;
   markdownLineCount: number;
+  relatedLinkCount: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -126,6 +127,70 @@ export function buildReportRelatedLinks(
     });
   }
 
+  const strongestWatchlist = bundle.metadata.strongest_watchlist_name;
+  if (strongestWatchlist) {
+    push(`查看強勢清單 ${strongestWatchlist}`, {
+      name: "watchlists",
+      query: { tradeDate: bundle.report_date },
+    });
+  }
+
+  const weakestWatchlist = bundle.metadata.weakest_watchlist_name;
+  if (weakestWatchlist) {
+    push(`查看弱勢清單 ${weakestWatchlist}`, {
+      name: "watchlists",
+      query: { tradeDate: bundle.report_date },
+    });
+  }
+
+  return links;
+}
+
+export function buildReportRowRelatedLinks(
+  report: ReportDailyRead | null,
+  reportDate: string,
+): ReportRelatedLink[] {
+  if (!report) {
+    return [];
+  }
+
+  const links: ReportRelatedLink[] = [];
+  const payload = asRecord(report.content_json) ?? {};
+  const candidateSymbols = asStringArray(payload.top_candidate_symbols).concat(asStringArray(payload.candidate_symbols));
+  const tag = getString(payload.tag);
+  const watchlistId = getNumber(payload.watchlist_id);
+
+  if (report.report_type === "daily_report_bundle") {
+    links.push({
+      label: "查看報表區塊",
+      to: { name: "reports", query: { reportDate: report.report_date } },
+    });
+  }
+  if (candidateSymbols[0]) {
+    links.push({
+      label: `查看候選 ${candidateSymbols[0]}`,
+      to: { name: "candidates", query: { candidateDate: reportDate || report.report_date, search: candidateSymbols[0] } },
+    });
+  }
+  if (tag) {
+    links.push({
+      label: `查看群組 ${tag}`,
+      to: { name: "groups", query: { tag, tradeDate: reportDate || report.report_date } },
+    });
+  }
+  if (watchlistId !== null) {
+    links.push({
+      label: "查看觀察清單",
+      to: { name: "watchlists", query: { watchlistId: String(watchlistId), tradeDate: reportDate || report.report_date } },
+    });
+  }
+  if (report.report_type.includes("derivatives")) {
+    links.push({
+      label: "查看衍生性商品",
+      to: { name: "derivatives", query: { tradeDate: reportDate || report.report_date } },
+    });
+  }
+
   return links;
 }
 
@@ -150,6 +215,7 @@ export function buildReportSectionSummaries(bundle: DailyReportBundleContent | n
     sectionType: section.section_type,
     payloadFieldCount: Object.keys(section.payload_json ?? {}).length,
     markdownLineCount: section.markdown_body.split("\n").filter((line) => line.trim().length > 0).length,
+    relatedLinkCount: buildReportRelatedLinks(bundle, section).length,
   }));
 }
 

@@ -33,6 +33,10 @@
           </select>
         </div>
         <div class="field-group">
+          <label for="report-search">搜尋</label>
+          <input id="report-search" v-model="searchQuery" placeholder="標題、類型、內容關鍵字" />
+        </div>
+        <div class="field-group">
           <label for="report-section">報表區塊</label>
           <select id="report-section" v-model="selectedSectionType">
             <option value="">第一個區塊</option>
@@ -92,6 +96,9 @@
 
       <div class="page-section-grid">
         <DetailPanel title="報表彙整資訊" description="顯示目前報表彙整內容的整體脈絡。">
+          <template #header>
+            <PillList :items="bundlePills" empty-message="目前沒有報表彙整標籤。" />
+          </template>
           <MetricGrid :metrics="bundleMetrics" />
         </DetailPanel>
         <MiniBarChart
@@ -127,14 +134,17 @@
 
       <DetailPanel v-if="selectedReport" title="報表列明細" description="檢視已保存報表的中繼資訊與摘要內容。">
         <template #header>
-          <div class="detail-actions">
-            <RouterLink v-for="link in reportRelatedLinks" :key="link.label" class="detail-link" :to="link.to">
-              {{ link.label }}
-            </RouterLink>
-          </div>
+          <PillList :items="reportRelatedPills" empty-message="目前沒有相關導頁。" />
         </template>
         <MetricGrid :metrics="selectedReportMetrics" />
       </DetailPanel>
+
+      <MarkdownSection
+        v-if="selectedReport"
+        title="已保存報表內容"
+        :description="selectedReport.title"
+        :body="selectedReport.markdown_text"
+      />
 
       <DetailPanel
         v-if="selectedSection"
@@ -142,11 +152,7 @@
         description="顯示目前區塊的欄位規模、閱讀密度與可延伸查看的導頁。"
       >
         <template #header>
-          <div class="detail-actions">
-            <RouterLink v-for="link in reportRelatedLinks" :key="link.label" class="detail-link" :to="link.to">
-              {{ link.label }}
-            </RouterLink>
-          </div>
+          <PillList :items="reportRelatedPills" empty-message="目前沒有相關導頁。" />
         </template>
         <MetricGrid :metrics="selectedSectionMetrics" />
       </DetailPanel>
@@ -200,6 +206,7 @@ import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
 import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
+import PillList from "@/components/PillList.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import ReportSectionNavigator from "@/components/ReportSectionNavigator.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
@@ -210,6 +217,7 @@ import type { ReportDailyRead, ReportsDashboardRead } from "@/types/dashboard";
 import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
 import {
   buildReportRelatedLinks,
+  buildReportRowRelatedLinks,
   buildReportSectionMetrics,
   buildReportSectionSummaries,
   listAvailableReportDates,
@@ -223,6 +231,7 @@ const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const limit = ref(10);
 const reportTypeFilter = ref("");
+const searchQuery = ref("");
 const latestReports = ref<ReportDailyRead[]>([]);
 const bundle = ref<DailyReportBundleContent | null>(null);
 const selectedReportDate = ref("");
@@ -252,7 +261,7 @@ const reportRows = computed(() =>
   })),
 );
 
-const filteredReportRows = computed(() => filterRowsByQuery(reportRows.value, ["type", "title"], reportTypeFilter.value));
+const filteredReportRows = computed(() => filterRowsByQuery(reportRows.value, ["type", "title"], searchQuery.value));
 
 const selectedSection = computed(() => {
   if (!bundle.value?.sections.length) {
@@ -271,9 +280,18 @@ const availableReportDates = computed(() =>
 );
 const availableReportTypes = computed(() => listAvailableReportTypes(latestReports.value));
 const reportRelatedLinks = computed(() => buildReportRelatedLinks(bundle.value, selectedSection.value));
+const reportRowRelatedLinks = computed(() => buildReportRowRelatedLinks(selectedReport.value, selectedReportDate.value));
 const sectionSummaries = computed(() => buildReportSectionSummaries(bundle.value));
 const selectedSectionMetrics = computed(() =>
   buildReportSectionMetrics(bundle.value, selectedSection.value, reportRelatedLinks.value.length),
+);
+
+const reportRelatedPills = computed(() =>
+  [...reportRelatedLinks.value, ...reportRowRelatedLinks.value].map((link) => ({
+    label: link.label,
+    to: link.to,
+    tone: "info",
+  })),
 );
 
 const bundleMetrics = computed(() => {
@@ -293,6 +311,26 @@ const bundleMetrics = computed(() => {
       value: bundle.value.metadata.strongest_group_name ?? "無資料",
       hint: "掃描重點",
     },
+    {
+      label: "最強清單",
+      value: bundle.value.metadata.strongest_watchlist_name ?? "無資料",
+      hint: "watchlist 脈絡",
+    },
+  ];
+});
+
+const bundlePills = computed(() => {
+  if (!bundle.value) {
+    return [];
+  }
+  return [
+    { label: `報表日期 ${formatDate(bundle.value.report_date)}`, tone: "info" },
+    { label: `版本 ${bundle.value.metadata.bundle_version}` },
+    ...bundle.value.metadata.top_candidate_symbols.slice(0, 3).map((symbol) => ({
+      label: `候選 ${symbol}`,
+      to: { name: "candidates", query: { candidateDate: bundle.value?.report_date, search: symbol } },
+      tone: "info",
+    })),
   ];
 });
 
@@ -306,6 +344,7 @@ const selectedReportMetrics = computed(() => {
     { label: "日期", value: formatDate(selectedReport.value.report_date), hint: "報表日期" },
     { label: "建立時間", value: formatDateTime(selectedReport.value.created_at), hint: "資料寫入時間" },
     { label: "內容摘要", value: selectedReport.value.markdown_text.slice(0, 120) || "無資料", hint: "內容預覽" },
+    { label: "結構欄位", value: formatNumber(Object.keys(selectedReport.value.content_json ?? {}).length), hint: "content_json 欄位數" },
   ];
 });
 
@@ -370,6 +409,7 @@ function syncRouteQuery(): void {
       limit: String(limit.value),
       reportDate: selectedReportDate.value || undefined,
       reportType: reportTypeFilter.value || undefined,
+      search: searchQuery.value || undefined,
       section: selectedSectionType.value || undefined,
     },
   });
@@ -418,11 +458,12 @@ onMounted(() => {
   limit.value = typeof route.query.limit === "string" ? Number(route.query.limit) : 10;
   selectedReportDate.value = typeof route.query.reportDate === "string" ? route.query.reportDate : "";
   reportTypeFilter.value = typeof route.query.reportType === "string" ? route.query.reportType : "";
+  searchQuery.value = typeof route.query.search === "string" ? route.query.search : "";
   selectedSectionType.value = typeof route.query.section === "string" ? route.query.section : "";
   return loadReports();
 });
 
-watch([reportTypeFilter, selectedSectionType, selectedReportDate], syncRouteQuery);
+watch([reportTypeFilter, searchQuery, selectedSectionType, selectedReportDate], syncRouteQuery);
 </script>
 
 <style scoped>

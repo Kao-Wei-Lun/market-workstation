@@ -37,6 +37,29 @@
           <input id="candidate-query" v-model="searchQuery" placeholder="代號、理由、標籤" />
         </div>
         <div class="field-group">
+          <label for="candidate-tag-filter">標籤</label>
+          <select id="candidate-tag-filter" v-model="tagFilter">
+            <option value="">全部標籤</option>
+            <option v-for="tag in filterOptions.tags" :key="tag" :value="tag">{{ tag }}</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="candidate-watchlist-filter">觀察清單</label>
+          <select id="candidate-watchlist-filter" v-model="watchlistFilter">
+            <option value="">全部清單</option>
+            <option v-for="watchlist in filterOptions.watchlists" :key="watchlist" :value="watchlist">
+              {{ watchlist }}
+            </option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="candidate-group-filter">群組</label>
+          <select id="candidate-group-filter" v-model="groupFilter">
+            <option value="">全部群組</option>
+            <option v-for="group in filterOptions.groups" :key="group" :value="group">{{ group }}</option>
+          </select>
+        </div>
+        <div class="field-group">
           <label for="candidate-sort">排序</label>
           <select id="candidate-sort" v-model="candidateSortBy">
             <option value="score">依分數</option>
@@ -89,6 +112,12 @@
         <DetailPanel title="目前候選批次" description="顯示目前批次摘要與衍生性商品脈絡。">
           <MetricGrid :metrics="candidateMetrics" />
         </DetailPanel>
+        <DetailPanel title="決策收斂摘要" description="快速查看目前篩選結果、最高分與需要優先複核的候選。">
+          <template #header>
+            <PillList :items="decisionPills" empty-message="目前沒有摘要標籤。" />
+          </template>
+          <MetricGrid :metrics="decisionMetrics" />
+        </DetailPanel>
         <MiniBarChart
           title="候選分數排序"
           description="快速查看目前候選名單的分數強弱。"
@@ -138,46 +167,42 @@
         v-if="selectedCandidateItem"
         title="候選明細"
         description="顯示候選理由、分數拆解、群組脈絡與支援指標。"
-      >
-        <template #header>
-          <div class="detail-actions">
-            <RouterLink class="detail-link" :to="candidateReportLink">查看同日報表</RouterLink>
-            <RouterLink v-if="candidateGroupLink" class="detail-link" :to="candidateGroupLink">查看相關群組</RouterLink>
-            <RouterLink v-if="candidateWatchlistsLink" class="detail-link" :to="candidateWatchlistsLink">
-              查看觀察清單
-            </RouterLink>
-          </div>
-        </template>
+        >
+          <template #header>
+            <div class="detail-actions">
+              <RouterLink class="detail-link" :to="candidateReportLink">查看同日報表</RouterLink>
+              <RouterLink v-if="candidateGroupLink" class="detail-link" :to="candidateGroupLink">查看相關群組</RouterLink>
+              <RouterLink v-if="candidateWatchlistsLink" class="detail-link" :to="candidateWatchlistsLink">
+                查看觀察清單
+              </RouterLink>
+              <RouterLink class="detail-link" :to="candidateDerivativesLink">查看法人／衍生性商品</RouterLink>
+            </div>
+          </template>
 
         <div class="page-section-grid detail-grid">
           <DetailPanel title="候選摘要" description="快速檢查目前標的的排名、日期與關聯數量。">
             <MetricGrid :metrics="selectedCandidateOverviewMetrics" />
           </DetailPanel>
           <DetailPanel title="分數拆解" description="檢視技術分、動能分與脈絡加減分。">
+            <div class="score-badges">
+              <ScoreBadge
+                v-for="metric in selectedCandidateScoreMetrics"
+                :key="metric.label"
+                :label="metric.label"
+                :value="metric.value"
+              />
+            </div>
             <MetricGrid :metrics="selectedCandidateScoreMetrics" />
           </DetailPanel>
         </div>
 
         <div class="page-section-grid detail-grid">
           <DetailPanel title="候選理由" description="整理排序理由，方便日常快速複核。">
-            <ul class="detail-list">
-              <li v-for="reason in selectedCandidateReasons" :key="reason">{{ reason }}</li>
-            </ul>
+            <PillList :items="selectedCandidateReasonPills" empty-message="目前沒有候選理由。" />
           </DetailPanel>
           <DetailPanel title="關聯脈絡" description="彙整 tag、watchlist 與 scanner 參考資訊。">
             <MetricGrid :metrics="selectedCandidateContextMetrics" />
-            <div class="chip-group">
-              <span v-for="tagName in selectedCandidateTags" :key="`tag-${tagName}`" class="pill info">
-                標籤 {{ tagName }}
-              </span>
-              <span
-                v-for="watchlistName in selectedCandidateWatchlists"
-                :key="`watchlist-${watchlistName}`"
-                class="pill"
-              >
-                清單 {{ watchlistName }}
-              </span>
-            </div>
+            <PillList :items="selectedCandidateContextPills" empty-message="目前沒有關聯脈絡。" />
           </DetailPanel>
         </div>
 
@@ -220,21 +245,30 @@ import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
 import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
+import PillList from "@/components/PillList.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
+import ScoreBadge from "@/components/ScoreBadge.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import StructuredPayloadSection from "@/components/StructuredPayloadSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { CandidateItemRead, CandidateRunRead, CandidatesDashboardRead } from "@/types/dashboard";
 import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
-import { buildCandidateDetailView } from "@/utils/candidates";
+import {
+  buildCandidateDetailView,
+  candidateMatchesFilters,
+  collectCandidateFilterOptions,
+} from "@/utils/candidates";
 import type { SortDirection, TableRow } from "@/utils/presentation";
-import { filterRowsByQuery, isLinkedCellValue, makeLinkedCell } from "@/utils/presentation";
+import { isLinkedCellValue, makeLinkedCell } from "@/utils/presentation";
 
 const dashboard = ref<CandidatesDashboardRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const limit = ref(10);
 const searchQuery = ref("");
+const tagFilter = ref("");
+const watchlistFilter = ref("");
+const groupFilter = ref("");
 const candidateSortBy = ref("score");
 const candidateSortDirection = ref<SortDirection>("desc");
 const candidateDate = ref("");
@@ -308,7 +342,7 @@ const itemRows = computed(() =>
       score: Number(item.score),
       reasons: formatList(item.candidate_reasons, "無理由說明"),
       contexts: formatList(
-        [...detail.tags, ...detail.watchlists, ...detail.scannerMemberships.map((membership) => membership.name)],
+        [...detail.tags, ...detail.watchlists, ...detail.groups],
         "一般觀察",
       ),
       date: item.candidate_date,
@@ -317,13 +351,21 @@ const itemRows = computed(() =>
 );
 
 const filteredItemRows = computed(() =>
-  filterRowsByQuery(itemRows.value, ["symbol", "reasons", "contexts"], searchQuery.value),
+  itemRows.value.filter((row, index) =>
+    candidateMatchesFilters(items.value[index], {
+      query: searchQuery.value,
+      tag: tagFilter.value,
+      watchlist: watchlistFilter.value,
+      group: groupFilter.value,
+    }),
+  ),
 );
 const selectedRunRowKey = computed(() => (selectedRunId.value ? String(selectedRunId.value) : null));
 const selectedItemRowKey = computed(() => (selectedItemId.value ? String(selectedItemId.value) : null));
 const selectedCandidateDetail = computed(() =>
   selectedCandidateItem.value ? buildCandidateDetailView(selectedCandidateItem.value) : null,
 );
+const filterOptions = computed(() => collectCandidateFilterOptions(items.value));
 
 const candidateMetrics = computed(() => {
   if (!selectedRun.value) {
@@ -361,6 +403,24 @@ const candidateChartPoints = computed(() =>
   })),
 );
 
+const decisionMetrics = computed(() => {
+  const topRow = filteredItemRows.value[0];
+  const topLabel = topRow && isLinkedCellValue(topRow.symbol) ? topRow.symbol.label : "無資料";
+  return [
+    { label: "篩選後筆數", value: formatNumber(filteredItemRows.value.length), hint: "目前工作集" },
+    { label: "最高分標的", value: topLabel, hint: "目前排序第一名" },
+    { label: "最高分", value: formatNumber(topRow?.score ?? null), hint: "依目前排序" },
+    { label: "目前排序", value: candidateSortBy.value === "rank" ? "名次" : candidateSortBy.value === "symbol" ? "代號" : candidateSortBy.value === "date" ? "日期" : "分數", hint: candidateSortDirection.value === "desc" ? "由高到低" : "由低到高" },
+  ];
+});
+
+const decisionPills = computed(() => [
+  searchQuery.value ? { label: `搜尋 ${searchQuery.value}`, tone: "info" } : null,
+  tagFilter.value ? { label: `標籤 ${tagFilter.value}`, tone: "info" } : null,
+  watchlistFilter.value ? { label: `清單 ${watchlistFilter.value}`, tone: "" } : null,
+  groupFilter.value ? { label: `群組 ${groupFilter.value}`, tone: "" } : null,
+].filter((item): item is { label: string; tone: string } => item !== null));
+
 const selectedCandidateOverviewMetrics = computed(() => {
   if (!selectedCandidateItem.value) {
     return [];
@@ -383,6 +443,11 @@ const selectedCandidateScoreMetrics = computed(() => {
 const selectedCandidateReasons = computed(() => selectedCandidateDetail.value?.reasons ?? ["無理由說明"]);
 const selectedCandidateTags = computed(() => selectedCandidateDetail.value?.tags ?? []);
 const selectedCandidateWatchlists = computed(() => selectedCandidateDetail.value?.watchlists ?? []);
+const selectedCandidateGroups = computed(() => selectedCandidateDetail.value?.groups ?? []);
+
+const selectedCandidateReasonPills = computed(() =>
+  selectedCandidateReasons.value.map((reason) => ({ label: reason, tone: "info" })),
+);
 
 const selectedCandidateContextMetrics = computed(() => {
   if (!selectedCandidateDetail.value) {
@@ -400,13 +465,29 @@ const selectedCandidateContextMetrics = computed(() => {
       hint: "watchlist 關聯",
     },
     {
-      label: "掃描關聯數",
+      label: "群組／掃描關聯",
       value: formatNumber(selectedCandidateDetail.value.scannerMemberships.length),
-      hint: "group/watchlist scanner",
+      hint: "group / watchlist scanner",
     },
   ];
   return [...metrics, ...selectedCandidateDetail.value.keyMetrics.slice(0, 3)];
 });
+
+const selectedCandidateContextPills = computed(() => [
+  ...selectedCandidateTags.value.map((tag) => ({
+    label: `標籤 ${tag}`,
+    to: { name: "groups", query: { tag, tradeDate: selectedCandidateItem.value?.candidate_date ?? undefined } },
+    tone: "info",
+  })),
+  ...selectedCandidateWatchlists.value.map((watchlist) => ({
+    label: `清單 ${watchlist}`,
+    to: { name: "watchlists", query: { tradeDate: selectedCandidateItem.value?.candidate_date ?? undefined } },
+  })),
+  ...selectedCandidateGroups.value.map((group) => ({
+    label: `群組 ${group}`,
+    to: { name: "groups", query: { tag: group, tradeDate: selectedCandidateItem.value?.candidate_date ?? undefined } },
+  })),
+]);
 
 const selectedCandidateScannerRows = computed(() =>
   (selectedCandidateDetail.value?.scannerMemberships ?? []).map((membership) => ({
@@ -451,6 +532,13 @@ const candidateWatchlistsLink = computed(() => {
   };
 });
 
+const candidateDerivativesLink = computed(() => ({
+  name: "derivatives",
+  query: {
+    tradeDate: (selectedCandidateItem.value?.candidate_date ?? candidateDate.value) || undefined,
+  },
+}));
+
 function handleRunRowSelect(row: TableRow): void {
   selectedRunId.value = Number(row.run_key);
   void loadSelectedRunItems();
@@ -492,6 +580,9 @@ function syncRouteQuery(): void {
       limit: String(limit.value),
       run: selectedRunId.value ? String(selectedRunId.value) : undefined,
       search: searchQuery.value || undefined,
+      tag: tagFilter.value || undefined,
+      watchlist: watchlistFilter.value || undefined,
+      group: groupFilter.value || undefined,
       sortBy: candidateSortBy.value || undefined,
       sortDirection: candidateSortDirection.value || undefined,
     },
@@ -501,6 +592,9 @@ function syncRouteQuery(): void {
 onMounted(() => {
   candidateDate.value = typeof route.query.candidateDate === "string" ? route.query.candidateDate : "";
   searchQuery.value = typeof route.query.search === "string" ? route.query.search : "";
+  tagFilter.value = typeof route.query.tag === "string" ? route.query.tag : "";
+  watchlistFilter.value = typeof route.query.watchlist === "string" ? route.query.watchlist : "";
+  groupFilter.value = typeof route.query.group === "string" ? route.query.group : "";
   limit.value = typeof route.query.limit === "string" ? Number(route.query.limit) : 10;
   selectedRunId.value = typeof route.query.run === "string" ? Number(route.query.run) : null;
   candidateSortBy.value = typeof route.query.sortBy === "string" ? route.query.sortBy : "score";
@@ -511,7 +605,7 @@ onMounted(() => {
   return loadCandidates();
 });
 
-watch([searchQuery, candidateSortBy, candidateSortDirection, selectedRunId], syncRouteQuery);
+watch([searchQuery, tagFilter, watchlistFilter, groupFilter, candidateSortBy, candidateSortDirection, selectedRunId], syncRouteQuery);
 </script>
 
 <style scoped>
@@ -551,5 +645,12 @@ watch([searchQuery, candidateSortBy, candidateSortDirection, selectedRunId], syn
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: 0.75rem;
+}
+
+.score-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
 }
 </style>

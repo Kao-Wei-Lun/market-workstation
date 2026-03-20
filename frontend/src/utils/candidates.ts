@@ -20,9 +20,23 @@ export interface CandidateDetailView {
   reasons: string[];
   tags: string[];
   watchlists: string[];
+  groups: string[];
   scoreBreakdown: CandidateScoreMetric[];
   keyMetrics: CandidateScoreMetric[];
   scannerMemberships: CandidateScannerMembershipView[];
+}
+
+export interface CandidateFilterState {
+  query: string;
+  tag: string;
+  watchlist: string;
+  group: string;
+}
+
+export interface CandidateFilterOptions {
+  tags: string[];
+  watchlists: string[];
+  groups: string[];
 }
 
 const SCORE_LABELS: Record<string, string> = {
@@ -87,6 +101,11 @@ export function buildCandidateDetailView(item: CandidateItemRead): CandidateDeta
     reasons: Array.isArray(item.candidate_reasons) ? item.candidate_reasons : [],
     tags: asStringArray(metrics.tags),
     watchlists: asStringArray(metrics.watchlists),
+    groups: scannerMemberships
+      .map((membership) => asRecord(membership))
+      .filter((membership) => getString(membership?.kind) !== "watchlist")
+      .map((membership) => (membership ? getString(membership.name) : null))
+      .filter((value): value is string => Boolean(value)),
     scoreBreakdown,
     keyMetrics,
     scannerMemberships: scannerMemberships
@@ -107,4 +126,51 @@ export function buildCandidateDetailView(item: CandidateItemRead): CandidateDeta
       })
       .filter((membership): membership is CandidateScannerMembershipView => membership !== null),
   };
+}
+
+export function collectCandidateFilterOptions(items: CandidateItemRead[]): CandidateFilterOptions {
+  const tags = new Set<string>();
+  const watchlists = new Set<string>();
+  const groups = new Set<string>();
+
+  for (const item of items) {
+    const detail = buildCandidateDetailView(item);
+    detail.tags.forEach((tag) => tags.add(tag));
+    detail.watchlists.forEach((watchlist) => watchlists.add(watchlist));
+    detail.groups.forEach((group) => groups.add(group));
+  }
+
+  return {
+    tags: [...tags].sort(),
+    watchlists: [...watchlists].sort(),
+    groups: [...groups].sort(),
+  };
+}
+
+export function candidateMatchesFilters(item: CandidateItemRead, filters: CandidateFilterState): boolean {
+  const detail = buildCandidateDetailView(item);
+  const normalizedQuery = filters.query.trim().toLowerCase();
+
+  if (filters.tag && !detail.tags.includes(filters.tag)) {
+    return false;
+  }
+  if (filters.watchlist && !detail.watchlists.includes(filters.watchlist)) {
+    return false;
+  }
+  if (filters.group && !detail.groups.includes(filters.group)) {
+    return false;
+  }
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const haystacks = [
+    item.symbol,
+    ...detail.reasons,
+    ...detail.tags,
+    ...detail.watchlists,
+    ...detail.groups,
+    ...detail.scannerMemberships.flatMap((membership) => [membership.name, ...membership.flagReasons]),
+  ];
+  return haystacks.some((value) => value.toLowerCase().includes(normalizedQuery));
 }

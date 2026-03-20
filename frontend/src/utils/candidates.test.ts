@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCandidateDetailView } from "@/utils/candidates";
+import {
+  buildCandidateDetailView,
+  candidateMatchesFilters,
+  collectCandidateFilterOptions,
+} from "@/utils/candidates";
 
 describe("candidate detail helpers", () => {
   it("extracts score breakdown, tags, watchlists, and scanner memberships", () => {
@@ -68,5 +72,49 @@ describe("candidate detail helpers", () => {
     expect(detail.tags).toEqual([]);
     expect(detail.watchlists).toEqual([]);
     expect(detail.scannerMemberships).toEqual([]);
+  });
+
+  it("builds filter options and evaluates tag/watchlist/group filters", () => {
+    const item = {
+      id: 1,
+      run_id: 2,
+      instrument_id: 3,
+      candidate_date: "2026-03-20",
+      symbol: "2330",
+      score: "6.750000",
+      rank: 1,
+      candidate_reasons: ["watchlist_member"],
+      supporting_metrics: {
+        tags: ["semiconductor"],
+        watchlists: ["focus"],
+        scanner_memberships: [
+          { kind: "tag", name: "semiconductor", flagged: true, flag_reasons: ["high_volume"] },
+          { kind: "watchlist", name: "focus", flagged: false, flag_reasons: [] },
+        ],
+      },
+      created_at: "2026-03-20T08:00:00",
+    };
+
+    const options = collectCandidateFilterOptions([item]);
+
+    expect(options.tags).toEqual(["semiconductor"]);
+    expect(options.watchlists).toEqual(["focus"]);
+    expect(options.groups).toEqual(["semiconductor"]);
+    expect(
+      candidateMatchesFilters(item, {
+        query: "2330",
+        tag: "semiconductor",
+        watchlist: "focus",
+        group: "semiconductor",
+      }),
+    ).toBe(true);
+    expect(
+      candidateMatchesFilters(item, {
+        query: "",
+        tag: "",
+        watchlist: "",
+        group: "not-found",
+      }),
+    ).toBe(false);
   });
 });

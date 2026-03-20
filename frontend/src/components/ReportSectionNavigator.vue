@@ -20,6 +20,7 @@
           <div class="section-nav-meta">
             <span class="pill">{{ section.markdownLineCount }} 行</span>
             <span class="pill info">{{ section.payloadFieldCount }} 欄</span>
+            <span class="pill neutral">{{ section.relatedLinkCount }} 導頁</span>
           </div>
         </button>
       </div>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildReportRelatedLinks,
+  buildReportRowRelatedLinks,
   buildReportSectionMetrics,
   buildReportSectionSummaries,
   listAvailableReportDates,
@@ -49,6 +50,30 @@ describe("report related link helpers", () => {
         "查看弱勢群組 macro",
         "查看衍生性商品摘要",
       ]),
+    );
+  });
+
+  it("builds row-level links from report metadata payload", () => {
+    const links = buildReportRowRelatedLinks(
+      {
+        id: 1,
+        report_date: "2026-03-20",
+        report_type: "derivatives_summary",
+        report_key: "derivatives",
+        title: "Derivatives",
+        content_json: {
+          tag: "semiconductor",
+          watchlist_id: 2,
+          candidate_symbols: ["2330"],
+        },
+        markdown_text: "demo",
+        created_at: "2026-03-20T08:00:00",
+      },
+      "2026-03-20",
+    );
+
+    expect(links.map((link) => link.label)).toEqual(
+      expect.arrayContaining(["查看候選 2330", "查看群組 semiconductor", "查看觀察清單", "查看衍生性商品"]),
     );
   });
 
@@ -148,6 +173,7 @@ describe("report related link helpers", () => {
     expect(sectionSummaries[0]).toMatchObject({
       key: "market_summary",
       payloadFieldCount: 2,
+      relatedLinkCount: 2,
     });
     expect(reportDates).toEqual(["2026-03-21", "2026-03-20"]);
     expect(reportTypes).toEqual(["daily_report_bundle", "market_summary"]);
