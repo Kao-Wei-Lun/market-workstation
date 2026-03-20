@@ -107,7 +107,7 @@ After running the quickstart commands:
 
 - Connector modules live under `services/connectors/` and stay provider-isolated.
 - The ETL foundation lives under `services/core/etl/` with separate fetch, normalize, validate, and load stages.
-- Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
+- Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, `Bollinger Bands`, `ADX/DMI`, `ATR`, `Stochastic`, `OBV`, `Ichimoku`, `Supertrend`, `Keltner Channel`, `CCI`, `ROC`, `MFI`, `Williams %R`, `Donchian Channel`, and `Parabolic SAR`.
 - Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
 - Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
 - Daily reporting now includes a richer persisted `daily_report_bundle` with structured sections for market summary, watchlist highlights, group scanner highlights, derivatives context, next-day candidates, top movers, and technical breadth.

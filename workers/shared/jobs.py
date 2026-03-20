@@ -11,13 +11,26 @@ from services.connectors.twse import TwseDailyMarketDataConnector
 from services.connectors.us_eod import UsEodConnector
 from services.core.derivatives.etl import run_taifex_derivatives_ingestion
 from services.core.derivatives.features import compute_tw_derivatives_features
+from services.core.indicators.adx import ADXIndicator
+from services.core.indicators.atr import ATRIndicator
 from services.core.indicators.base import IndicatorCalculator
 from services.core.indicators.bollinger import BollingerBandsIndicator
+from services.core.indicators.cci import CCIIndicator
+from services.core.indicators.donchian import DonchianChannelIndicator
 from services.core.indicators.ema import EMAIndicator
+from services.core.indicators.ichimoku import IchimokuIndicator
+from services.core.indicators.keltner import KeltnerChannelIndicator
 from services.core.indicators.macd import MACDIndicator
+from services.core.indicators.mfi import MFIIndicator
+from services.core.indicators.obv import OBVIndicator
+from services.core.indicators.parabolic_sar import ParabolicSARIndicator
+from services.core.indicators.roc import ROCIndicator
 from services.core.indicators.rsi import RSIIndicator
 from services.core.indicators.service import compute_and_persist_indicators
 from services.core.indicators.sma import SMAIndicator
+from services.core.indicators.stochastic import StochasticIndicator
+from services.core.indicators.supertrend import SupertrendIndicator
+from services.core.indicators.williams_r import WilliamsRIndicator
 from services.core.reports.bundle import generate_daily_report_bundle
 from services.core.reports.generators import (
     generate_group_summary_snapshot_report,
@@ -168,6 +181,19 @@ def run_indicator_update_job(session: Session, trade_date: date) -> JobExecution
         MACDIndicator(),
         RSIIndicator(14),
         BollingerBandsIndicator(20, 2),
+        ADXIndicator(14),
+        ATRIndicator(14),
+        StochasticIndicator(14, 3),
+        OBVIndicator(),
+        IchimokuIndicator(),
+        SupertrendIndicator(),
+        KeltnerChannelIndicator(),
+        CCIIndicator(20),
+        ROCIndicator(12),
+        MFIIndicator(14),
+        WilliamsRIndicator(14),
+        DonchianChannelIndicator(20),
+        ParabolicSARIndicator(),
     ]
     indicators_persisted = 0
     instruments_processed = 0

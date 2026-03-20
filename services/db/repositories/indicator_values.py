@@ -54,6 +54,7 @@ class IndicatorValueRepository:
         *,
         indicator_name: str | None = None,
         component: str | None = None,
+        parameter_signature: str | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> list[IndicatorValue]:
@@ -62,6 +63,8 @@ class IndicatorValueRepository:
             query = query.filter(IndicatorValue.indicator_name == indicator_name)
         if component is not None:
             query = query.filter(IndicatorValue.component == component)
+        if parameter_signature is not None:
+            query = query.filter(IndicatorValue.parameter_signature == parameter_signature)
         if start_date is not None:
             query = query.filter(IndicatorValue.trade_date >= start_date)
         if end_date is not None:

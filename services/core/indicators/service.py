@@ -47,9 +47,11 @@ def query_indicator_values(
     instrument_id: int,
     indicator_name: str | None = None,
     component: str | None = None,
+    parameter_signature: str | None = None,
 ) -> list[IndicatorValue]:
     return IndicatorValueRepository(session).list_for_instrument(
         instrument_id,
         indicator_name=indicator_name,
         component=component,
+        parameter_signature=parameter_signature,
     )
