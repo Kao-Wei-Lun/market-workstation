@@ -209,6 +209,12 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   `make dev-up`
   Then open `http://localhost:5173`.
 - The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
+- The API now allows local frontend origins by default through CORS:
+  `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
+- Override allowed browser origins with `CORS_ALLOWED_ORIGINS` in `.env` if your frontend runs on a different host or port.
+- If the frontend shows an API error that mentions a network or CORS problem, verify:
+  `curl http://localhost:8000/health`
+  and confirm `VITE_API_BASE_URL` points at that API origin.
 
 ## Verification
 

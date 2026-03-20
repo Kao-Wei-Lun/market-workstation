@@ -1,6 +1,8 @@
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const browserOrigin =
+  typeof window !== "undefined" && window.location?.origin ? window.location.origin : "this frontend origin";
 
 export const http = axios.create({
   baseURL,
@@ -8,12 +10,14 @@ export const http = axios.create({
 });
 
 export class ApiClientError extends Error {
+  kind: "network" | "http" | "unknown";
   status: number | null;
   detail: string;
 
-  constructor(message: string, options?: { status?: number | null; detail?: string }) {
+  constructor(message: string, options?: { kind?: "network" | "http" | "unknown"; status?: number | null; detail?: string }) {
     super(message);
     this.name = "ApiClientError";
+    this.kind = options?.kind ?? "unknown";
     this.status = options?.status ?? null;
     this.detail = options?.detail ?? message;
   }
@@ -46,16 +50,29 @@ export function normalizeApiError(error: unknown): ApiClientError {
   }
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
-    const detail = extractErrorDetail(axiosError.response?.data) ?? axiosError.message ?? "Request failed";
+    if (!axiosError.response) {
+      const detail =
+        `Unable to reach API at ${baseURL}. This is usually a network or CORS problem. ` +
+        `If the backend is running, ensure it allows requests from ${browserOrigin}.`;
+      return new ApiClientError(detail, {
+        kind: "network",
+        detail,
+      });
+    }
+    const status = axiosError.response.status ?? null;
+    const detail =
+      extractErrorDetail(axiosError.response.data) ??
+      `API request failed with status ${status ?? "unknown"}.`;
     return new ApiClientError(detail, {
-      status: axiosError.response?.status ?? null,
+      kind: "http",
+      status,
       detail,
     });
   }
   if (error instanceof Error) {
-    return new ApiClientError(error.message);
+    return new ApiClientError(error.message, { kind: "unknown" });
   }
-  return new ApiClientError("Unknown API error");
+  return new ApiClientError("Unknown API error", { kind: "unknown" });
 }
 
 http.interceptors.response.use(

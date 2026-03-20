@@ -5,7 +5,7 @@ import { ApiClientError, normalizeApiError } from "@/api/http";
 
 describe("normalizeApiError", () => {
   it("passes through ApiClientError instances", () => {
-    const error = new ApiClientError("failed", { status: 500, detail: "failed" });
+    const error = new ApiClientError("failed", { kind: "http", status: 500, detail: "failed" });
     expect(normalizeApiError(error)).toBe(error);
   });
 
@@ -19,6 +19,14 @@ describe("normalizeApiError", () => {
     });
     const normalized = normalizeApiError(error);
     expect(normalized.detail).toBe("report not found");
+    expect(normalized.kind).toBe("http");
     expect(normalized.status).toBe(404);
+  });
+
+  it("classifies missing responses as network or cors errors", () => {
+    const error = new AxiosError("Network Error");
+    const normalized = normalizeApiError(error);
+    expect(normalized.kind).toBe("network");
+    expect(normalized.detail).toContain("Unable to reach API");
   });
 });
