@@ -22,9 +22,24 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, rowIndex) in sortedRows" :key="rowKey ? String(row[rowKey]) : rowIndex">
+          <tr
+            v-for="(row, rowIndex) in sortedRows"
+            :key="rowKey ? String(row[rowKey]) : rowIndex"
+            :class="{ interactive: interactiveRows, selected: isSelectedRow(row) }"
+            @click="handleRowClick(row)"
+          >
             <td v-for="column in columns" :key="column.key">
-              {{ formatCell(row[column.key]) }}
+              <RouterLink
+                v-if="getLinkedCell(row[column.key])"
+                :to="getLinkedCell(row[column.key])!.to"
+                class="table-link"
+                @click.stop
+              >
+                {{ getLinkedCell(row[column.key])!.label }}
+              </RouterLink>
+              <template v-else>
+                {{ formatCell(row[column.key]) }}
+              </template>
             </td>
           </tr>
         </tbody>
@@ -36,10 +51,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { RouterLink } from "vue-router";
 
 import SectionHeader from "@/components/SectionHeader.vue";
 import type { SortDirection, TableRow } from "@/utils/presentation";
-import { sortRows } from "@/utils/presentation";
+import { isLinkedCellValue, sortRows } from "@/utils/presentation";
 
 const props = defineProps<{
   title: string;
@@ -52,6 +68,12 @@ const props = defineProps<{
   rowKey?: string;
   defaultSortBy?: string;
   defaultSortDirection?: SortDirection;
+  selectedRowKey?: string | number | null;
+  interactiveRows?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (event: "row-select", row: TableRow): void;
 }>();
 
 const sortBy = ref(props.defaultSortBy ?? props.columns[0]?.key ?? "");
@@ -68,6 +90,24 @@ function toggleSort(columnKey: string): void {
   }
   sortBy.value = columnKey;
   sortDirection.value = "asc";
+}
+
+function isSelectedRow(row: TableRow): boolean {
+  if (!props.rowKey || props.selectedRowKey === null || props.selectedRowKey === undefined) {
+    return false;
+  }
+  return String(row[props.rowKey]) === String(props.selectedRowKey);
+}
+
+function handleRowClick(row: TableRow): void {
+  if (!props.interactiveRows) {
+    return;
+  }
+  emit("row-select", row);
+}
+
+function getLinkedCell(value: unknown) {
+  return isLinkedCellValue(value) ? value : null;
 }
 
 function formatCell(value: unknown): string {
@@ -95,5 +135,26 @@ function formatCell(value: unknown): string {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+tbody tr.interactive {
+  cursor: pointer;
+}
+
+tbody tr.interactive:hover {
+  background: rgba(22, 89, 146, 0.06);
+}
+
+tbody tr.selected {
+  background: rgba(22, 89, 146, 0.1);
+}
+
+.table-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.table-link:hover {
+  text-decoration: underline;
 }
 </style>

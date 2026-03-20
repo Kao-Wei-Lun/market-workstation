@@ -17,7 +17,14 @@
         </thead>
         <tbody>
           <tr v-for="item in list.items" :key="item.key">
-            <td>{{ item.label }}</td>
+            <td>
+              <RouterLink v-if="getItemLink?.(item)" :to="getItemLink(item)!" class="table-link">
+                {{ item.label }}
+              </RouterLink>
+              <template v-else>
+                {{ item.label }}
+              </template>
+            </td>
             <td>{{ item.primary_value }}</td>
             <td>{{ item.secondary_value ?? "n/a" }}</td>
             <td>{{ item.hint ?? "n/a" }}</td>
@@ -30,10 +37,24 @@
 </template>
 
 <script setup lang="ts">
+import { RouterLink, type RouteLocationRaw } from "vue-router";
+
 import SectionHeader from "@/components/SectionHeader.vue";
-import type { DashboardRankedList } from "@/types/dashboard";
+import type { DashboardRankedItem, DashboardRankedList } from "@/types/dashboard";
 
 defineProps<{
   list: DashboardRankedList;
+  getItemLink?: (item: DashboardRankedItem) => RouteLocationRaw | null;
 }>();
 </script>
+
+<style scoped>
+.table-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.table-link:hover {
+  text-decoration: underline;
+}
+</style>

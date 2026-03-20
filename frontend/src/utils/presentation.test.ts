@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChartPoints, filterRowsByQuery, sortRows } from "@/utils/presentation";
+import { buildChartPoints, filterRowsByQuery, isLinkedCellValue, makeLinkedCell, sortRows } from "@/utils/presentation";
 
 describe("presentation utils", () => {
   it("sorts rows by numeric-like values", () => {
@@ -30,5 +30,11 @@ describe("presentation utils", () => {
 
     expect(points[0].percentage).toBe(100);
     expect(points[1].percentage).toBe(50);
+  });
+
+  it("marks linked cell values for reusable table rendering", () => {
+    const value = makeLinkedCell("Candidates", { name: "candidates", query: { search: "2330" } });
+    expect(isLinkedCellValue(value)).toBe(true);
+    expect(isLinkedCellValue("plain text")).toBe(false);
   });
 });

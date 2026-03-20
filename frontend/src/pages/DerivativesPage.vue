@@ -6,6 +6,29 @@
       description="Taiwan institutional derivatives bias summary, anomaly counts, and highlight lines."
     />
 
+    <FilterBar
+      title="Derivatives Scope"
+      description="Review the latest Taiwan derivatives dashboard snapshot and reload it when local demo data changes."
+    >
+      <div class="form-inline">
+        <div class="field-group">
+          <label>&nbsp;</label>
+          <button @click="loadDerivatives">Refresh</button>
+        </div>
+      </div>
+    </FilterBar>
+
+    <PageStatusBar
+      title="Derivatives Data Status"
+      :as-of-date="dashboard?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(dashboard?.meta.generated_at)"
+      :item-count="dashboard?.meta.item_count"
+      hint="Derivatives highlights come from the stored Taiwan institutional daily summary."
+      demo-hint="Run make demo-data if the derivatives page is empty."
+      :show-refresh="true"
+      @refresh="loadDerivatives"
+    />
+
     <LoadingState v-if="isLoading" message="Loading derivatives dashboard..." />
     <ErrorState
       v-else-if="errorMessage"
@@ -57,20 +80,21 @@
 import { computed, onMounted, ref } from "vue";
 
 import { fetchDerivativesDashboard } from "@/api/dashboard";
-import { fetchLatestDerivativesSummary } from "@/api/derivatives";
 import { normalizeApiError } from "@/api/http";
 import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
+import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { DailyInstitutionalBiasSummary, DerivativesDashboardRead } from "@/types/dashboard";
-import { formatNumber } from "@/utils/formatters";
+import { formatDateTime, formatNumber } from "@/utils/formatters";
 
 const dashboard = ref<DerivativesDashboardRead | null>(null);
 const isLoading = ref(false);
@@ -124,12 +148,9 @@ async function loadDerivatives(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    const [dashboardResponse, summaryResponse] = await Promise.all([
-      fetchDerivativesDashboard(),
-      fetchLatestDerivativesSummary(),
-    ]);
+    const dashboardResponse = await fetchDerivativesDashboard();
     dashboard.value = dashboardResponse;
-    summary.value = summaryResponse;
+    summary.value = dashboardResponse.data;
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {

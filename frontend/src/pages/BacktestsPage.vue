@@ -20,8 +20,23 @@
             </option>
           </select>
         </div>
+        <div class="field-group">
+          <label>&nbsp;</label>
+          <button @click="loadBacktests">Refresh</button>
+        </div>
       </div>
     </FilterBar>
+
+    <PageStatusBar
+      title="Backtest Data Status"
+      :as-of-date="dashboard?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(dashboard?.meta.generated_at)"
+      :item-count="dashboard?.meta.item_count"
+      hint="Backtests combine run-level metrics, trade lists, and dashboard highlights."
+      demo-hint="Run make demo-data if no backtests are visible."
+      :show-refresh="true"
+      @refresh="loadBacktests"
+    />
 
     <LoadingState v-if="isLoading" message="Loading backtests dashboard..." />
     <ErrorState
@@ -63,6 +78,10 @@
           description="Most recent backtest runs persisted in the backend."
           :columns="runColumns"
           :rows="runRows"
+          row-key="run_key"
+          :selected-row-key="selectedRunRowKey"
+          :interactive-rows="true"
+          @row-select="handleRunRowSelect"
           default-sort-by="return_pct"
           default-sort-direction="desc"
           empty-message="No backtest runs available."
@@ -72,17 +91,26 @@
           description="Trade list for the latest available backtest run."
           :columns="tradeColumns"
           :rows="tradeRows"
+          row-key="trade_key"
+          :selected-row-key="selectedTradeRowKey"
+          :interactive-rows="true"
+          @row-select="handleTradeRowSelect"
           default-sort-by="entry_date"
           default-sort-direction="asc"
           empty-message="No trades available for the selected run."
         />
       </div>
+
+      <DetailPanel v-if="selectedTrade" title="Selected Trade Detail" description="Trade-level exit, holding period, and cost context.">
+        <MetricGrid :metrics="selectedTradeMetrics" />
+      </DetailPanel>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { fetchBacktestRuns, fetchBacktestRunTrades } from "@/api/backtests";
 import { fetchBacktestsDashboard } from "@/api/dashboard";
@@ -94,11 +122,13 @@ import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { BacktestRunRead, BacktestTradeRead, BacktestsDashboardRead } from "@/types/dashboard";
+import type { TableRow } from "@/utils/presentation";
 import { formatDate, formatDateTime, formatNumber, formatPercent } from "@/utils/formatters";
 
 const dashboard = ref<BacktestsDashboardRead | null>(null);
@@ -107,6 +137,9 @@ const errorMessage = ref<string | null>(null);
 const runs = ref<BacktestRunRead[]>([]);
 const trades = ref<BacktestTradeRead[]>([]);
 const selectedRunId = ref<number | null>(null);
+const selectedTradeId = ref<number | null>(null);
+const route = useRoute();
+const router = useRouter();
 const selectedRunIdString = computed({
   get: () => (selectedRunId.value ? String(selectedRunId.value) : ""),
   set: (value: string) => {
@@ -115,6 +148,7 @@ const selectedRunIdString = computed({
 });
 
 const selectedRun = computed(() => runs.value.find((run) => run.id === selectedRunId.value) ?? null);
+const selectedTrade = computed(() => trades.value.find((trade) => trade.id === selectedTradeId.value) ?? null);
 const selectedRunMetricsJson = computed<Record<string, unknown>>(
   () => (selectedRun.value?.metrics_json as Record<string, unknown> | undefined) ?? {},
 );
@@ -141,6 +175,7 @@ const tradeColumns = [
 
 const runRows = computed(() =>
   runs.value.map((run) => ({
+    run_key: run.id,
     run_id: `#${run.id}${run.id === selectedRunId.value ? " (selected)" : ""}`,
     created_at: formatDateTime(run.created_at),
     return_pct: Number(run.total_return_pct),
@@ -151,6 +186,7 @@ const runRows = computed(() =>
 
 const tradeRows = computed(() =>
   trades.value.map((trade) => ({
+    trade_key: trade.id,
     instrument_id: trade.instrument_id,
     entry_date: formatDate(trade.entry_date),
     exit_date: formatDate(trade.exit_date),
@@ -158,6 +194,9 @@ const tradeRows = computed(() =>
     reason: trade.exit_reason,
   })),
 );
+
+const selectedRunRowKey = computed(() => (selectedRunId.value ? String(selectedRunId.value) : null));
+const selectedTradeRowKey = computed(() => (selectedTradeId.value ? String(selectedTradeId.value) : null));
 
 const selectedRunMetrics = computed(() => {
   if (!selectedRun.value) {
@@ -179,6 +218,27 @@ const runChartPoints = computed(() =>
   })),
 );
 
+const selectedTradeMetrics = computed(() => {
+  if (!selectedTrade.value) {
+    return [];
+  }
+  return [
+    { label: "Instrument", value: formatNumber(selectedTrade.value.instrument_id), hint: "instrument id" },
+    { label: "Holding Days", value: formatNumber(selectedTrade.value.holding_period_days), hint: "trade duration" },
+    { label: "Net PnL", value: formatNumber(selectedTrade.value.net_pnl), hint: "after costs" },
+    { label: "Exit Reason", value: selectedTrade.value.exit_reason, hint: "engine exit condition" },
+  ];
+});
+
+function handleRunRowSelect(row: TableRow): void {
+  selectedRunId.value = Number(row.run_key);
+  void loadSelectedRunTrades();
+}
+
+function handleTradeRowSelect(row: TableRow): void {
+  selectedTradeId.value = Number(row.trade_key);
+}
+
 async function loadBacktests(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
@@ -189,8 +249,13 @@ async function loadBacktests(): Promise<void> {
     ]);
     dashboard.value = dashboardResponse;
     runs.value = runsResponse;
-    selectedRunId.value = dashboardResponse.data?.latest_run?.id ?? runsResponse[0]?.id ?? null;
+    selectedRunId.value = selectedRunId.value ?? dashboardResponse.data?.latest_run?.id ?? runsResponse[0]?.id ?? null;
     await loadSelectedRunTrades();
+    await router.replace({
+      query: {
+        run: selectedRunId.value ? String(selectedRunId.value) : undefined,
+      },
+    });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {
@@ -200,9 +265,13 @@ async function loadBacktests(): Promise<void> {
 
 async function loadSelectedRunTrades(): Promise<void> {
   trades.value = selectedRunId.value ? await fetchBacktestRunTrades(selectedRunId.value) : [];
+  selectedTradeId.value = trades.value[0]?.id ?? null;
 }
 
-onMounted(loadBacktests);
+onMounted(() => {
+  selectedRunId.value = typeof route.query.run === "string" ? Number(route.query.run) : null;
+  return loadBacktests();
+});
 </script>
 
 <style scoped>

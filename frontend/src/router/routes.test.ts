@@ -19,6 +19,7 @@ describe("routes", () => {
     for (const route of routes) {
       expect(typeof route.meta?.label).toBe("string");
       expect(typeof route.meta?.title).toBe("string");
+      expect(typeof route.meta?.description).toBe("string");
     }
   });
 });

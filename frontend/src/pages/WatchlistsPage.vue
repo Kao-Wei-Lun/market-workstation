@@ -12,6 +12,10 @@
     >
       <div class="form-inline">
         <div class="field-group">
+          <label for="watchlist-trade-date">Trade Date</label>
+          <input id="watchlist-trade-date" v-model="tradeDate" type="date" />
+        </div>
+        <div class="field-group">
           <label for="watchlist-select">Watchlist</label>
           <select id="watchlist-select" v-model="selectedWatchlistId" @change="loadWatchlist">
             <option v-for="watchlist in watchlistsStore.items" :key="watchlist.id" :value="String(watchlist.id)">
@@ -19,8 +23,23 @@
             </option>
           </select>
         </div>
+        <div class="field-group">
+          <label>&nbsp;</label>
+          <button @click="loadWatchlist">Refresh</button>
+        </div>
       </div>
     </FilterBar>
+
+    <PageStatusBar
+      title="Watchlist Data Status"
+      :as-of-date="dashboard?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(dashboard?.meta.generated_at)"
+      :item-count="dashboard?.meta.item_count"
+      hint="Watchlists combine membership, summary metrics, and scanner flags."
+      demo-hint="Run make demo-data to populate watchlist snapshots."
+      :show-refresh="true"
+      @refresh="loadWatchlist"
+    />
 
     <LoadingState v-if="isLoading" message="Loading watchlist dashboard..." />
     <ErrorState
@@ -40,7 +59,12 @@
       <div class="page-section-grid">
         <DetailPanel title="Watchlist Snapshot" :description="selectedWatchlistDescription">
           <template #header>
-            <span class="pill info">As of {{ dashboard.meta.as_of_date ?? "n/a" }}</span>
+            <RouterLink
+              :to="{ name: 'overview', query: { watchlistId: selectedWatchlistId, tradeDate: tradeDate || undefined } }"
+              class="pill link-pill"
+            >
+              Open in overview
+            </RouterLink>
           </template>
           <MetricGrid :metrics="watchlistMetrics" />
         </DetailPanel>
@@ -85,6 +109,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { fetchWatchlistDashboard } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
@@ -96,6 +121,7 @@ import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
@@ -103,7 +129,8 @@ import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { WatchlistItemRead } from "@/types/api";
 import type { WatchlistDashboardRead } from "@/types/dashboard";
-import { formatDateTime, formatNumber, formatPercent } from "@/utils/formatters";
+import { formatDateTime, formatList, formatNumber, formatPercent } from "@/utils/formatters";
+import { makeLinkedCell } from "@/utils/presentation";
 
 const watchlistsStore = useWatchlistsStore();
 const selectedWatchlistId = ref("");
@@ -111,6 +138,9 @@ const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const dashboard = ref<WatchlistDashboardRead | null>(null);
 const items = ref<WatchlistItemRead[]>([]);
+const tradeDate = ref("");
+const route = useRoute();
+const router = useRouter();
 
 const selectedWatchlistDescription = computed(
   () =>
@@ -139,10 +169,10 @@ const itemRows = computed(() =>
 
 const flagRows = computed(() =>
   dashboard.value?.data?.scanner?.flagged_instruments.map((item) => ({
-    symbol: item.symbol,
+    symbol: makeLinkedCell(item.symbol, { name: "candidates", query: { search: item.symbol } }),
     change_pct: Number(item.close_change_pct),
     volume_ratio: item.volume_ratio ? Number(item.volume_ratio) : null,
-    reasons: item.reasons.join(", "),
+    reasons: formatList(item.reasons, "No reasons"),
   })) ?? [],
 );
 
@@ -200,11 +230,17 @@ async function loadWatchlist(): Promise<void> {
   try {
     const watchlistId = Number(selectedWatchlistId.value);
     const [dashboardResponse, itemsResponse] = await Promise.all([
-      fetchWatchlistDashboard(watchlistId),
+      fetchWatchlistDashboard(watchlistId, { tradeDate: tradeDate.value || undefined }),
       fetchWatchlistItems(watchlistId),
     ]);
     dashboard.value = dashboardResponse;
     items.value = itemsResponse;
+    await router.replace({
+      query: {
+        watchlistId: selectedWatchlistId.value || undefined,
+        tradeDate: tradeDate.value || undefined,
+      },
+    });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {
@@ -214,8 +250,12 @@ async function loadWatchlist(): Promise<void> {
 
 onMounted(async () => {
   await watchlistsStore.load();
-  if (watchlistsStore.items[0]) {
+  selectedWatchlistId.value = typeof route.query.watchlistId === "string" ? route.query.watchlistId : "";
+  tradeDate.value = typeof route.query.tradeDate === "string" ? route.query.tradeDate : "";
+  if (!selectedWatchlistId.value && watchlistsStore.items[0]) {
     selectedWatchlistId.value = String(watchlistsStore.items[0].id);
+  }
+  if (selectedWatchlistId.value) {
     await loadWatchlist();
   }
 });
@@ -227,5 +267,9 @@ onMounted(async () => {
   padding-left: 1.1rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.link-pill {
+  text-decoration: none;
 }
 </style>

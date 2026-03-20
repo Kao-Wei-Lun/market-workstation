@@ -12,6 +12,10 @@
     >
       <div class="form-inline">
         <div class="field-group">
+          <label for="group-trade-date">Trade Date</label>
+          <input id="group-trade-date" v-model="tradeDate" type="date" />
+        </div>
+        <div class="field-group">
           <label for="group-tag">Tag</label>
           <input id="group-tag" v-model="tag" placeholder="semiconductor" />
         </div>
@@ -21,6 +25,17 @@
         </div>
       </div>
     </FilterBar>
+
+    <PageStatusBar
+      title="Group Data Status"
+      :as-of-date="dashboard?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(dashboard?.meta.generated_at)"
+      :item-count="dashboard?.meta.item_count"
+      hint="Groups are tag-based scanner views built from the stored classification layer."
+      demo-hint="Run make demo-data if group breadth is empty."
+      :show-refresh="true"
+      @refresh="loadGroup"
+    />
 
     <LoadingState v-if="isLoading" message="Loading group dashboard..." />
     <ErrorState
@@ -39,6 +54,14 @@
 
       <div class="page-section-grid">
         <DetailPanel title="Group Snapshot" description="Summary metrics for the currently selected tag.">
+          <template #header>
+            <RouterLink
+              :to="{ name: 'overview', query: { tag, tradeDate: tradeDate || undefined } }"
+              class="pill link-pill"
+            >
+              Open in overview
+            </RouterLink>
+          </template>
           <MetricGrid :metrics="groupMetrics" />
         </DetailPanel>
         <MiniBarChart
@@ -73,6 +96,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { fetchGroupDashboard } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
@@ -83,17 +107,22 @@ import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { GroupDashboardRead } from "@/types/dashboard";
-import { formatNumber, formatPercent } from "@/utils/formatters";
+import { formatDateTime, formatList, formatNumber, formatPercent } from "@/utils/formatters";
+import { makeLinkedCell } from "@/utils/presentation";
 
 const tag = ref("semiconductor");
+const tradeDate = ref("");
 const dashboard = ref<GroupDashboardRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
+const route = useRoute();
+const router = useRouter();
 
 const flagColumns = [
   { key: "symbol", label: "Symbol" },
@@ -104,10 +133,10 @@ const flagColumns = [
 
 const flagRows = computed(() =>
   dashboard.value?.data?.scanner?.flagged_instruments.map((item) => ({
-    symbol: item.symbol,
+    symbol: makeLinkedCell(item.symbol, { name: "candidates", query: { search: item.symbol } }),
     change_pct: Number(item.close_change_pct),
     volume_ratio: item.volume_ratio ? Number(item.volume_ratio) : null,
-    reasons: item.reasons.join(", "),
+    reasons: formatList(item.reasons, "No reasons"),
   })) ?? [],
 );
 
@@ -156,7 +185,13 @@ async function loadGroup(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    dashboard.value = await fetchGroupDashboard(tag.value);
+    dashboard.value = await fetchGroupDashboard(tag.value, { tradeDate: tradeDate.value || undefined });
+    await router.replace({
+      query: {
+        tag: tag.value || undefined,
+        tradeDate: tradeDate.value || undefined,
+      },
+    });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {
@@ -164,7 +199,11 @@ async function loadGroup(): Promise<void> {
   }
 }
 
-onMounted(loadGroup);
+onMounted(() => {
+  tag.value = typeof route.query.tag === "string" ? route.query.tag : "semiconductor";
+  tradeDate.value = typeof route.query.tradeDate === "string" ? route.query.tradeDate : "";
+  return loadGroup();
+});
 </script>
 
 <style scoped>
@@ -173,5 +212,9 @@ onMounted(loadGroup);
   padding-left: 1.1rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.link-pill {
+  text-decoration: none;
 }
 </style>

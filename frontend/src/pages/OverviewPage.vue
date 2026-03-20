@@ -4,13 +4,34 @@
       eyebrow="Dashboard"
       title="Overview"
       description="Daily market breadth, candidates, groups, reports, and the latest research signals."
-    />
+    >
+      <div class="page-actions">
+        <RouterLink
+          v-if="selectedWatchlistId"
+          class="pill link-pill"
+          :to="{ name: 'watchlists', query: { watchlistId: selectedWatchlistId, tradeDate: selectedTradeDate || undefined } }"
+        >
+          Open watchlist
+        </RouterLink>
+        <RouterLink
+          v-if="selectedTag"
+          class="pill link-pill"
+          :to="{ name: 'groups', query: { tag: selectedTag, tradeDate: selectedTradeDate || undefined } }"
+        >
+          Open group
+        </RouterLink>
+      </div>
+    </PageHeader>
 
     <FilterBar
       title="Overview Scope"
       description="Adjust the watchlist and tag scope used by the aggregate dashboard endpoint."
     >
       <div class="form-inline">
+        <div class="field-group">
+          <label for="overview-trade-date">Trade Date</label>
+          <input id="overview-trade-date" v-model="selectedTradeDate" type="date" />
+        </div>
         <div class="field-group">
           <label for="overview-watchlist">Watchlist</label>
           <select id="overview-watchlist" v-model="selectedWatchlistId">
@@ -30,6 +51,17 @@
         </div>
       </div>
     </FilterBar>
+
+    <PageStatusBar
+      title="Overview Data Status"
+      :as-of-date="overview?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(overview?.meta.generated_at)"
+      :item-count="overview?.meta.item_count"
+      hint="Use trade date, watchlist, and tag together to narrow the dashboard scope."
+      demo-hint="Run make demo-data if the dashboard is still empty."
+      :show-refresh="true"
+      @refresh="loadOverview"
+    />
 
     <LoadingState v-if="isLoading" message="Loading dashboard overview..." />
     <ErrorState
@@ -117,6 +149,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { fetchOverview } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
@@ -127,20 +160,25 @@ import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { DashboardOverviewRead } from "@/types/dashboard";
-import { formatDate, formatList, formatNumber, formatPercent } from "@/utils/formatters";
+import { formatDate, formatDateTime, formatList, formatNumber, formatPercent } from "@/utils/formatters";
+import { makeLinkedCell } from "@/utils/presentation";
 
 const overview = ref<DashboardOverviewRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const selectedTag = ref("semiconductor");
 const selectedWatchlistId = ref("");
+const selectedTradeDate = ref("");
 const watchlistsStore = useWatchlistsStore();
+const route = useRoute();
+const router = useRouter();
 
 const candidateColumns = [
   { key: "rank", label: "Rank" },
@@ -165,7 +203,14 @@ const backtestColumns = [
 const candidateRows = computed(() =>
   overview.value?.data.candidate_summary?.top_items.map((item) => ({
     rank: item.rank,
-    symbol: item.symbol,
+    symbol: makeLinkedCell(item.symbol, {
+      name: "candidates",
+      query: {
+        run: String(overview.value?.data.candidate_summary?.run.id ?? ""),
+        search: item.symbol,
+        candidateDate: item.candidate_date,
+      },
+    }),
     score: Number(item.score),
     reasons: formatList(item.candidate_reasons, "No reasons"),
   })) ?? [],
@@ -175,13 +220,19 @@ const reportRows = computed(() =>
   overview.value?.data.report_summary?.reports.map((report) => ({
     date: formatDate(report.report_date),
     type: report.report_type,
-    title: report.title,
+    title: makeLinkedCell(report.title, {
+      name: "reports",
+      query: {
+        reportDate: report.report_date,
+        reportType: report.report_type,
+      },
+    }),
   })) ?? [],
 );
 
 const backtestRows = computed(() =>
   overview.value?.data.backtest_summary?.recent_runs.map((run) => ({
-    run_id: `#${run.id}`,
+    run_id: makeLinkedCell(`#${run.id}`, { name: "backtests", query: { run: String(run.id) } }),
     return_pct: Number(run.total_return_pct),
     trades: run.total_trades,
     status: run.status,
@@ -230,9 +281,17 @@ async function loadOverview(): Promise<void> {
   errorMessage.value = null;
   try {
     overview.value = await fetchOverview({
+      tradeDate: selectedTradeDate.value || undefined,
       watchlistId: selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
       tag: selectedTag.value || undefined,
       topN: 5,
+    });
+    await router.replace({
+      query: {
+        tradeDate: selectedTradeDate.value || undefined,
+        watchlistId: selectedWatchlistId.value || undefined,
+        tag: selectedTag.value || undefined,
+      },
     });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
@@ -243,7 +302,10 @@ async function loadOverview(): Promise<void> {
 
 onMounted(async () => {
   await watchlistsStore.load();
-  if (watchlistsStore.items[0]) {
+  selectedTradeDate.value = typeof route.query.tradeDate === "string" ? route.query.tradeDate : "";
+  selectedTag.value = typeof route.query.tag === "string" ? route.query.tag : "semiconductor";
+  selectedWatchlistId.value = typeof route.query.watchlistId === "string" ? route.query.watchlistId : "";
+  if (!selectedWatchlistId.value && watchlistsStore.items[0]) {
     selectedWatchlistId.value = String(watchlistsStore.items[0].id);
   }
   await loadOverview();
@@ -256,5 +318,15 @@ onMounted(async () => {
   padding-left: 1.1rem;
   display: grid;
   gap: 0.6rem;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.link-pill {
+  text-decoration: none;
 }
 </style>

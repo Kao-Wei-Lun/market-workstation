@@ -15,7 +15,16 @@
         <tbody>
           <tr v-for="(row, rowIndex) in rows" :key="rowKey ? String(row[rowKey]) : rowIndex">
             <td v-for="column in columns" :key="column.key">
-              {{ formatCell(row[column.key]) }}
+              <RouterLink
+                v-if="getLinkedCell(row[column.key])"
+                :to="getLinkedCell(row[column.key])!.to"
+                class="table-link"
+              >
+                {{ getLinkedCell(row[column.key])!.label }}
+              </RouterLink>
+              <template v-else>
+                {{ formatCell(row[column.key]) }}
+              </template>
             </td>
           </tr>
         </tbody>
@@ -26,7 +35,10 @@
 </template>
 
 <script setup lang="ts">
+import { RouterLink } from "vue-router";
+
 import SectionHeader from "@/components/SectionHeader.vue";
+import { isLinkedCellValue } from "@/utils/presentation";
 
 type TableRow = Record<string, unknown>;
 
@@ -53,4 +65,19 @@ function formatCell(value: unknown): string {
   }
   return String(value);
 }
+
+function getLinkedCell(value: unknown) {
+  return isLinkedCellValue(value) ? value : null;
+}
 </script>
+
+<style scoped>
+.table-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.table-link:hover {
+  text-decoration: underline;
+}
+</style>

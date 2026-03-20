@@ -24,6 +24,7 @@
         </button>
         <div class="topbar-meta">
           <strong>{{ currentPageTitle }}</strong>
+          <span v-if="currentPageDescription" class="muted">{{ currentPageDescription }}</span>
           <span class="muted">API {{ appStore.apiBaseUrl }}</span>
         </div>
       </header>
@@ -45,6 +46,7 @@ const appStore = useAppStore();
 const navRoutes = routes;
 const route = useRoute();
 const currentPageTitle = computed(() => (typeof route.meta.title === "string" ? route.meta.title : appStore.appTitle));
+const currentPageDescription = computed(() => (typeof route.meta.description === "string" ? route.meta.description : ""));
 </script>
 
 <style scoped>

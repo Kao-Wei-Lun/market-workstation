@@ -21,7 +21,7 @@
         </div>
         <div class="field-group">
           <label for="report-date">Bundle Date</label>
-          <select id="report-date" v-model="selectedReportDate" @change="loadSelectedBundle">
+          <select id="report-date" v-model="selectedReportDate" @change="loadReports">
             <option value="">Latest</option>
             <option
               v-for="report in latestReports"
@@ -45,8 +45,23 @@
             </option>
           </select>
         </div>
+        <div class="field-group">
+          <label>&nbsp;</label>
+          <button @click="loadReports">Refresh</button>
+        </div>
       </div>
     </FilterBar>
+
+    <PageStatusBar
+      title="Report Data Status"
+      :as-of-date="dashboard?.meta.as_of_date ?? null"
+      :generated-at="formatDateTime(dashboard?.meta.generated_at)"
+      :item-count="dashboard?.meta.item_count"
+      hint="Report bundles combine structured payloads with markdown sections for daily review."
+      demo-hint="Run make demo-data if no bundles are available."
+      :show-refresh="true"
+      @refresh="loadReports"
+    />
 
     <LoadingState v-if="isLoading" message="Loading reports dashboard..." />
     <ErrorState
@@ -88,11 +103,19 @@
           description="Latest individual report rows returned by the report API."
           :columns="reportColumns"
           :rows="filteredReportRows"
+          row-key="report_key"
+          :selected-row-key="selectedReportRowKey"
+          :interactive-rows="true"
+          @row-select="handleReportRowSelect"
           default-sort-by="date"
           default-sort-direction="desc"
           empty-message="No reports available."
         />
       </div>
+
+      <DetailPanel v-if="selectedReport" title="Selected Report Row" description="Direct persisted report metadata and markdown body.">
+        <MetricGrid :metrics="selectedReportMetrics" />
+      </DetailPanel>
 
       <MarkdownSection
         v-if="selectedSection"
@@ -107,10 +130,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { fetchReportsDashboard } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
-import { fetchLatestReports, fetchReportBundle } from "@/api/reports";
+import { fetchReportBundle, fetchReports } from "@/api/reports";
 import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
@@ -119,13 +143,15 @@ import LoadingState from "@/components/LoadingState.vue";
 import MarkdownSection from "@/components/MarkdownSection.vue";
 import MetricGrid from "@/components/MetricGrid.vue";
 import MiniBarChart from "@/components/MiniBarChart.vue";
+import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { DailyReportBundleContent } from "@/types/api";
 import type { ReportDailyRead, ReportsDashboardRead } from "@/types/dashboard";
-import { formatDate, formatNumber } from "@/utils/formatters";
+import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
+import type { TableRow } from "@/utils/presentation";
 import { filterRowsByQuery } from "@/utils/presentation";
 
 const dashboard = ref<ReportsDashboardRead | null>(null);
@@ -137,6 +163,9 @@ const latestReports = ref<ReportDailyRead[]>([]);
 const bundle = ref<DailyReportBundleContent | null>(null);
 const selectedReportDate = ref("");
 const selectedSectionType = ref("");
+const selectedReportId = ref<number | null>(null);
+const route = useRoute();
+const router = useRouter();
 
 const reportColumns = [
   { key: "date", label: "Date" },
@@ -146,6 +175,7 @@ const reportColumns = [
 
 const reportRows = computed(() =>
   latestReports.value.map((report) => ({
+    report_key: report.id,
     date: formatDate(report.report_date),
     type: report.report_type,
     title: report.title,
@@ -164,6 +194,9 @@ const selectedSection = computed(() => {
   );
 });
 
+const selectedReport = computed(() => latestReports.value.find((report) => report.id === selectedReportId.value) ?? null);
+const selectedReportRowKey = computed(() => (selectedReportId.value ? String(selectedReportId.value) : null));
+
 const bundleMetrics = computed(() => {
   if (!bundle.value) {
     return [];
@@ -173,7 +206,7 @@ const bundleMetrics = computed(() => {
     { label: "Section Count", value: formatNumber(bundle.value.metadata.section_count), hint: "renderable sections" },
     {
       label: "Top Candidates",
-      value: bundle.value.metadata.top_candidate_symbols.join(", ") || "n/a",
+      value: formatList(bundle.value.metadata.top_candidate_symbols, "n/a"),
       hint: "bundle metadata",
     },
     {
@@ -183,6 +216,22 @@ const bundleMetrics = computed(() => {
     },
   ];
 });
+
+const selectedReportMetrics = computed(() => {
+  if (!selectedReport.value) {
+    return [];
+  }
+  return [
+    { label: "Type", value: selectedReport.value.report_type, hint: "report row type" },
+    { label: "Key", value: selectedReport.value.report_key, hint: "report key" },
+    { label: "Date", value: formatDate(selectedReport.value.report_date), hint: "report date" },
+    { label: "Markdown", value: selectedReport.value.markdown_text.slice(0, 120) || "n/a", hint: "preview" },
+  ];
+});
+
+function handleReportRowSelect(row: TableRow): void {
+  selectedReportId.value = Number(row.report_key);
+}
 
 const reportTypeChartPoints = computed(() => {
   const counts = new Map<string, number>();
@@ -202,12 +251,26 @@ async function loadReports(): Promise<void> {
   try {
     const [dashboardResponse, latestReportsResponse] = await Promise.all([
       fetchReportsDashboard({ limit: limit.value }),
-      fetchLatestReports({ limit: limit.value }),
+      fetchReports({
+        reportDate: selectedReportDate.value || undefined,
+        reportType: reportTypeFilter.value || undefined,
+        limit: limit.value,
+      }),
     ]);
     dashboard.value = dashboardResponse;
     latestReports.value = latestReportsResponse;
-    selectedReportDate.value = latestReportsResponse[0]?.report_date ?? dashboardResponse.meta.as_of_date ?? "";
+    selectedReportDate.value =
+      selectedReportDate.value || latestReportsResponse[0]?.report_date || dashboardResponse.meta.as_of_date || "";
     await loadSelectedBundle();
+    selectedReportId.value = selectedReportId.value ?? latestReportsResponse[0]?.id ?? null;
+    await router.replace({
+      query: {
+        limit: String(limit.value),
+        reportDate: selectedReportDate.value || undefined,
+        reportType: reportTypeFilter.value || undefined,
+        section: selectedSectionType.value || undefined,
+      },
+    });
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
   } finally {
@@ -217,10 +280,16 @@ async function loadReports(): Promise<void> {
 
 async function loadSelectedBundle(): Promise<void> {
   bundle.value = selectedReportDate.value ? await fetchReportBundle(selectedReportDate.value) : null;
-  selectedSectionType.value = bundle.value?.sections[0]?.section_type ?? "";
+  selectedSectionType.value = selectedSectionType.value || bundle.value?.sections[0]?.section_type || "";
 }
 
-onMounted(loadReports);
+onMounted(() => {
+  limit.value = typeof route.query.limit === "string" ? Number(route.query.limit) : 10;
+  selectedReportDate.value = typeof route.query.reportDate === "string" ? route.query.reportDate : "";
+  reportTypeFilter.value = typeof route.query.reportType === "string" ? route.query.reportType : "";
+  selectedSectionType.value = typeof route.query.section === "string" ? route.query.section : "";
+  return loadReports();
+});
 </script>
 
 <style scoped>

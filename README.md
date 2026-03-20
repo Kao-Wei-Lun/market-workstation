@@ -227,6 +227,8 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   - sortable data tables for runs, items, and report lists
   - lightweight bar charts for rankings and breadth-style summaries
   - detail panels and metric grids for selected run/report/derivatives context
+  - route-query-backed page filters so deeper views can be opened directly from overview links
+  - status strips that show `generated_at`, `as_of_date`, refresh actions, and demo-data hints
 - Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
 - Typical local setting:
   `VITE_API_BASE_URL=http://localhost:8000`
@@ -237,6 +239,8 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   `make dev-up`
   Then open `http://localhost:5173`.
 - The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
+- Practical daily flow:
+  start from Overview, then click candidate symbols, report titles, backtest runs, or the current watchlist/group pills to jump into the deeper filtered page with the same context preserved in the URL query string.
 - The API now allows local frontend origins by default through CORS:
   `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
 - Override allowed browser origins with `CORS_ALLOWED_ORIGINS` in `.env` if your frontend runs on a different host or port.

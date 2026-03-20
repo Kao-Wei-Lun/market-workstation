@@ -1,5 +1,17 @@
 export type SortDirection = "asc" | "desc";
 export type TableRow = Record<string, unknown>;
+export interface LinkedCellValue {
+  label: string;
+  to: string | Record<string, unknown>;
+}
+
+export function makeLinkedCell(label: string, to: string | Record<string, unknown>): LinkedCellValue {
+  return { label, to };
+}
+
+export function isLinkedCellValue(value: unknown): value is LinkedCellValue {
+  return typeof value === "object" && value !== null && "label" in value && "to" in value;
+}
 
 function normalizeValue(value: unknown): string | number {
   if (value === null || value === undefined) {
