@@ -19,6 +19,21 @@ class _JobResult:
 
 
 @dataclass(frozen=True)
+class _RealTwResult:
+    symbols_requested: tuple[str, ...]
+    instruments_processed: int
+    trading_days_processed: int
+    daily_bars_loaded: int
+
+
+@dataclass(frozen=True)
+class _RealTaifexResult:
+    trading_days_processed: int
+    tw_derivatives_daily_loaded: int
+    tw_derivatives_features_persisted: int
+
+
+@dataclass(frozen=True)
 class _DemoDataResult:
     trade_date: object
     daily_bars_loaded: int
@@ -201,6 +216,48 @@ def test_manage_indicator_update_dispatches_job(monkeypatch, capsys) -> None:
 
     assert exit_code == 0
     assert "indicator_values_persisted" in output
+
+
+def test_manage_real_twse_backfill_dispatches_service(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "run_real_twse_backfill",
+        lambda session, symbols, start_date, end_date: _RealTwResult(
+            symbols_requested=symbols,
+            instruments_processed=1,
+            trading_days_processed=5,
+            daily_bars_loaded=5,
+        ),
+    )
+
+    exit_code = manage.main(
+        ["real-twse-backfill", "--start-date", "2026-03-10", "--end-date", "2026-03-14", "--symbol", "2330"]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "symbols_requested=2330" in output
+    assert "daily_bars_loaded=5" in output
+
+
+def test_manage_real_taifex_backfill_dispatches_service(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "run_real_taifex_backfill",
+        lambda session, start_date, end_date: _RealTaifexResult(
+            trading_days_processed=5,
+            tw_derivatives_daily_loaded=15,
+            tw_derivatives_features_persisted=15,
+        ),
+    )
+
+    exit_code = manage.main(["real-taifex-backfill", "--start-date", "2026-03-10", "--end-date", "2026-03-14"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "tw_derivatives_daily_loaded=15" in output
 
 
 def test_manage_smoke_test_dispatches_service(monkeypatch, capsys) -> None:

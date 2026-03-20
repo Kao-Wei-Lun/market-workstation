@@ -16,6 +16,7 @@ from services.core.bootstrap import (
     run_sample_daily_market_etl,
     seed_sample_reference_data,
 )
+from services.core.market_data import run_real_taifex_backfill, run_real_twse_backfill
 from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
 from services.models.backtest_run import BacktestRun
@@ -56,6 +57,15 @@ def main(argv: list[str] | None = None) -> int:
 
     sample_etl_parser = subparsers.add_parser("sample-etl", help="Run sample ETL data load.")
     sample_etl_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
+
+    real_tw_parser = subparsers.add_parser("real-twse-backfill", help="Load real TWSE daily data for symbols/date range.")
+    real_tw_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
+    real_tw_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
+    real_tw_parser.add_argument("--symbol", action="append", default=[], help="Limit to one or more TWSE symbols.")
+
+    real_taifex_parser = subparsers.add_parser("real-taifex-backfill", help="Load real TAIFEX daily data for date range.")
+    real_taifex_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
+    real_taifex_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
 
     indicator_parser = subparsers.add_parser("indicator-update", help="Run indicator update job.")
     indicator_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
@@ -101,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "load-universe":
         with SessionLocal() as session:
-            result = load_instrument_universe(
+            universe_result = load_instrument_universe(
                 session,
                 preset_name=args.preset,
                 include_watchlists=not args.skip_watchlists,
@@ -109,15 +119,15 @@ def main(argv: list[str] | None = None) -> int:
             )
         print(
             "Loaded instrument universe: "
-            f"preset={result.preset_name}, "
-            f"requested_scopes={','.join(result.requested_scope_keys) or 'all'}, "
-            f"scopes_declared={result.scopes_declared}, "
-            f"instruments_created={result.instruments_created}, "
-            f"instruments_updated={result.instruments_updated}, "
-            f"tags_created={result.tags_created}, "
-            f"watchlists_created={result.watchlists_created}, "
-            f"watchlist_items_added={result.watchlist_items_added}, "
-            f"total_instruments={result.total_instruments}"
+            f"preset={universe_result.preset_name}, "
+            f"requested_scopes={','.join(universe_result.requested_scope_keys) or 'all'}, "
+            f"scopes_declared={universe_result.scopes_declared}, "
+            f"instruments_created={universe_result.instruments_created}, "
+            f"instruments_updated={universe_result.instruments_updated}, "
+            f"tags_created={universe_result.tags_created}, "
+            f"watchlists_created={universe_result.watchlists_created}, "
+            f"watchlist_items_added={universe_result.watchlist_items_added}, "
+            f"total_instruments={universe_result.total_instruments}"
         )
         return 0
 
@@ -143,6 +153,38 @@ def main(argv: list[str] | None = None) -> int:
             "Loaded sample market data: "
             f"instruments_processed={etl_result.instruments_processed}, "
             f"daily_bars_loaded={etl_result.daily_bars_loaded}"
+        )
+        return 0
+
+    if args.command == "real-twse-backfill":
+        with SessionLocal() as session:
+            tw_result = run_real_twse_backfill(
+                session,
+                symbols=tuple(args.symbol),
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
+        print(
+            "Loaded real TWSE daily data: "
+            f"symbols_requested={','.join(tw_result.symbols_requested) or 'all'}, "
+            f"instruments_processed={tw_result.instruments_processed}, "
+            f"trading_days_processed={tw_result.trading_days_processed}, "
+            f"daily_bars_loaded={tw_result.daily_bars_loaded}"
+        )
+        return 0
+
+    if args.command == "real-taifex-backfill":
+        with SessionLocal() as session:
+            taifex_result = run_real_taifex_backfill(
+                session,
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
+        print(
+            "Loaded real TAIFEX data: "
+            f"trading_days_processed={taifex_result.trading_days_processed}, "
+            f"tw_derivatives_daily_loaded={taifex_result.tw_derivatives_daily_loaded}, "
+            f"tw_derivatives_features_persisted={taifex_result.tw_derivatives_features_persisted}"
         )
         return 0
 

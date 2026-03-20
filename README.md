@@ -157,6 +157,26 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 
 `make demo-data` 針對同一 `TRADE_DATE` 設計為可重跑，不應不斷膨脹重複的 demo run。
 
+注意：`demo-data` 的目的是前端展示與本機驗證，不是還原真實市場資料。若你要讓圖表與實際市場對齊，應改用真實資料 backfill 指令。
+
+### 載入真實資料
+
+目前 V1 已有可直接使用的真實資料路徑：
+
+- `make real-twse-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD SYMBOL=2330`
+- `make real-taifex-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD`
+
+用途：
+
+- 將 TWSE 支援標的的真實日線載入 `daily_bars`
+- 將 TAIFEX 真實法人日資料載入 `tw_derivatives_daily`
+- 重新計算對應法人特徵，供市場結構圖與衍生性商品頁使用
+
+補充：
+
+- `demo-data` 現在會避開已存在的真實日線區間，不再直接覆蓋那些標的的既有資料
+- 目前真實日資料 connector 已涵蓋 TWSE 個股 / ETF 與 TAIFEX 法人資料；大盤指數的真實 OHLC 仍需後續補更完整 connector
+
 ## V1.1 資料完整度策略
 
 V1.1 的重點不是改架構，而是讓本機使用者更容易看出「哪些 universe 已準備好、哪些還缺資料、哪些資料過期需要補跑」。

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -64,6 +65,29 @@ def test_sample_etl_loads_seeded_daily_bars() -> None:
     assert session.query(DailyBar).count() == 90
     twii = session.query(Instrument).filter(Instrument.symbol == "^TWII").one()
     assert session.query(DailyBar).filter(DailyBar.instrument_id == twii.id).count() == 30
+
+
+def test_sample_etl_skips_symbols_that_already_have_bars() -> None:
+    session = _build_session()
+    seed_sample_reference_data(session)
+    instrument = session.query(Instrument).filter(Instrument.symbol == "2330").one()
+    session.add(
+        DailyBar(
+            instrument_id=instrument.id,
+            trade_date=date(2024, 1, 31),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=1000,
+        )
+    )
+    session.commit()
+
+    result = run_sample_daily_market_etl(session, trade_date=date(2024, 1, 31))
+
+    assert result.instruments_processed == 3
+    assert result.daily_bars_loaded == 60
 
 
 def test_load_instrument_universe_supports_broader_v1_preset_idempotently() -> None:

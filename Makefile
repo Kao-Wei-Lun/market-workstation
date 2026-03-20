@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl indicator-update generate-reports smoke-test verify-v1 release-check run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl real-twse-backfill real-taifex-backfill indicator-update generate-reports smoke-test verify-v1 release-check run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -24,6 +24,12 @@ demo-data:
 
 sample-etl:
 	$(PYTHON) scripts/manage.py sample-etl --trade-date $${TRADE_DATE:?set TRADE_DATE=YYYY-MM-DD}
+
+real-twse-backfill:
+	$(PYTHON) scripts/manage.py real-twse-backfill --start-date $${START_DATE:?set START_DATE=YYYY-MM-DD} --end-date $${END_DATE:?set END_DATE=YYYY-MM-DD} $${SYMBOL:+--symbol $$SYMBOL}
+
+real-taifex-backfill:
+	$(PYTHON) scripts/manage.py real-taifex-backfill --start-date $${START_DATE:?set START_DATE=YYYY-MM-DD} --end-date $${END_DATE:?set END_DATE=YYYY-MM-DD}
 
 indicator-update:
 	$(PYTHON) scripts/manage.py indicator-update --trade-date $${TRADE_DATE:?set TRADE_DATE=YYYY-MM-DD}

@@ -15,6 +15,7 @@ from services.core.classification.tags import add_tag_to_instrument
 from services.core.classification.watchlists import add_instrument_to_watchlist, create_watchlist
 from services.core.derivatives.features import compute_tw_derivatives_features
 from services.core.etl.pipeline import run_ingestion_pipeline
+from services.core.market_data import has_any_daily_bars
 from services.db.repositories.tw_derivatives import TwDerivativesDailyRepository, TwDerivativesFeatureRepository
 from services.db.repositories.tw_institutional_spot import TwInstitutionalSpotDailyRepository
 from services.models.backtest_run import BacktestRun
@@ -189,6 +190,16 @@ def run_sample_daily_market_etl(session: Session, *, trade_date: date) -> Sample
     daily_bars_loaded = 0
     for symbol, rows in sample_series.items():
         instrument = session.query(Instrument).filter(Instrument.symbol == symbol).one()
+        series_start_date = date.fromisoformat(str(rows[0]["trade_date"]))
+        series_end_date = date.fromisoformat(str(rows[-1]["trade_date"]))
+        if has_any_daily_bars(
+            session,
+            instrument_id=instrument.id,
+            start_date=series_start_date,
+            end_date=series_end_date,
+        ):
+            instruments_processed += 1
+            continue
         connector = StaticDailyBarConnector(
             payload={"data": rows},
             market=instrument.market,
