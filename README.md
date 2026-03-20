@@ -4,6 +4,7 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
 - FastAPI API service
 - PostgreSQL-backed SQLAlchemy models and Alembic migrations
 - Scheduler and analysis worker foundations
+- Vue 3 + Vite frontend dashboard foundation
 - Sample bootstrap and local management CLI for first-run development
 
 ## Prerequisites
@@ -43,6 +44,8 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
    `TRADE_DATE=2026-03-20 make generate-reports`
 7. Run the startup smoke test:
    `make smoke-test`
+8. Start the frontend:
+   `make run-frontend`
 
 ## Running services locally
 
@@ -52,6 +55,8 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
   `make run-scheduler`
 - Analysis worker:
   `make run-analysis`
+- Frontend:
+  `make run-frontend`
 
 ## Management CLI
 
@@ -66,6 +71,7 @@ All bootstrap commands are available through `scripts/manage.py`:
 ## Docker Compose notes
 
 - `docker-compose.yml` is set up for local development with `db`, `api`, `scheduler`, and `analysis`.
+- The compose stack also includes an optional `frontend` service on `http://localhost:5173`.
 - Compose now falls back to sane local defaults when `.env` is missing or incomplete.
 - Source code is mounted into the containers so API and worker code changes are reflected without rebuilding the image for every edit.
 - The API service exposes `http://localhost:8000/healthz` and has a compose healthcheck.
@@ -75,6 +81,7 @@ All bootstrap commands are available through `scripts/manage.py`:
 After running the quickstart commands:
 - Open `http://localhost:8000/health`
 - Open `http://localhost:8000/healthz`
+- Open `http://localhost:5173`
 - Run `make smoke-test`
 - Query a report list:
   `curl "http://localhost:8000/reports?report_date=2026-03-20"`
@@ -97,6 +104,10 @@ After running the quickstart commands:
 - `make run-api`
 - `make run-scheduler`
 - `make run-analysis`
+- `make frontend-install`
+- `make run-frontend`
+- `make frontend-build`
+- `make frontend-test`
 - `make test`
 - `make lint`
 - `make typecheck`
@@ -182,6 +193,19 @@ After running the quickstart commands:
   `curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"`
 
 Dashboard-oriented APIs now return a consistent top-level structure with `meta`, `summary_cards`, `highlights`, `ranked_lists`, and typed `data` payloads, which is intended to reduce frontend-side reshaping work.
+
+## Frontend Dashboard
+
+- The frontend lives under `frontend/` and uses Vue 3, Vite, TypeScript, Vue Router, Pinia, and Axios.
+- Overview, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives pages are scaffolded for local single-user usage.
+- The Overview page is already wired to the dashboard aggregate APIs under `/api/dashboard/...`.
+- Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
+- For local development:
+  `make frontend-install`
+  `make run-frontend`
+- For Docker Compose development:
+  `make dev-up`
+  Then open `http://localhost:5173`.
 
 ## Verification
 
