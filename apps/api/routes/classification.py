@@ -3,20 +3,35 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from services.core.classification import (
+from services.core.classification.rules import (
+    create_auto_classification_rule,
+    delete_auto_classification_rule,
+    evaluate_auto_classification_rules,
+    get_auto_classification_rule,
+    list_auto_classification_rules,
+    update_auto_classification_rule,
+)
+from services.core.classification.scanner import scan_tag_group, scan_watchlist_group
+from services.core.classification.summary import summarize_tag_group, summarize_watchlist_group
+from services.core.classification.tags import add_tag_to_instrument, list_tags_for_instrument, remove_tag_from_instrument
+from services.core.classification.watchlists import (
     add_instrument_to_watchlist,
-    add_tag_to_instrument,
     create_watchlist,
     get_watchlist,
-    list_tags_for_instrument,
     list_watchlist_items,
     remove_instrument_from_watchlist,
-    remove_tag_from_instrument,
-    summarize_tag_group,
-    summarize_watchlist_group,
 )
 from services.db.session import get_db_session
+from services.models.auto_classification_rule import AutoClassificationRule
 from services.schemas.classification import (
+    AutoClassificationExpression,
+    AutoClassificationRuleCreate,
+    AutoClassificationRuleEvaluationRead,
+    AutoClassificationRuleEvaluationRequest,
+    AutoClassificationRuleRead,
+    AutoClassificationRuleUpdate,
+    GroupScannerRead,
+    GroupScannerRequest,
     GroupSummaryRead,
     InstrumentTagCreate,
     InstrumentTagRead,
@@ -28,6 +43,19 @@ from services.schemas.classification import (
 router = APIRouter(tags=["classification"])
 
 
+def _serialize_rule(rule: AutoClassificationRule) -> AutoClassificationRuleRead:
+    return AutoClassificationRuleRead(
+        id=rule.id,
+        name=rule.name,
+        description=rule.description,
+        target_tag=rule.target_tag,
+        definition=AutoClassificationExpression.model_validate(rule.definition_json),
+        is_active=rule.is_active,
+        created_at=rule.created_at,
+        updated_at=rule.updated_at,
+    )
+
+
 @router.post("/instruments/{instrument_id}/tags", response_model=InstrumentTagRead)
 async def create_instrument_tag(
     instrument_id: int,
@@ -35,6 +63,7 @@ async def create_instrument_tag(
     session: Session = Depends(get_db_session),
 ) -> InstrumentTagRead:
     tag = add_tag_to_instrument(session, instrument_id=instrument_id, tag=payload.tag)
+    session.commit()
     return InstrumentTagRead.model_validate(tag)
 
 
@@ -56,6 +85,7 @@ async def delete_instrument_tag(
     removed = remove_tag_from_instrument(session, instrument_id=instrument_id, tag=tag)
     if not removed:
         raise HTTPException(status_code=404, detail="tag not found")
+    session.commit()
     return {"removed": True}
 
 
@@ -65,6 +95,7 @@ async def create_watchlist_route(
     session: Session = Depends(get_db_session),
 ) -> WatchlistRead:
     watchlist = create_watchlist(session, name=payload.name, description=payload.description)
+    session.commit()
     return WatchlistRead.model_validate(watchlist)
 
 
@@ -77,6 +108,7 @@ async def add_watchlist_item_route(
     if get_watchlist(session, watchlist_id=watchlist_id) is None:
         raise HTTPException(status_code=404, detail="watchlist not found")
     item = add_instrument_to_watchlist(session, watchlist_id=watchlist_id, instrument_id=instrument_id)
+    session.commit()
     return WatchlistItemRead.model_validate(item)
 
 
@@ -93,7 +125,65 @@ async def delete_watchlist_item_route(
     )
     if not removed:
         raise HTTPException(status_code=404, detail="watchlist item not found")
+    session.commit()
     return {"removed": True}
+
+
+@router.get("/classification-rules", response_model=list[AutoClassificationRuleRead])
+async def list_auto_classification_rules_route(
+    session: Session = Depends(get_db_session),
+) -> list[AutoClassificationRuleRead]:
+    rules = list_auto_classification_rules(session)
+    return [_serialize_rule(rule) for rule in rules]
+
+
+@router.post("/classification-rules", response_model=AutoClassificationRuleRead)
+async def create_auto_classification_rule_route(
+    payload: AutoClassificationRuleCreate,
+    session: Session = Depends(get_db_session),
+) -> AutoClassificationRuleRead:
+    rule = create_auto_classification_rule(session, payload=payload)
+    session.commit()
+    return _serialize_rule(rule)
+
+
+@router.put("/classification-rules/{rule_id}", response_model=AutoClassificationRuleRead)
+async def update_auto_classification_rule_route(
+    rule_id: int,
+    payload: AutoClassificationRuleUpdate,
+    session: Session = Depends(get_db_session),
+) -> AutoClassificationRuleRead:
+    rule = get_auto_classification_rule(session, rule_id=rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="classification rule not found")
+    updated_rule = update_auto_classification_rule(session, rule=rule, payload=payload)
+    session.commit()
+    return _serialize_rule(updated_rule)
+
+
+@router.delete("/classification-rules/{rule_id}")
+async def delete_auto_classification_rule_route(
+    rule_id: int,
+    session: Session = Depends(get_db_session),
+) -> dict[str, bool]:
+    rule = get_auto_classification_rule(session, rule_id=rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="classification rule not found")
+    delete_auto_classification_rule(session, rule=rule)
+    session.commit()
+    return {"removed": True}
+
+
+@router.post("/classification-rules/evaluate", response_model=AutoClassificationRuleEvaluationRead)
+async def evaluate_auto_classification_rules_route(
+    payload: AutoClassificationRuleEvaluationRequest,
+    session: Session = Depends(get_db_session),
+) -> AutoClassificationRuleEvaluationRead:
+    if payload.rule_id is not None and get_auto_classification_rule(session, rule_id=payload.rule_id) is None:
+        raise HTTPException(status_code=404, detail="classification rule not found")
+    result = evaluate_auto_classification_rules(session, rule_id=payload.rule_id)
+    session.commit()
+    return AutoClassificationRuleEvaluationRead(**result.__dict__)
 
 
 @router.get("/watchlists/{watchlist_id}/items", response_model=list[WatchlistItemRead])
@@ -125,3 +215,33 @@ async def get_watchlist_summary_route(
     if get_watchlist(session, watchlist_id=watchlist_id) is None:
         raise HTTPException(status_code=404, detail="watchlist not found")
     return summarize_watchlist_group(session, watchlist_id=watchlist_id, trade_date=trade_date)
+
+
+@router.post("/scanner/run", response_model=GroupScannerRead)
+async def run_group_scanner_route(
+    payload: GroupScannerRequest,
+    session: Session = Depends(get_db_session),
+) -> GroupScannerRead:
+    if payload.tag is not None:
+        return scan_tag_group(
+            session,
+            tag=payload.tag,
+            trade_date=payload.trade_date,
+            sma_parameter_signature=payload.sma_parameter_signature,
+            volume_lookback_days=payload.volume_lookback_days,
+            flag_conditions=payload.flag_conditions,
+        )
+
+    watchlist_id = payload.watchlist_id
+    if watchlist_id is None:
+        raise HTTPException(status_code=422, detail="watchlist_id is required when tag is not provided")
+    if get_watchlist(session, watchlist_id=watchlist_id) is None:
+        raise HTTPException(status_code=404, detail="watchlist not found")
+    return scan_watchlist_group(
+        session,
+        watchlist_id=watchlist_id,
+        trade_date=payload.trade_date,
+        sma_parameter_signature=payload.sma_parameter_signature,
+        volume_lookback_days=payload.volume_lookback_days,
+        flag_conditions=payload.flag_conditions,
+    )

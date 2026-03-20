@@ -41,6 +41,8 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
    `TRADE_DATE=2026-03-20 make indicator-update`
 6. Generate daily reports:
    `TRADE_DATE=2026-03-20 make generate-reports`
+7. Run the startup smoke test:
+   `make smoke-test`
 
 ## Running services locally
 
@@ -59,6 +61,7 @@ All bootstrap commands are available through `scripts/manage.py`:
 - `python scripts/manage.py sample-etl --trade-date 2026-03-20`
 - `python scripts/manage.py indicator-update --trade-date 2026-03-20`
 - `python scripts/manage.py generate-reports --trade-date 2026-03-20`
+- `python scripts/manage.py smoke-test --api-base-url http://localhost:8000`
 
 ## Docker Compose notes
 
@@ -72,6 +75,7 @@ All bootstrap commands are available through `scripts/manage.py`:
 After running the quickstart commands:
 - Open `http://localhost:8000/health`
 - Open `http://localhost:8000/healthz`
+- Run `make smoke-test`
 - Query a report list:
   `curl "http://localhost:8000/reports?report_date=2026-03-20"`
 - Run the worker job list:
@@ -89,6 +93,7 @@ After running the quickstart commands:
 - `make sample-etl`
 - `make indicator-update`
 - `make generate-reports`
+- `make smoke-test`
 - `make run-api`
 - `make run-scheduler`
 - `make run-analysis`
@@ -106,6 +111,7 @@ After running the quickstart commands:
 - Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
 - Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
 - Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
+- Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
 
 ## Verification
 

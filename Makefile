@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed sample-etl indicator-update generate-reports run-api run-scheduler run-analysis test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -21,6 +21,9 @@ indicator-update:
 
 generate-reports:
 	$(PYTHON) scripts/manage.py generate-reports --trade-date $${TRADE_DATE:?set TRADE_DATE=YYYY-MM-DD}
+
+smoke-test:
+	$(PYTHON) scripts/manage.py smoke-test --api-base-url $${API_BASE_URL:-http://localhost:8000}
 
 run-api:
 	$(PYTHON) -m uvicorn apps.api.main:app --reload

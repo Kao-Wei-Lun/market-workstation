@@ -1,5 +1,6 @@
 from services.db.base import Base
 from services.models import (
+    AutoClassificationRule,
     BacktestRun,
     BacktestTrade,
     DailyBar,
@@ -23,6 +24,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     import_models()
 
     assert Instrument.__tablename__ == "instruments"
+    assert AutoClassificationRule.__tablename__ == "auto_classification_rules"
     assert Strategy.__tablename__ == "strategies"
     assert BacktestRun.__tablename__ == "backtest_runs"
     assert BacktestTrade.__tablename__ == "backtest_trades"
@@ -39,6 +41,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert WorkerHealth.__tablename__ == "worker_health"
     assert {
         "instruments",
+        "auto_classification_rules",
         "strategies",
         "backtest_runs",
         "backtest_trades",

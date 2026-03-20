@@ -8,6 +8,7 @@ from alembic import command
 from alembic.config import Config
 
 from services.core.bootstrap import run_sample_daily_market_etl, seed_sample_reference_data
+from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
 from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
 
@@ -29,6 +30,9 @@ def main(argv: list[str] | None = None) -> int:
 
     reports_parser = subparsers.add_parser("generate-reports", help="Run daily report generation job.")
     reports_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
+
+    smoke_parser = subparsers.add_parser("smoke-test", help="Run local startup smoke checks.")
+    smoke_parser.add_argument("--api-base-url", default="http://localhost:8000")
 
     args = parser.parse_args(argv)
 
@@ -69,6 +73,19 @@ def main(argv: list[str] | None = None) -> int:
             report_result = run_daily_report_generation_job(session, args.trade_date)
         print(f"Daily reports generated: {report_result.metrics}")
         return 0
+
+    if args.command == "smoke-test":
+        with SessionLocal() as session:
+            smoke_result = run_smoke_test(session, api_base_url=args.api_base_url)
+        print(
+            "Smoke test result: "
+            f"database_connectivity_ok={smoke_result.database_connectivity_ok}, "
+            f"api_health_ok={smoke_result.api_health_ok}, "
+            f"schema_reachable={smoke_result.schema_reachable}, "
+            f"sample_data_ok={smoke_result.sample_data_ok}, "
+            f"checked_symbols={','.join(smoke_result.checked_symbols)}"
+        )
+        return 0 if smoke_result.passed else 1
 
     parser.print_help()
     return 1

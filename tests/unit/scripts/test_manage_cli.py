@@ -65,6 +65,25 @@ def test_manage_indicator_update_dispatches_job(monkeypatch, capsys) -> None:
     assert "indicator_values_persisted" in output
 
 
+def test_manage_smoke_test_dispatches_service(monkeypatch, capsys) -> None:
+    class _SmokeResult:
+        database_connectivity_ok = True
+        api_health_ok = True
+        schema_reachable = True
+        sample_data_ok = True
+        checked_symbols = ["2330", "AAPL"]
+        passed = True
+
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(manage, "run_smoke_test", lambda session, api_base_url: _SmokeResult())
+
+    exit_code = manage.main(["smoke-test", "--api-base-url", "http://localhost:8000"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "database_connectivity_ok=True" in output
+
+
 class _session_context:
     def __enter__(self):
         return object()

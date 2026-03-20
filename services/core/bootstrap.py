@@ -16,6 +16,37 @@ from services.models.instrument_tag import InstrumentTag
 from services.models.watchlist import Watchlist
 from services.models.watchlist_item import WatchlistItem
 
+SAMPLE_INSTRUMENT_DEFINITIONS = [
+    {
+        "symbol": "2330",
+        "name": "TSMC",
+        "market": "TW",
+        "asset_type": "stock",
+        "currency": "TWD",
+        "timezone": "Asia/Taipei",
+        "source_route": "twse_openapi",
+    },
+    {
+        "symbol": "AAPL",
+        "name": "Apple",
+        "market": "US",
+        "asset_type": "stock",
+        "currency": "USD",
+        "timezone": "America/New_York",
+        "source_route": "us_eod_provider",
+    },
+    {
+        "symbol": "^TWII",
+        "name": "TAIEX",
+        "market": "TW",
+        "asset_type": "index",
+        "currency": "TWD",
+        "timezone": "Asia/Taipei",
+        "source_route": "manual_csv",
+    },
+]
+SAMPLE_INSTRUMENT_SYMBOLS = {item["symbol"] for item in SAMPLE_INSTRUMENT_DEFINITIONS}
+
 
 @dataclass(frozen=True)
 class SeedResult:
@@ -31,39 +62,9 @@ class SampleEtlResult:
 
 
 def seed_sample_reference_data(session: Session) -> SeedResult:
-    sample_instruments = [
-        {
-            "symbol": "2330",
-            "name": "TSMC",
-            "market": "TW",
-            "asset_type": "stock",
-            "currency": "TWD",
-            "timezone": "Asia/Taipei",
-            "source_route": "twse_openapi",
-        },
-        {
-            "symbol": "AAPL",
-            "name": "Apple",
-            "market": "US",
-            "asset_type": "stock",
-            "currency": "USD",
-            "timezone": "America/New_York",
-            "source_route": "us_eod_provider",
-        },
-        {
-            "symbol": "^TWII",
-            "name": "TAIEX",
-            "market": "TW",
-            "asset_type": "index",
-            "currency": "TWD",
-            "timezone": "Asia/Taipei",
-            "source_route": "manual_csv",
-        },
-    ]
-
     instruments_created = 0
     tags_created = 0
-    for payload in sample_instruments:
+    for payload in SAMPLE_INSTRUMENT_DEFINITIONS:
         instrument, created = _upsert_instrument(session, **payload)
         instruments_created += int(created)
         tags_created += _ensure_tag(session, instrument.id, "sample")

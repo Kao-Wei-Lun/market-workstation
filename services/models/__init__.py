@@ -1,5 +1,6 @@
 """ORM model registry."""
 
+from services.models.auto_classification_rule import AutoClassificationRule
 from services.models.backtest_run import BacktestRun
 from services.models.backtest_trade import BacktestTrade
 from services.models.daily_bar import DailyBar
@@ -22,6 +23,7 @@ def import_models() -> None:
 
 
 __all__ = [
+    "AutoClassificationRule",
     "BacktestRun",
     "BacktestTrade",
     "DailyBar",
