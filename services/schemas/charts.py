@@ -37,7 +37,7 @@ class ChartIndicatorSeriesRead(BaseModel):
 
 class ChartAnnotationBase(BaseModel):
     view_kind: Literal["instrument", "index", "market_flow"]
-    annotation_type: Literal["trend_line", "horizontal_line"]
+    annotation_type: Literal["trend_line", "horizontal_line", "vertical_line", "range_box", "point_marker"]
     timeframe: str = "1d"
     label: str | None = None
     payload_json: dict[str, Any] = Field(default_factory=dict)

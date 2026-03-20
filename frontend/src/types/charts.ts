@@ -40,7 +40,7 @@ export interface ChartAnnotationRead {
   instrument_id: number;
   symbol_snapshot: string;
   view_kind: "instrument" | "index" | "market_flow";
-  annotation_type: "trend_line" | "horizontal_line";
+  annotation_type: "trend_line" | "horizontal_line" | "vertical_line" | "range_box" | "point_marker";
   timeframe: string;
   label: string | null;
   payload_json: Record<string, unknown>;
@@ -59,7 +59,7 @@ export interface ChartDataRead {
 export interface ChartAnnotationCreateRequest {
   symbol: string;
   view_kind: "instrument" | "index" | "market_flow";
-  annotation_type: "trend_line" | "horizontal_line";
+  annotation_type: "trend_line" | "horizontal_line" | "vertical_line" | "range_box" | "point_marker";
   timeframe?: string;
   label?: string | null;
   payload_json: Record<string, unknown>;

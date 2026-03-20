@@ -8,7 +8,7 @@
 - 觀察清單、群組、scanner 與候選清單
 - 日線回測、參數搜尋、walk-forward
 - 每日報表與 dashboard 聚合 API
-- 個股 / 大盤日線圖表、基本畫線與市場結構圖
+- 個股 / 大盤日線圖表、持久化畫線與市場結構圖
 - Vue 3 前端儀表板，預設介面語言為繁體中文
 
 V1 不包含即時行情、即時警示、訂單執行或多使用者能力；這些會留給 V2。
@@ -301,8 +301,8 @@ python scripts/manage.py verify-v1 --api-base-url http://localhost:8000 --trade-
 - 以 dashboard aggregate API 減少前端自行重組資料
 - 各頁面統一使用 loading / empty / error state
 - 報表與候選頁提供較深的 drill-down
-- 個股圖表頁提供日線 K 線、成交量、indicator overlay 與基本畫線
-- 市場結構圖頁提供台灣大盤日線、外資現貨／期貨／選擇權方向與 bias interpretation
+- 個股圖表頁提供日線 K 線、成交量、indicator overlay 與持久化畫線
+- 市場結構圖頁提供台灣大盤日線、外資現貨／期貨／選擇權方向、bias interpretation 與持久化畫線
 - 管理頁提供 universe coverage、資料新鮮度、ingest jobs、worker heartbeat 可視性
 
 `VITE_API_BASE_URL` 可在 `.env` 或 `frontend/.env.example` 中設定，典型本機值為：
@@ -390,6 +390,7 @@ curl "http://localhost:8000/api/charts/instruments?market=TW&limit=20"
 curl "http://localhost:8000/api/charts/ohlcv/2330?indicator_name=sma&indicator_name=ema"
 curl "http://localhost:8000/api/charts/institutional-flow/%5ETWII"
 curl "http://localhost:8000/api/charts/market-structure/%5ETWII"
+curl "http://localhost:8000/api/charts/annotations/2330?view_kind=instrument"
 curl -X POST "http://localhost:8000/api/charts/annotations" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"2330","view_kind":"instrument","annotation_type":"horizontal_line","label":"壓力位","payload_json":{"price":950}}'
@@ -401,8 +402,8 @@ curl -X POST "http://localhost:8000/api/charts/annotations" \
 - 市場結構圖：大盤 / 指數日線 K 線 + 外資現貨／期貨／選擇權方向
 - 成交量 pane
 - 已保存 indicator_values overlay
-- 趨勢線與水平線
-- 本機持久化畫線注記
+- 趨勢線、水平線、垂直線、區間框、重點標記
+- 本機持久化畫線注記，可依標的 / 視圖重新載入
 - 市場結構 interpretation 與跨頁導覽
 
 ## Release / 驗收

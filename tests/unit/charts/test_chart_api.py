@@ -181,12 +181,18 @@ async def test_chart_api_returns_ohlcv_indicators_and_annotations() -> None:
             json={
                 "symbol": "2330",
                 "view_kind": "instrument",
-                "annotation_type": "horizontal_line",
-                "label": "壓力位",
-                "payload_json": {"price": 18300},
+                "annotation_type": "range_box",
+                "label": "整理區",
+                "payload_json": {
+                    "start_date": "2024-02-01",
+                    "start_price": 18050,
+                    "end_date": "2024-02-05",
+                    "end_price": 18320,
+                },
             },
         )
         annotated_chart_response = await client.get("/api/charts/ohlcv/2330", params={"indicator_name": ["sma"]})
+        list_annotations_response = await client.get("/api/charts/annotations/2330", params={"view_kind": "instrument"})
         clear_response = await client.delete("/api/charts/annotations/clear/2330", params={"view_kind": "instrument"})
 
     app.dependency_overrides.clear()
@@ -197,10 +203,41 @@ async def test_chart_api_returns_ohlcv_indicators_and_annotations() -> None:
     assert len(chart_response.json()["candles"]) == 5
     assert chart_response.json()["available_indicator_keys"] == ["sma"]
     assert create_annotation_response.status_code == 200
+    assert create_annotation_response.json()["annotation_type"] == "range_box"
     assert annotated_chart_response.status_code == 200
     assert len(annotated_chart_response.json()["annotations"]) == 1
+    assert list_annotations_response.status_code == 200
+    assert list_annotations_response.json()[0]["annotation_type"] == "range_box"
     assert clear_response.status_code == 200
     assert clear_response.json()["deleted"] == 1
+
+
+@pytest.mark.asyncio
+async def test_chart_annotation_api_validates_required_payload_fields() -> None:
+    session = _build_session()
+    _seed_chart_data(session)
+
+    async def override_db():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/charts/annotations",
+            json={
+                "symbol": "2330",
+                "view_kind": "instrument",
+                "annotation_type": "point_marker",
+                "label": "漏資料",
+                "payload_json": {"trade_date": "2024-02-05"},
+            },
+        )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert "payload missing required keys" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

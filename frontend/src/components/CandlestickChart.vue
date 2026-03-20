@@ -67,6 +67,30 @@
               class="annotation-line"
             />
             <line
+              v-else-if="annotation.kind === 'vertical'"
+              :x1="annotation.x1"
+              :x2="annotation.x1"
+              :y1="top"
+              :y2="priceBottom"
+              class="annotation-line"
+            />
+            <circle
+              v-else-if="annotation.kind === 'point'"
+              :cx="annotation.x1"
+              :cy="annotation.y1"
+              r="6"
+              class="annotation-point"
+            />
+            <rect
+              v-else-if="annotation.kind === 'range_box'"
+              :x="Math.min(annotation.x1, annotation.x2)"
+              :y="Math.min(annotation.y1, annotation.y2)"
+              :width="Math.max(Math.abs(annotation.x2 - annotation.x1), 2)"
+              :height="Math.max(Math.abs(annotation.y2 - annotation.y1), 2)"
+              class="annotation-box"
+              rx="6"
+            />
+            <line
               v-else
               :x1="annotation.x1"
               :x2="annotation.x2"
@@ -78,11 +102,21 @@
 
           <g v-if="draftLine">
             <line
+              v-if="draftLine.kind === 'trend'"
               :x1="draftLine.x1"
               :x2="draftLine.x2"
               :y1="draftLine.y1"
               :y2="draftLine.y2"
               class="annotation-line draft"
+            />
+            <rect
+              v-else
+              :x="Math.min(draftLine.x1, draftLine.x2)"
+              :y="Math.min(draftLine.y1, draftLine.y2)"
+              :width="Math.max(Math.abs(draftLine.x2 - draftLine.x1), 2)"
+              :height="Math.max(Math.abs(draftLine.y2 - draftLine.y1), 2)"
+              class="annotation-box draft"
+              rx="6"
             />
           </g>
 
@@ -118,8 +152,8 @@ import { computed, ref } from "vue";
 
 import SectionHeader from "@/components/SectionHeader.vue";
 import type { ChartAnnotationRead, ChartCandleRead } from "@/types/charts";
-import type { ChartPlotClickPayload } from "@/utils/charts";
-import { buildOverlayLines, latestCandle, parseNumeric } from "@/utils/charts";
+import type { ChartDrawingTool, ChartPlotClickPayload } from "@/utils/charts";
+import { buildOverlayLines, chartToolLabel, latestCandle, parseNumeric } from "@/utils/charts";
 import { formatDate, formatNumber } from "@/utils/formatters";
 
 interface DraftPoint {
@@ -129,7 +163,10 @@ interface DraftPoint {
 
 type RenderedAnnotation =
   | { key: string; kind: "horizontal"; y1: number }
-  | { key: string; kind: "trend"; x1: number; x2: number; y1: number; y2: number };
+  | { key: string; kind: "vertical"; x1: number }
+  | { key: string; kind: "point"; x1: number; y1: number }
+  | { key: string; kind: "trend"; x1: number; x2: number; y1: number; y2: number }
+  | { key: string; kind: "range_box"; x1: number; x2: number; y1: number; y2: number };
 
 const props = defineProps<{
   title: string;
@@ -137,7 +174,7 @@ const props = defineProps<{
   indicators?: import("@/types/charts").ChartIndicatorSeriesRead[];
   annotations?: ChartAnnotationRead[];
   description?: string;
-  activeTool?: string;
+  activeTool?: ChartDrawingTool;
   draftTrendStart?: DraftPoint | null;
   emptyMessage?: string;
 }>();
@@ -266,12 +303,46 @@ const renderedAnnotations = computed<RenderedAnnotation[]>(() =>
       }
       return [{ key: `annotation-${annotation.id}`, kind: "horizontal" as const, y1: yForPrice(price) }];
     }
+    if (annotation.annotation_type === "vertical_line") {
+      const tradeDate = String(annotation.payload_json.trade_date ?? "");
+      if (!tradeDate) {
+        return [];
+      }
+      return [{ key: `annotation-${annotation.id}`, kind: "vertical" as const, x1: xForIndex(findIndexByTradeDate(tradeDate)) }];
+    }
+    if (annotation.annotation_type === "point_marker") {
+      const tradeDate = String(annotation.payload_json.trade_date ?? "");
+      const price = parseNumeric(annotation.payload_json.price as string | number | null | undefined);
+      if (!tradeDate || price === null) {
+        return [];
+      }
+      return [
+        {
+          key: `annotation-${annotation.id}`,
+          kind: "point" as const,
+          x1: xForIndex(findIndexByTradeDate(tradeDate)),
+          y1: yForPrice(price),
+        },
+      ];
+    }
     const startDate = String(annotation.payload_json.start_date ?? "");
     const endDate = String(annotation.payload_json.end_date ?? "");
     const startPrice = parseNumeric(annotation.payload_json.start_price as string | number | null | undefined);
     const endPrice = parseNumeric(annotation.payload_json.end_price as string | number | null | undefined);
     if (!startDate || !endDate || startPrice === null || endPrice === null) {
       return [];
+    }
+    if (annotation.annotation_type === "range_box") {
+      return [
+        {
+          key: `annotation-${annotation.id}`,
+          kind: "range_box" as const,
+          x1: xForIndex(findIndexByTradeDate(startDate)),
+          x2: xForIndex(findIndexByTradeDate(endDate)),
+          y1: yForPrice(startPrice),
+          y2: yForPrice(endPrice),
+        },
+      ];
     }
     return [
       {
@@ -291,7 +362,17 @@ const draftLine = computed(() => {
     return null;
   }
   const latestIndex = numericCandles.value.length - 1;
+  if (props.activeTool === "range_box") {
+    return {
+      kind: "range_box" as const,
+      x1: xForIndex(findIndexByTradeDate(props.draftTrendStart.tradeDate)),
+      y1: yForPrice(props.draftTrendStart.price),
+      x2: xForIndex(latestIndex),
+      y2: yForPrice(numericCandles.value[latestIndex].close),
+    };
+  }
   return {
+    kind: "trend" as const,
     x1: xForIndex(findIndexByTradeDate(props.draftTrendStart.tradeDate)),
     y1: yForPrice(props.draftTrendStart.price),
     x2: xForIndex(latestIndex),
@@ -308,7 +389,7 @@ const toolLabel = computed(() => {
   if (!props.activeTool || props.activeTool === "none") {
     return "";
   }
-  return props.activeTool === "horizontal_line" ? "目前工具：水平線" : "目前工具：趨勢線";
+  return `目前工具：${chartToolLabel(props.activeTool)}`;
 });
 
 function handlePlotClick(event: MouseEvent): void {
@@ -369,6 +450,19 @@ function handlePlotClick(event: MouseEvent): void {
   fill: none;
 }
 
+.annotation-box {
+  fill: rgba(22, 89, 146, 0.12);
+  stroke: #165992;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.annotation-point {
+  fill: #165992;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
 .wick.positive,
 .candle.positive,
 .volume-bar.positive {
@@ -395,6 +489,10 @@ function handlePlotClick(event: MouseEvent): void {
 
 .annotation-line.draft {
   opacity: 0.5;
+}
+
+.annotation-box.draft {
+  opacity: 0.55;
 }
 
 .axis-label {

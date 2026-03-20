@@ -453,9 +453,12 @@ V1 可先不含即時更新與更細的現貨分點，但需保留後續擴充�
 系統需至少支援：
 - trend line
 - horizontal line
+- vertical line
+- range box / rectangle
+- point marker
 - clear / remove action
 
-若實作可行，應支援依標的 / 視圖保存本機畫線注記。
+V1 應支援依標的 / 視圖保存本機畫線注記，重新開啟同一圖表頁時可重新載入。
 
 ---
 

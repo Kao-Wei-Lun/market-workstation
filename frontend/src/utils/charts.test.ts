@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildDateRange, buildOverlayLines, describeAnnotation, formatFlowHighlight } from "@/utils/charts";
+import { buildDateRange, buildOverlayLines, chartToolLabel, describeAnnotation, formatFlowHighlight } from "@/utils/charts";
 
 describe("charts utils", () => {
   it("builds overlay lines from indicator series", () => {
@@ -37,6 +37,21 @@ describe("charts utils", () => {
         updated_at: "2024-01-01T00:00:00Z",
       }),
     ).toContain("水平線");
+    expect(
+      describeAnnotation({
+        id: 2,
+        instrument_id: 1,
+        symbol_snapshot: "^TWII",
+        view_kind: "market_flow",
+        annotation_type: "range_box",
+        timeframe: "1d",
+        label: "區間",
+        payload_json: {},
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      }),
+    ).toContain("區間框");
+    expect(chartToolLabel("point_marker")).toBe("重點標記");
     expect(
       formatFlowHighlight({
         trade_date: "2024-01-01",

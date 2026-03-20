@@ -73,6 +73,15 @@ export async function createChartAnnotation(
   return postJson<ChartAnnotationRead, ChartAnnotationCreateRequest>("/api/charts/annotations", payload);
 }
 
+export async function fetchChartAnnotations(
+  symbol: string,
+  viewKind: "instrument" | "index" | "market_flow",
+): Promise<ChartAnnotationRead[]> {
+  return getJson<ChartAnnotationRead[]>(`/api/charts/annotations/${symbol}`, {
+    params: { view_kind: viewKind },
+  });
+}
+
 export async function clearChartAnnotations(
   symbol: string,
   viewKind: "instrument" | "index" | "market_flow",

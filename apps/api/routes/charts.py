@@ -8,6 +8,7 @@ from services.core.charts import (
     create_chart_annotation,
     delete_chart_annotation,
     list_chart_instruments,
+    list_chart_annotations,
     load_chart_data,
     load_institutional_flow_chart,
     load_market_structure_chart,
@@ -107,6 +108,18 @@ async def create_chart_annotation_route(
 ) -> ChartAnnotationRead:
     try:
         return create_chart_annotation(session, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/annotations/{symbol}", response_model=list[ChartAnnotationRead])
+async def list_chart_annotations_route(
+    symbol: str,
+    view_kind: str = Query(default="instrument"),
+    session: Session = Depends(get_db_session),
+) -> list[ChartAnnotationRead]:
+    try:
+        return list_chart_annotations(session, symbol=symbol, view_kind=view_kind)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

@@ -35,14 +35,6 @@
           <input id="market-date-to" v-model="dateTo" type="date" />
         </div>
         <div class="field-group">
-          <label for="market-tool">畫線工具</label>
-          <select id="market-tool" v-model="activeTool">
-            <option value="none">不啟用</option>
-            <option value="trend_line">趨勢線</option>
-            <option value="horizontal_line">水平線</option>
-          </select>
-        </div>
-        <div class="field-group">
           <label>&nbsp;</label>
           <button @click="loadChart">重新整理</button>
         </div>
@@ -66,6 +58,7 @@
           <label class="toggle-pill"><input v-model="showBias" type="checkbox" /> Bias 線</label>
         </div>
       </div>
+      <ChartDrawingToolbar v-model="activeTool" />
     </FilterBar>
 
     <PageStatusBar
@@ -112,6 +105,8 @@
         <ChartAnnotationsPanel
           :annotations="chartData.annotations"
           description="市場結構頁的畫線可保留對大盤的重要區間與關鍵轉折。"
+          :feedback-message="annotationFeedback"
+          :feedback-tone="annotationFeedbackTone"
           @remove="handleRemoveAnnotation"
           @clear="handleClearAnnotations"
         />
@@ -172,6 +167,7 @@ import {
 import { normalizeApiError } from "@/api/http";
 import CandlestickChart from "@/components/CandlestickChart.vue";
 import ChartAnnotationsPanel from "@/components/ChartAnnotationsPanel.vue";
+import ChartDrawingToolbar from "@/components/ChartDrawingToolbar.vue";
 import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
@@ -189,8 +185,8 @@ import type {
   InstitutionalFlowPointRead,
   MarketStructureChartRead,
 } from "@/types/charts";
-import type { ChartPlotClickPayload } from "@/utils/charts";
-import { buildDateRange, latestCandle, parseNumeric } from "@/utils/charts";
+import type { ChartDrawingTool, ChartPlotClickPayload } from "@/utils/charts";
+import { buildDateRange, chartToolLabel, latestCandle, parseNumeric } from "@/utils/charts";
 import { formatDate, formatNumber, formatPercent } from "@/utils/formatters";
 
 const route = useRoute();
@@ -204,8 +200,10 @@ const selectedSymbol = ref("");
 const dateFrom = ref("");
 const dateTo = ref("");
 const selectedIndicators = ref<string[]>(["sma", "ema"]);
-const activeTool = ref("none");
+const activeTool = ref<ChartDrawingTool>("none");
 const trendDraft = ref<ChartPlotClickPayload | null>(null);
+const annotationFeedback = ref<string | null>(null);
+const annotationFeedbackTone = ref<"info" | "success" | "error">("info");
 const showSpot = ref(true);
 const showFutures = ref(true);
 const showOptions = ref(true);
@@ -351,15 +349,39 @@ async function handlePlotClick(payload: ChartPlotClickPayload): Promise<void> {
         label: `水平 ${payload.price}`,
         payload_json: { price: payload.price, trade_date: payload.tradeDate },
       });
+      annotationFeedback.value = `已新增水平線：${payload.tradeDate} / ${payload.price}`;
+      annotationFeedbackTone.value = "success";
+    } else if (activeTool.value === "vertical_line") {
+      await createChartAnnotation({
+        symbol: selectedSymbol.value,
+        view_kind: "market_flow",
+        annotation_type: "vertical_line",
+        label: `垂直 ${payload.tradeDate}`,
+        payload_json: { trade_date: payload.tradeDate },
+      });
+      annotationFeedback.value = `已新增垂直線：${payload.tradeDate}`;
+      annotationFeedbackTone.value = "success";
+    } else if (activeTool.value === "point_marker") {
+      await createChartAnnotation({
+        symbol: selectedSymbol.value,
+        view_kind: "market_flow",
+        annotation_type: "point_marker",
+        label: `標記 ${payload.tradeDate}`,
+        payload_json: { trade_date: payload.tradeDate, price: payload.price },
+      });
+      annotationFeedback.value = `已新增重點標記：${payload.tradeDate} / ${payload.price}`;
+      annotationFeedbackTone.value = "success";
     } else if (!trendDraft.value) {
       trendDraft.value = payload;
+      annotationFeedback.value = `已記錄第一點，請再點一次完成${chartToolLabel(activeTool.value)}。`;
+      annotationFeedbackTone.value = "info";
       return;
     } else {
       await createChartAnnotation({
         symbol: selectedSymbol.value,
         view_kind: "market_flow",
-        annotation_type: "trend_line",
-        label: `趨勢 ${trendDraft.value.tradeDate}`,
+        annotation_type: activeTool.value,
+        label: `${chartToolLabel(activeTool.value)} ${trendDraft.value.tradeDate}`,
         payload_json: {
           start_date: trendDraft.value.tradeDate,
           start_price: trendDraft.value.price,
@@ -367,20 +389,28 @@ async function handlePlotClick(payload: ChartPlotClickPayload): Promise<void> {
           end_price: payload.price,
         },
       });
+      annotationFeedback.value = `已新增${chartToolLabel(activeTool.value)}。`;
+      annotationFeedbackTone.value = "success";
       trendDraft.value = null;
     }
     await loadChart();
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
+    annotationFeedback.value = "畫線儲存失敗，請稍後再試。";
+    annotationFeedbackTone.value = "error";
   }
 }
 
 async function handleRemoveAnnotation(annotationId: number): Promise<void> {
   try {
     await deleteChartAnnotation(annotationId);
+    annotationFeedback.value = "已移除畫線。";
+    annotationFeedbackTone.value = "success";
     await loadChart();
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
+    annotationFeedback.value = "移除畫線失敗。";
+    annotationFeedbackTone.value = "error";
   }
 }
 
@@ -391,9 +421,13 @@ async function handleClearAnnotations(): Promise<void> {
   try {
     await clearChartAnnotations(selectedSymbol.value, "market_flow");
     trendDraft.value = null;
+    annotationFeedback.value = "已清除目前市場結構圖的全部畫線。";
+    annotationFeedbackTone.value = "success";
     await loadChart();
   } catch (error) {
     errorMessage.value = normalizeApiError(error).detail;
+    annotationFeedback.value = "清除畫線失敗。";
+    annotationFeedbackTone.value = "error";
   }
 }
 
@@ -401,6 +435,10 @@ watch(selectedIndicators, () => {
   if (selectedSymbol.value) {
     void loadChart();
   }
+});
+
+watch(activeTool, () => {
+  trendDraft.value = null;
 });
 
 onMounted(async () => {

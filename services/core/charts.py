@@ -126,6 +126,7 @@ def load_chart_data(
 
 def create_chart_annotation(session: Session, payload: ChartAnnotationCreate) -> ChartAnnotationRead:
     instrument = _require_instrument(session, payload.symbol)
+    _validate_annotation_payload(payload)
     annotation = ChartAnnotationRepository(session).create(
         instrument_id=instrument.id,
         symbol_snapshot=instrument.symbol,
@@ -144,6 +145,19 @@ def delete_chart_annotation(session: Session, annotation_id: int) -> bool:
     repository.delete(annotation)
     session.commit()
     return True
+
+
+def list_chart_annotations(
+    session: Session,
+    *,
+    symbol: str,
+    view_kind: str,
+) -> list[ChartAnnotationRead]:
+    instrument = _require_instrument(session, symbol)
+    return [
+        ChartAnnotationRead.model_validate(item)
+        for item in ChartAnnotationRepository(session).list_for_instrument(instrument.id, view_kind=view_kind)
+    ]
 
 
 def clear_chart_annotations(
@@ -318,6 +332,29 @@ def _require_instrument(session: Session, symbol: str) -> Instrument:
         msg = f"instrument not found: {symbol}"
         raise ValueError(msg)
     return instrument
+
+
+def _validate_annotation_payload(payload: ChartAnnotationCreate) -> None:
+    if payload.annotation_type == "horizontal_line":
+        _require_payload_keys(payload, "price")
+        return
+    if payload.annotation_type == "vertical_line":
+        _require_payload_keys(payload, "trade_date")
+        return
+    if payload.annotation_type == "point_marker":
+        _require_payload_keys(payload, "trade_date", "price")
+        return
+    if payload.annotation_type in {"trend_line", "range_box"}:
+        _require_payload_keys(payload, "start_date", "start_price", "end_date", "end_price")
+        return
+
+
+def _require_payload_keys(payload: ChartAnnotationCreate, *keys: str) -> None:
+    missing = [key for key in keys if payload.payload_json.get(key) in (None, "")]
+    if not missing:
+        return
+    msg = f"annotation payload missing required keys: {', '.join(missing)}"
+    raise ValueError(msg)
 
 
 def _chart_instrument_read(instrument: object, *, latest_data_date: date | None) -> ChartInstrumentRead:

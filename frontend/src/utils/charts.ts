@@ -5,6 +5,8 @@ import type {
   InstitutionalFlowPointRead,
 } from "@/types/charts";
 
+export type ChartDrawingTool = "none" | "trend_line" | "horizontal_line" | "vertical_line" | "range_box" | "point_marker";
+
 export interface ChartPlotClickPayload {
   tradeDate: string;
   price: number;
@@ -56,10 +58,36 @@ export function buildDateRange(latestDate: string | null | undefined, days: numb
 }
 
 export function describeAnnotation(annotation: ChartAnnotationRead): string {
+  if (annotation.annotation_type === "vertical_line") {
+    return `垂直線 ${annotation.label ?? ""}`.trim();
+  }
+  if (annotation.annotation_type === "range_box") {
+    return `區間框 ${annotation.label ?? ""}`.trim();
+  }
+  if (annotation.annotation_type === "point_marker") {
+    return `重點標記 ${annotation.label ?? ""}`.trim();
+  }
   if (annotation.annotation_type === "horizontal_line") {
     return `水平線 ${annotation.label ?? ""}`.trim();
   }
   return `趨勢線 ${annotation.label ?? ""}`.trim();
+}
+
+export function chartToolLabel(tool: ChartDrawingTool): string {
+  switch (tool) {
+    case "trend_line":
+      return "趨勢線";
+    case "horizontal_line":
+      return "水平線";
+    case "vertical_line":
+      return "垂直線";
+    case "range_box":
+      return "區間框";
+    case "point_marker":
+      return "重點標記";
+    default:
+      return "未啟用";
+  }
 }
 
 export function formatFlowHighlight(point: InstitutionalFlowPointRead | null): string {
