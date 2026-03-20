@@ -34,6 +34,37 @@ class _RealTaifexResult:
 
 
 @dataclass(frozen=True)
+class _CleanupResult:
+    daily_bars_deleted: int
+    indicator_values_deleted: int
+    series_points_deleted: int
+    tw_derivatives_daily_deleted: int
+    tw_derivatives_features_deleted: int
+    tw_institutional_spot_deleted: int
+    candidate_runs_deleted: int
+    candidate_items_deleted: int
+    report_rows_deleted: int
+    backtest_runs_deleted: int
+    backtest_trades_deleted: int
+    strategies_deleted: int
+
+
+@dataclass(frozen=True)
+class _RealWorkspaceResult:
+    trade_date: object
+    cleanup: _CleanupResult
+    tw_daily_bars_loaded: int
+    taifex_daily_loaded: int
+    taifex_features_persisted: int
+    us_daily_bars_loaded: int
+    macro_series_points_loaded: int
+    indicator_values_persisted: int
+    candidate_items_created: int
+    reports_persisted: int
+    skipped_sources: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class _DemoDataResult:
     trade_date: object
     daily_bars_loaded: int
@@ -258,6 +289,90 @@ def test_manage_real_taifex_backfill_dispatches_service(monkeypatch, capsys) -> 
 
     assert exit_code == 0
     assert "tw_derivatives_daily_loaded=15" in output
+
+
+def test_manage_clear_demo_data_dispatches_service(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "clear_demo_workspace_data",
+        lambda session: _CleanupResult(
+            daily_bars_deleted=90,
+            indicator_values_deleted=120,
+            series_points_deleted=0,
+            tw_derivatives_daily_deleted=42,
+            tw_derivatives_features_deleted=42,
+            tw_institutional_spot_deleted=21,
+            candidate_runs_deleted=1,
+            candidate_items_deleted=3,
+            report_rows_deleted=10,
+            backtest_runs_deleted=1,
+            backtest_trades_deleted=6,
+            strategies_deleted=1,
+        ),
+    )
+
+    exit_code = manage.main(["clear-demo-data"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "daily_bars_deleted=90" in output
+    assert "report_rows_deleted=10" in output
+
+
+def test_manage_real_workspace_dispatches_service(monkeypatch, capsys) -> None:
+    from datetime import date
+
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "refresh_real_workspace",
+        lambda session, trade_date, start_date, end_date, tw_symbols, us_symbols, macro_series_keys: _RealWorkspaceResult(
+            trade_date=date(2026, 3, 20),
+            cleanup=_CleanupResult(
+                daily_bars_deleted=90,
+                indicator_values_deleted=120,
+                series_points_deleted=0,
+                tw_derivatives_daily_deleted=42,
+                tw_derivatives_features_deleted=42,
+                tw_institutional_spot_deleted=21,
+                candidate_runs_deleted=1,
+                candidate_items_deleted=3,
+                report_rows_deleted=10,
+                backtest_runs_deleted=1,
+                backtest_trades_deleted=6,
+                strategies_deleted=1,
+            ),
+            tw_daily_bars_loaded=15,
+            taifex_daily_loaded=30,
+            taifex_features_persisted=30,
+            us_daily_bars_loaded=0,
+            macro_series_points_loaded=0,
+            indicator_values_persisted=2200,
+            candidate_items_created=4,
+            reports_persisted=10,
+            skipped_sources=("us_eod_provider", "macro_series_provider"),
+        ),
+    )
+
+    exit_code = manage.main(
+        [
+            "real-workspace",
+            "--trade-date",
+            "2026-03-20",
+            "--start-date",
+            "2026-03-01",
+            "--end-date",
+            "2026-03-20",
+            "--tw-symbol",
+            "2330",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "tw_daily_bars_loaded=15" in output
+    assert "skipped_sources=us_eod_provider,macro_series_provider" in output
 
 
 def test_manage_smoke_test_dispatches_service(monkeypatch, capsys) -> None:

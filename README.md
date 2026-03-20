@@ -165,17 +165,37 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 
 - `make real-twse-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD SYMBOL=2330`
 - `make real-taifex-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD`
+- `make clear-demo-data`
+- `make real-workspace TRADE_DATE=YYYY-MM-DD START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD`
 
 用途：
 
 - 將 TWSE 支援標的的真實日線載入 `daily_bars`
 - 將 TAIFEX 真實法人日資料載入 `tw_derivatives_daily`
 - 重新計算對應法人特徵，供市場結構圖與衍生性商品頁使用
+- 清除 sample/demo 來源與由其衍生出的候選、報表、示範回測
+- 以真實資料重建指標、候選與報表輸出
 
 補充：
 
 - `demo-data` 現在會避開已存在的真實日線區間，不再直接覆蓋那些標的的既有資料
+- `real-workspace` 會自動跳過未設定真實 provider 的 `us_eod_provider` 與 `macro_series_provider`
 - 目前真實日資料 connector 已涵蓋 TWSE 個股 / ETF 與 TAIFEX 法人資料；大盤指數的真實 OHLC 仍需後續補更完整 connector
+
+建議切換到真實資料模式時使用：
+
+```bash
+make clear-demo-data
+make real-workspace TRADE_DATE=2026-03-20 START_DATE=2026-03-01 END_DATE=2026-03-20
+```
+
+這條流程的原則是：
+
+- 先移除 sample/demo 基底與其衍生輸出
+- 再回填目前已支援的真實資料來源
+- 最後重新產生指標、候選與報表
+
+若某些頁面在切換後變成空白，通常表示該資料 scope 目前尚未配置真實 provider，或該類型仍缺少正式 connector，而不是系統自動回退成 demo。
 
 ## V1.1 資料完整度策略
 

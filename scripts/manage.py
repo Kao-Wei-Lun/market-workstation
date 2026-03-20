@@ -16,7 +16,12 @@ from services.core.bootstrap import (
     run_sample_daily_market_etl,
     seed_sample_reference_data,
 )
-from services.core.market_data import run_real_taifex_backfill, run_real_twse_backfill
+from services.core.market_data import (
+    clear_demo_workspace_data,
+    refresh_real_workspace,
+    run_real_taifex_backfill,
+    run_real_twse_backfill,
+)
 from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
 from services.models.backtest_run import BacktestRun
@@ -66,6 +71,24 @@ def main(argv: list[str] | None = None) -> int:
     real_taifex_parser = subparsers.add_parser("real-taifex-backfill", help="Load real TAIFEX daily data for date range.")
     real_taifex_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
     real_taifex_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
+
+    subparsers.add_parser("clear-demo-data", help="Remove demo/sample source data and generated demo artifacts.")
+
+    real_workspace_parser = subparsers.add_parser(
+        "real-workspace",
+        help="Clear demo data, backfill supported real sources, and regenerate derived daily outputs.",
+    )
+    real_workspace_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
+    real_workspace_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
+    real_workspace_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
+    real_workspace_parser.add_argument("--tw-symbol", action="append", default=[], help="Limit real TWSE backfill.")
+    real_workspace_parser.add_argument("--us-symbol", action="append", default=[], help="Limit real US EOD backfill.")
+    real_workspace_parser.add_argument(
+        "--macro-series",
+        action="append",
+        default=[],
+        help="Limit real macro backfill to one or more series keys.",
+    )
 
     indicator_parser = subparsers.add_parser("indicator-update", help="Run indicator update job.")
     indicator_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
@@ -185,6 +208,51 @@ def main(argv: list[str] | None = None) -> int:
             f"trading_days_processed={taifex_result.trading_days_processed}, "
             f"tw_derivatives_daily_loaded={taifex_result.tw_derivatives_daily_loaded}, "
             f"tw_derivatives_features_persisted={taifex_result.tw_derivatives_features_persisted}"
+        )
+        return 0
+
+    if args.command == "clear-demo-data":
+        with SessionLocal() as session:
+            cleanup_result = clear_demo_workspace_data(session)
+        print(
+            "Cleared demo workspace data: "
+            f"daily_bars_deleted={cleanup_result.daily_bars_deleted}, "
+            f"indicator_values_deleted={cleanup_result.indicator_values_deleted}, "
+            f"series_points_deleted={cleanup_result.series_points_deleted}, "
+            f"tw_derivatives_daily_deleted={cleanup_result.tw_derivatives_daily_deleted}, "
+            f"tw_derivatives_features_deleted={cleanup_result.tw_derivatives_features_deleted}, "
+            f"tw_institutional_spot_deleted={cleanup_result.tw_institutional_spot_deleted}, "
+            f"candidate_runs_deleted={cleanup_result.candidate_runs_deleted}, "
+            f"candidate_items_deleted={cleanup_result.candidate_items_deleted}, "
+            f"report_rows_deleted={cleanup_result.report_rows_deleted}, "
+            f"backtest_runs_deleted={cleanup_result.backtest_runs_deleted}, "
+            f"backtest_trades_deleted={cleanup_result.backtest_trades_deleted}"
+        )
+        return 0
+
+    if args.command == "real-workspace":
+        with SessionLocal() as session:
+            refresh_result = refresh_real_workspace(
+                session,
+                trade_date=args.trade_date,
+                start_date=args.start_date,
+                end_date=args.end_date,
+                tw_symbols=tuple(args.tw_symbol),
+                us_symbols=tuple(args.us_symbol),
+                macro_series_keys=tuple(args.macro_series),
+            )
+        print(
+            "Refreshed real workspace: "
+            f"trade_date={refresh_result.trade_date.isoformat()}, "
+            f"tw_daily_bars_loaded={refresh_result.tw_daily_bars_loaded}, "
+            f"taifex_daily_loaded={refresh_result.taifex_daily_loaded}, "
+            f"taifex_features_persisted={refresh_result.taifex_features_persisted}, "
+            f"us_daily_bars_loaded={refresh_result.us_daily_bars_loaded}, "
+            f"macro_series_points_loaded={refresh_result.macro_series_points_loaded}, "
+            f"indicator_values_persisted={refresh_result.indicator_values_persisted}, "
+            f"candidate_items_created={refresh_result.candidate_items_created}, "
+            f"reports_persisted={refresh_result.reports_persisted}, "
+            f"skipped_sources={','.join(refresh_result.skipped_sources) or 'none'}"
         )
         return 0
 
