@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from services.connectors.base import ConnectorRequest
 from services.connectors.macro import MacroSeriesConnector
 from services.connectors.taifex import TaifexInstitutionalDailyConnector
+from services.connectors.twse_index import TwseIndexDailyConnector
 from services.connectors.twse import TwseDailyMarketDataConnector
 from services.connectors.us_eod import UsEodConnector
 from services.core.candidates.service import generate_and_persist_candidate_run
@@ -97,6 +98,14 @@ class RealWorkspaceRefreshResult:
     skipped_sources: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class RealTwIndexLoadResult:
+    symbols_requested: tuple[str, ...]
+    instruments_processed: int
+    trading_days_processed: int
+    daily_bars_loaded: int
+
+
 def run_real_twse_backfill(
     session: Session,
     *,
@@ -168,6 +177,44 @@ def run_real_taifex_backfill(
         trading_days_processed=len(trading_dates),
         tw_derivatives_daily_loaded=daily_loaded,
         tw_derivatives_features_persisted=features_persisted,
+    )
+
+
+def run_real_tw_index_backfill(
+    session: Session,
+    *,
+    symbols: tuple[str, ...] = (),
+    start_date: date,
+    end_date: date,
+    connector: TwseIndexDailyConnector | None = None,
+) -> RealTwIndexLoadResult:
+    connector_instance = connector or TwseIndexDailyConnector()
+    instruments = _select_tw_index_instruments(session, symbols=symbols)
+    trading_dates = _build_trading_dates_between(start_date, end_date)
+
+    bars_loaded = 0
+    for instrument in instruments:
+        instrument.source_route = connector_instance.source_route
+        for trade_date in trading_dates:
+            load_result = run_ingestion_pipeline(
+                session,
+                connector=connector_instance,
+                request=ConnectorRequest(
+                    symbol=instrument.symbol,
+                    trade_date=trade_date,
+                    instrument_id=instrument.id,
+                    source_route=connector_instance.source_route,
+                ),
+                job_type="manual_real_tw_index_backfill",
+            )
+            session.commit()
+            bars_loaded += load_result.daily_bars_loaded
+
+    return RealTwIndexLoadResult(
+        symbols_requested=tuple(instrument.symbol for instrument in instruments) if not symbols else symbols,
+        instruments_processed=len(instruments),
+        trading_days_processed=len(trading_dates),
+        daily_bars_loaded=bars_loaded,
     )
 
 
@@ -374,6 +421,11 @@ def refresh_real_workspace(
         start_date=start_date,
         end_date=end_date,
     )
+    tw_index_result = run_real_tw_index_backfill(
+        session,
+        start_date=start_date,
+        end_date=end_date,
+    )
     taifex_result = run_real_taifex_backfill(
         session,
         start_date=start_date,
@@ -411,7 +463,7 @@ def refresh_real_workspace(
     return RealWorkspaceRefreshResult(
         trade_date=trade_date,
         cleanup=cleanup,
-        tw_daily_bars_loaded=tw_result.daily_bars_loaded,
+        tw_daily_bars_loaded=tw_result.daily_bars_loaded + tw_index_result.daily_bars_loaded,
         taifex_daily_loaded=taifex_result.tw_derivatives_daily_loaded,
         taifex_features_persisted=taifex_result.tw_derivatives_features_persisted,
         us_daily_bars_loaded=us_daily_bars_loaded,
@@ -445,6 +497,21 @@ def has_any_daily_bars(
 
 def _select_twse_instruments(session: Session, *, symbols: tuple[str, ...]) -> list[Instrument]:
     return _select_instruments_by_source_route(session, source_route=TwseDailyMarketDataConnector.source_route, symbols=symbols)
+
+
+def _select_tw_index_instruments(session: Session, *, symbols: tuple[str, ...]) -> list[Instrument]:
+    index_symbols = symbols or ("^TWII",)
+    return (
+        session.query(Instrument)
+        .filter(
+            Instrument.is_active.is_(True),
+            Instrument.market == "TW",
+            Instrument.asset_type == "index",
+            Instrument.symbol.in_(index_symbols),
+        )
+        .order_by(Instrument.symbol.asc())
+        .all()
+    )
 
 
 def _select_instruments_by_source_route(

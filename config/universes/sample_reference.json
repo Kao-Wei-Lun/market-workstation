@@ -30,7 +30,7 @@
       "asset_type": "index",
       "currency": "TWD",
       "timezone": "Asia/Taipei",
-      "source_route": "manual_csv",
+      "source_route": "twse_index_openapi",
       "tags": ["sample", "tw-index"]
     }
   ],

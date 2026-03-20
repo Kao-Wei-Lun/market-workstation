@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl clear-demo-data real-workspace real-twse-backfill real-taifex-backfill indicator-update generate-reports smoke-test verify-v1 release-check run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl clear-demo-data real-workspace real-twse-backfill real-tw-index-backfill real-taifex-backfill indicator-update generate-reports smoke-test verify-v1 release-check run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -33,6 +33,9 @@ real-workspace:
 
 real-twse-backfill:
 	$(PYTHON) scripts/manage.py real-twse-backfill --start-date $${START_DATE:?set START_DATE=YYYY-MM-DD} --end-date $${END_DATE:?set END_DATE=YYYY-MM-DD} $${SYMBOL:+--symbol $$SYMBOL}
+
+real-tw-index-backfill:
+	$(PYTHON) scripts/manage.py real-tw-index-backfill --start-date $${START_DATE:?set START_DATE=YYYY-MM-DD} --end-date $${END_DATE:?set END_DATE=YYYY-MM-DD} $${SYMBOL:+--symbol $$SYMBOL}
 
 real-taifex-backfill:
 	$(PYTHON) scripts/manage.py real-taifex-backfill --start-date $${START_DATE:?set START_DATE=YYYY-MM-DD} --end-date $${END_DATE:?set END_DATE=YYYY-MM-DD}

@@ -164,6 +164,7 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 目前 V1 已有可直接使用的真實資料路徑：
 
 - `make real-twse-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD SYMBOL=2330`
+- `make real-tw-index-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD SYMBOL=^TWII`
 - `make real-taifex-backfill START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD`
 - `make clear-demo-data`
 - `make real-workspace TRADE_DATE=YYYY-MM-DD START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD`
@@ -171,6 +172,7 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 用途：
 
 - 將 TWSE 支援標的的真實日線載入 `daily_bars`
+- 將台灣加權指數等已支援的大盤指數日線載入 `daily_bars`
 - 將 TAIFEX 真實法人日資料載入 `tw_derivatives_daily`
 - 重新計算對應法人特徵，供市場結構圖與衍生性商品頁使用
 - 清除 sample/demo 來源與由其衍生出的候選、報表、示範回測
@@ -180,7 +182,7 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 
 - `demo-data` 現在會避開已存在的真實日線區間，不再直接覆蓋那些標的的既有資料
 - `real-workspace` 會自動跳過未設定真實 provider 的 `us_eod_provider` 與 `macro_series_provider`
-- 目前真實日資料 connector 已涵蓋 TWSE 個股 / ETF 與 TAIFEX 法人資料；大盤指數的真實 OHLC 仍需後續補更完整 connector
+- 目前真實日資料 connector 已涵蓋 TWSE 個股 / ETF、`^TWII` 與 TAIFEX 法人資料；其餘台灣 / 全球指數仍需後續補更完整 connector
 
 建議切換到真實資料模式時使用：
 

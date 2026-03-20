@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from services.connectors.base import ConnectorRequest
 from services.connectors.macro import MacroSeriesConnector
+from services.connectors.twse_index import TwseIndexDailyConnector
 from services.connectors.twse import TwseDailyMarketDataConnector
 from services.connectors.us_eod import UsEodConnector
 
@@ -59,6 +60,28 @@ def test_us_eod_connector_normalizes_provider_payload() -> None:
     assert len(batch.daily_bars) == 1
     assert batch.daily_bars[0].symbol == "AAPL"
     assert batch.daily_bars[0].market == "US"
+
+
+def test_twse_index_connector_normalizes_index_payload() -> None:
+    connector = TwseIndexDailyConnector()
+    request = ConnectorRequest(symbol="^TWII", trade_date=date(2024, 1, 2), instrument_id=3)
+    payload = {
+        "fields": ["Date", "Open Index", "High Index", "Low Index", "Closing Index", "Trade Volume", "Trade Value"],
+        "data": [
+            ["2024/01/02", "17890.12", "17950.55", "17780.10", "17920.30", "3,210,000", "345,600,000,000"]
+        ],
+    }
+
+    batch = connector.normalize(payload, request)
+
+    assert len(batch.daily_bars) == 1
+    record = batch.daily_bars[0]
+    assert record.symbol == "^TWII"
+    assert record.trade_date == date(2024, 1, 2)
+    assert record.open == Decimal("17890.12")
+    assert record.close == Decimal("17920.30")
+    assert record.volume == 3210000
+    assert record.turnover_value == Decimal("345600000000")
 
 
 def test_macro_connector_normalizes_series_payload() -> None:

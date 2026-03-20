@@ -7,6 +7,7 @@ from typing import Callable, Literal
 from sqlalchemy.orm import Session
 
 from services.connectors.base import ConnectorRequest
+from services.connectors.twse_index import TwseIndexDailyConnector
 from services.connectors.twse import TwseDailyMarketDataConnector
 from services.connectors.us_eod import UsEodConnector
 from services.core.derivatives.etl import run_taifex_derivatives_ingestion
@@ -120,6 +121,7 @@ def get_registered_job(job_name: str) -> RegisteredJob:
 def run_daily_market_etl_job(session: Session, trade_date: date) -> JobExecutionResult:
     connectors = {
         "twse_openapi": TwseDailyMarketDataConnector(),
+        "twse_index_openapi": TwseIndexDailyConnector(),
         "us_eod_provider": UsEodConnector(),
     }
     instruments = (

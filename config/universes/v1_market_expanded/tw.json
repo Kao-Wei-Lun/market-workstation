@@ -13,7 +13,7 @@
     { "symbol": "006208", "name": "Fubon Taiwan 50 ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "broad-market"], "scope_keys": ["tw_etfs_major"] },
     { "symbol": "00878", "name": "Cathay Sustainable High Dividend ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"], "scope_keys": ["tw_etfs_major"] },
     { "symbol": "00919", "name": "Capital Taiwan Dividend Plus ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"], "scope_keys": ["tw_etfs_major"] },
-    { "symbol": "^TWII", "name": "TAIEX", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "broad-market"], "scope_keys": ["tw_indices_major"] },
+    { "symbol": "^TWII", "name": "TAIEX", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_index_openapi", "tags": ["tw-index", "broad-market"], "scope_keys": ["tw_indices_major"] },
     { "symbol": "^TPEX", "name": "TPEx OTC Index", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "small-cap"], "scope_keys": ["tw_indices_major"] }
   ]
 }

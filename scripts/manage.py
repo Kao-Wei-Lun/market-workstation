@@ -19,6 +19,7 @@ from services.core.bootstrap import (
 from services.core.market_data import (
     clear_demo_workspace_data,
     refresh_real_workspace,
+    run_real_tw_index_backfill,
     run_real_taifex_backfill,
     run_real_twse_backfill,
 )
@@ -67,6 +68,14 @@ def main(argv: list[str] | None = None) -> int:
     real_tw_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
     real_tw_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
     real_tw_parser.add_argument("--symbol", action="append", default=[], help="Limit to one or more TWSE symbols.")
+
+    real_tw_index_parser = subparsers.add_parser(
+        "real-tw-index-backfill",
+        help="Load real TWSE index daily data for supported Taiwan indices.",
+    )
+    real_tw_index_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
+    real_tw_index_parser.add_argument("--end-date", type=date.fromisoformat, required=True)
+    real_tw_index_parser.add_argument("--symbol", action="append", default=[], help="Limit to one or more supported index symbols.")
 
     real_taifex_parser = subparsers.add_parser("real-taifex-backfill", help="Load real TAIFEX daily data for date range.")
     real_taifex_parser.add_argument("--start-date", type=date.fromisoformat, required=True)
@@ -193,6 +202,23 @@ def main(argv: list[str] | None = None) -> int:
             f"instruments_processed={tw_result.instruments_processed}, "
             f"trading_days_processed={tw_result.trading_days_processed}, "
             f"daily_bars_loaded={tw_result.daily_bars_loaded}"
+        )
+        return 0
+
+    if args.command == "real-tw-index-backfill":
+        with SessionLocal() as session:
+            tw_index_result = run_real_tw_index_backfill(
+                session,
+                symbols=tuple(args.symbol),
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
+        print(
+            "Loaded real TWSE index data: "
+            f"symbols_requested={','.join(tw_index_result.symbols_requested) or 'supported-defaults'}, "
+            f"instruments_processed={tw_index_result.instruments_processed}, "
+            f"trading_days_processed={tw_index_result.trading_days_processed}, "
+            f"daily_bars_loaded={tw_index_result.daily_bars_loaded}"
         )
         return 0
 

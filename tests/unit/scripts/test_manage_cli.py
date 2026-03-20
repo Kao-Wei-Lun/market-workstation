@@ -27,6 +27,14 @@ class _RealTwResult:
 
 
 @dataclass(frozen=True)
+class _RealTwIndexResult:
+    symbols_requested: tuple[str, ...]
+    instruments_processed: int
+    trading_days_processed: int
+    daily_bars_loaded: int
+
+
+@dataclass(frozen=True)
 class _RealTaifexResult:
     trading_days_processed: int
     tw_derivatives_daily_loaded: int
@@ -289,6 +297,29 @@ def test_manage_real_taifex_backfill_dispatches_service(monkeypatch, capsys) -> 
 
     assert exit_code == 0
     assert "tw_derivatives_daily_loaded=15" in output
+
+
+def test_manage_real_tw_index_backfill_dispatches_service(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "run_real_tw_index_backfill",
+        lambda session, symbols, start_date, end_date: _RealTwIndexResult(
+            symbols_requested=symbols or ("^TWII",),
+            instruments_processed=1,
+            trading_days_processed=5,
+            daily_bars_loaded=5,
+        ),
+    )
+
+    exit_code = manage.main(
+        ["real-tw-index-backfill", "--start-date", "2026-03-10", "--end-date", "2026-03-14", "--symbol", "^TWII"]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "symbols_requested=^TWII" in output
+    assert "daily_bars_loaded=5" in output
 
 
 def test_manage_clear_demo_data_dispatches_service(monkeypatch, capsys) -> None:
