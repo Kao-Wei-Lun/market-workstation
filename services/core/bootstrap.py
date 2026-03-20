@@ -325,38 +325,37 @@ def _build_price_series(
     market: str,
 ) -> list[dict[str, str | int]]:
     rows: list[dict[str, str | int]] = []
-    current_close = start_price
+    previous_close = start_price - (daily_step * Decimal("0.6"))
     trading_dates = _build_trading_dates(trade_date, periods=30)
-    drift_pattern = [
-        Decimal("0"),
-        daily_step,
-        daily_step / Decimal("2"),
-        daily_step * Decimal("-0.4"),
-        daily_step * Decimal("1.2"),
-        daily_step * Decimal("-0.2"),
-    ]
+    drift_pattern = _build_drift_pattern(market)
+    gap_pattern = [Decimal("-0.15"), Decimal("0.10"), Decimal("-0.05"), Decimal("0.18"), Decimal("-0.12")]
+    upper_wick_pattern = [Decimal("0.55"), Decimal("0.75"), Decimal("0.48"), Decimal("0.68"), Decimal("0.60")]
+    lower_wick_pattern = [Decimal("0.45"), Decimal("0.62"), Decimal("0.58"), Decimal("0.40"), Decimal("0.70")]
+    volume_pattern = [0, 180_000, -120_000, 260_000, 90_000, -80_000, 210_000, -150_000]
     for index, current_date in enumerate(trading_dates):
-        daily_drift = drift_pattern[index % len(drift_pattern)]
-        current_close += daily_drift if index else Decimal("0")
-        open_price = current_close - (daily_step * Decimal("0.35"))
-        high_price = current_close + (daily_step * Decimal("0.55"))
-        low_price = current_close - (daily_step * Decimal("0.65"))
-        change = current_close - open_price
-        change_percent = ((change / open_price) * Decimal("100")).quantize(Decimal("0.0001"))
+        daily_drift = daily_step * drift_pattern[index % len(drift_pattern)]
+        close_price = previous_close + daily_drift
+        open_price = previous_close + (daily_step * gap_pattern[index % len(gap_pattern)])
+        high_price = max(open_price, close_price) + (daily_step * upper_wick_pattern[index % len(upper_wick_pattern)])
+        low_price = min(open_price, close_price) - (daily_step * lower_wick_pattern[index % len(lower_wick_pattern)])
+        change = close_price - previous_close
+        change_percent = ((change / previous_close) * Decimal("100")).quantize(Decimal("0.0001"))
+        volume = max(100_000, volume_base + volume_pattern[index % len(volume_pattern)] + (index * 6_500))
         rows.append(
             {
                 "trade_date": current_date.isoformat(),
                 "open": f"{open_price:.4f}",
                 "high": f"{high_price:.4f}",
                 "low": f"{low_price:.4f}",
-                "close": f"{current_close:.4f}",
-                "volume": volume_base + (index * 10_000),
-                "turnover_value": f"{(current_close * Decimal(volume_base + (index * 10_000))):.4f}",
-                "transactions_count": 1000 + index,
+                "close": f"{close_price:.4f}",
+                "volume": volume,
+                "turnover_value": f"{(((open_price + high_price + low_price + close_price) / Decimal('4')) * Decimal(volume)):.4f}",
+                "transactions_count": 900 + (index * 14) + (index % 4) * 7,
                 "change": f"{change:.4f}",
                 "change_percent": f"{change_percent:.4f}",
             }
         )
+        previous_close = close_price
     return rows
 
 
@@ -370,17 +369,137 @@ def _build_trading_dates(trade_date: date, *, periods: int) -> list[date]:
     return list(reversed(dates))
 
 
+def _build_drift_pattern(market: str) -> list[Decimal]:
+    if market == "TW":
+        return [
+            Decimal("0.35"),
+            Decimal("-0.28"),
+            Decimal("0.62"),
+            Decimal("0.18"),
+            Decimal("-0.55"),
+            Decimal("0.92"),
+            Decimal("0.24"),
+            Decimal("-0.38"),
+            Decimal("0.58"),
+            Decimal("0.12"),
+        ]
+    return [
+        Decimal("0.22"),
+        Decimal("-0.18"),
+        Decimal("0.46"),
+        Decimal("0.08"),
+        Decimal("-0.34"),
+        Decimal("0.64"),
+        Decimal("0.19"),
+        Decimal("-0.27"),
+        Decimal("0.41"),
+        Decimal("0.06"),
+    ]
+
+
 def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[int, int, int]:
     records: list[NormalizedTwDerivativesDailyRecord] = []
     spot_loaded = 0
     spot_repository = TwInstitutionalSpotDailyRepository(session)
     trading_dates = _build_trading_dates(trade_date, periods=21)
+    futures_pattern = [
+        -160,
+        -120,
+        -70,
+        -20,
+        40,
+        95,
+        150,
+        210,
+        260,
+        310,
+        285,
+        230,
+        180,
+        120,
+        65,
+        140,
+        220,
+        305,
+        260,
+        190,
+        245,
+    ]
+    call_pattern = [
+        35,
+        20,
+        10,
+        30,
+        55,
+        72,
+        88,
+        96,
+        108,
+        124,
+        112,
+        85,
+        64,
+        42,
+        18,
+        52,
+        78,
+        102,
+        89,
+        71,
+        95,
+    ]
+    put_pattern = [
+        -48,
+        -62,
+        -75,
+        -58,
+        -35,
+        -16,
+        6,
+        18,
+        26,
+        34,
+        12,
+        -14,
+        -28,
+        -37,
+        -52,
+        -24,
+        8,
+        22,
+        16,
+        -6,
+        12,
+    ]
+    spot_pattern = [
+        Decimal("-1800000000"),
+        Decimal("-1320000000"),
+        Decimal("-940000000"),
+        Decimal("-520000000"),
+        Decimal("-160000000"),
+        Decimal("240000000"),
+        Decimal("620000000"),
+        Decimal("980000000"),
+        Decimal("1340000000"),
+        Decimal("1680000000"),
+        Decimal("1420000000"),
+        Decimal("960000000"),
+        Decimal("540000000"),
+        Decimal("160000000"),
+        Decimal("-220000000"),
+        Decimal("420000000"),
+        Decimal("980000000"),
+        Decimal("1560000000"),
+        Decimal("1240000000"),
+        Decimal("760000000"),
+        Decimal("1180000000"),
+    ]
     for index, current_date in enumerate(trading_dates):
-        foreign_net = 180 + (index * 18)
-        foreign_options_call_net = 90 + (index * 7)
-        foreign_options_put_net = -70 + (index * 4)
-        spot_net = Decimal("-1200000000") + (Decimal(index) * Decimal("185000000"))
-        spot_buy = Decimal("2600000000") + (Decimal(index) * Decimal("120000000"))
+        foreign_net = futures_pattern[index]
+        foreign_options_call_net = call_pattern[index]
+        foreign_options_put_net = put_pattern[index]
+        spot_net = spot_pattern[index]
+        spot_buy = Decimal("2800000000") + (Decimal(index % 5) * Decimal("140000000"))
         spot_sell = spot_buy - spot_net
         spot_repository.upsert(
             trade_date=current_date,
