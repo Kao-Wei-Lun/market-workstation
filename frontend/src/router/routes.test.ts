@@ -6,6 +6,8 @@ describe("routes", () => {
   it("includes the expected top-level pages", () => {
     expect(routes.map((route) => route.name)).toEqual([
       "overview",
+      "coverage",
+      "operations",
       "watchlists",
       "groups",
       "candidates",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from services.models.worker_health import WorkerHealth
@@ -54,4 +55,11 @@ class WorkerHealthRepository:
             self.session.query(WorkerHealth)
             .filter(WorkerHealth.worker_name == worker_name)
             .one_or_none()
+        )
+
+    def list_all(self) -> list[WorkerHealth]:
+        return (
+            self.session.query(WorkerHealth)
+            .order_by(WorkerHealth.worker_role.asc(), WorkerHealth.worker_name.asc(), desc(WorkerHealth.heartbeat_at))
+            .all()
         )

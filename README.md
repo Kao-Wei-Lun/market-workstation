@@ -216,6 +216,10 @@ After running the quickstart commands:
   `curl "http://localhost:8000/api/dashboard/backtests/latest?limit=5"`
 - Latest reports dashboard payload:
   `curl "http://localhost:8000/api/dashboard/reports/latest?report_date=2026-03-20&limit=10&offset=0"`
+- Universe / coverage visibility payload:
+  `curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"`
+- System / ingest / worker status payload:
+  `curl "http://localhost:8000/api/system/status?job_limit=20&worker_stale_minutes=30"`
 - Latest derivatives bias summary:
   `curl http://localhost:8000/derivatives/summary/latest`
 - List latest reports:
@@ -239,7 +243,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 ## Frontend Dashboard
 
 - The frontend lives under `frontend/` and uses Vue 3, Vite, TypeScript, Vue Router, Pinia, and Axios.
-- Overview, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives now use the existing backend APIs for local single-user review.
+- Overview, 資料覆蓋, 系統狀態, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives now use the existing backend APIs for local single-user review.
 - The frontend reads aggregate dashboard payloads from `/api/dashboard/...` and also fetches page-specific detail data from `/watchlists`, `/candidates`, `/reports`, `/backtests`, and `/derivatives`.
 - The current frontend pass adds practical UI helpers across the pages:
   - filter bars for page scope and quick search
@@ -250,6 +254,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   - status strips that show `generated_at`, `as_of_date`, refresh actions, and demo-data hints
   - Traditional Chinese (`zh-TW`) UI labels across navigation, page headings, filters, tables, and state messages
   - richer Candidates and Reports drill-down flows, including 候選分數拆解、scanner/watchlist/tag 脈絡、報表 section 快速切換，以及 markdown/structured payload 並排閱讀
+  - management-style pages for universe/bootstrap coverage, recent dataset freshness, ingest job history, and worker heartbeat visibility
 - Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
 - Typical local setting:
   `VITE_API_BASE_URL=http://localhost:8000`
@@ -266,6 +271,10 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   use 日期、代號搜尋、分數/名次排序快速收斂名單，再從右側明細檢查候選理由、評分拆解與 scanner / watchlist / tag 關聯，必要時直接跳到同日報表或相關群組。
 - Reports page workflow:
   先用快速日期或日期欄位鎖定當日 bundle，再用 section 導覽清單切換閱讀 markdown 與 structured payload；頁面會顯示目前 section 的行數、欄位數與相關導頁，若 payload 含群組、候選代號或觀察清單資訊，可直接跳往對應頁面延伸查看。
+- 資料覆蓋頁 workflow:
+  先切換 preset 檢查 config 宣告，再對照 scope 載入數、market/source route 統計，確認 `make load-universe` 是否已把目標 universe 匯入本機。
+- 系統狀態頁 workflow:
+  先看資料集最新日期與筆數，再檢查最近 ingest jobs 與 worker heartbeat；若頁面為空，通常代表只做了 `seed` 尚未跑 `demo-data`、`sample-etl` 或報表/排程工作。
 - The frontend currently uses Traditional Chinese as the default UI language. Backend-generated content may still include source-side labels or markdown text depending on the stored data, but the main navigation, controls, and page chrome are now zh-TW.
 - The API now allows local frontend origins by default through CORS:
   `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
@@ -293,6 +302,8 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   - Commodities and macro series use `macro_series_provider`.
 - Scope-based local loading is supported for controlled initialization, for example just `macro_series_core` or just `us_equities_curated`.
 - This keeps provider routing visible in the instrument master and leaves room for later connector expansion without changing the database model.
+- 日常檢查 coverage/bootstrapping 是否完成時，可直接看前端的「資料覆蓋」頁，或呼叫 `/api/system/coverage`。
+- 檢查最近資料更新、排程工作與 worker 心跳時，可看前端的「系統狀態」頁，或呼叫 `/api/system/status`。
 
 ## Verification
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from services.models.ingest_job import IngestJob
@@ -48,3 +49,22 @@ class IngestJobRepository:
         job.failure_reason = failure_reason
         self.session.flush()
         return job
+
+    def list_recent(self, limit: int = 20) -> list[IngestJob]:
+        return (
+            self.session.query(IngestJob)
+            .order_by(desc(IngestJob.started_at), desc(IngestJob.created_at))
+            .limit(limit)
+            .all()
+        )
+
+    def count_by_status(self) -> list[tuple[str, int]]:
+        return [
+            (str(status), int(count))
+            for status, count in (
+                self.session.query(IngestJob.status, func.count(IngestJob.id))
+                .group_by(IngestJob.status)
+                .order_by(IngestJob.status.asc())
+                .all()
+            )
+        ]

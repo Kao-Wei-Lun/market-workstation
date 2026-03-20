@@ -16,6 +16,19 @@ export interface WatchlistItemRead {
   created_at: string;
 }
 
+export interface IngestJobRead {
+  id: number;
+  source_route: string;
+  job_type: string;
+  status: string;
+  trade_date: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  retry_count: number;
+  failure_reason: string | null;
+  created_at: string;
+}
+
 export interface CandidateItemApiRead {
   id: number;
   run_id: number;

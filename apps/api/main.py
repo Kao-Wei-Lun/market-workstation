@@ -13,6 +13,7 @@ from apps.api.routes.dashboard import router as dashboard_router
 from apps.api.routes.derivatives import router as derivatives_router
 from apps.api.routes.health import router as health_router
 from apps.api.routes.reports import router as reports_router
+from apps.api.routes.system import router as system_router
 from config.settings import get_settings
 from services.models import import_models
 
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router)
     app.include_router(derivatives_router)
     app.include_router(reports_router)
+    app.include_router(system_router)
     app.include_router(health_router)
     return app
 
