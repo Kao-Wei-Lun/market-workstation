@@ -44,6 +44,27 @@ class CandidateRunRepository:
             .first()
         )
 
+    def list_runs(
+        self,
+        *,
+        candidate_date: date | None = None,
+        limit: int | None = None,
+    ) -> list[CandidateRun]:
+        query = self.session.query(CandidateRun)
+        if candidate_date is not None:
+            query = query.filter(CandidateRun.candidate_date == candidate_date)
+        query = query.order_by(CandidateRun.candidate_date.desc(), CandidateRun.created_at.desc(), CandidateRun.id.desc())
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
+    def get_latest_run(self) -> CandidateRun | None:
+        return (
+            self.session.query(CandidateRun)
+            .order_by(CandidateRun.candidate_date.desc(), CandidateRun.created_at.desc(), CandidateRun.id.desc())
+            .first()
+        )
+
 
 class CandidateItemRepository:
     def __init__(self, session: Session) -> None:
@@ -63,3 +84,19 @@ class CandidateItemRepository:
             .order_by(CandidateItem.rank.asc(), CandidateItem.id.asc())
             .all()
         )
+
+    def list_items(
+        self,
+        *,
+        run_id: int | None = None,
+        candidate_date: date | None = None,
+        symbol: str | None = None,
+    ) -> list[CandidateItem]:
+        query = self.session.query(CandidateItem)
+        if run_id is not None:
+            query = query.filter(CandidateItem.run_id == run_id)
+        if candidate_date is not None:
+            query = query.filter(CandidateItem.candidate_date == candidate_date)
+        if symbol is not None:
+            query = query.filter(CandidateItem.symbol == symbol)
+        return query.order_by(CandidateItem.candidate_date.desc(), CandidateItem.rank.asc(), CandidateItem.id.asc()).all()

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from services.core.backtesting.search import (
@@ -6,7 +8,14 @@ from services.core.backtesting.search import (
     get_parameter_search_run,
     list_parameter_search_results,
 )
-from services.core.backtesting.service import create_and_run_backtest, get_backtest_run, list_backtest_trades
+from services.core.backtesting.service import (
+    create_and_run_backtest,
+    export_backtest_run,
+    get_backtest_run,
+    list_backtest_runs,
+    list_backtest_trades,
+    query_backtest_trades,
+)
 from services.core.backtesting.walk_forward import (
     create_and_run_walk_forward,
     get_walk_forward_run,
@@ -58,6 +67,16 @@ async def get_backtest_run_route(
     return BacktestRunRead.model_validate(run)
 
 
+@router.get("/runs", response_model=list[BacktestRunRead])
+async def list_backtest_runs_route(
+    strategy_id: int | None = None,
+    limit: int = Query(default=20, ge=1, le=200),
+    session: Session = Depends(get_db_session),
+) -> list[BacktestRunRead]:
+    runs = list_backtest_runs(session, strategy_id=strategy_id, limit=limit)
+    return [BacktestRunRead.model_validate(run) for run in runs]
+
+
 @router.get("/runs/{run_id}/trades", response_model=list[BacktestTradeRead])
 async def list_backtest_trades_route(
     run_id: int,
@@ -68,6 +87,30 @@ async def list_backtest_trades_route(
         raise HTTPException(status_code=404, detail="backtest run not found")
     trades = list_backtest_trades(session, run_id)
     return [BacktestTradeRead.model_validate(trade) for trade in trades]
+
+
+@router.get("/trades", response_model=list[BacktestTradeRead])
+async def query_backtest_trades_route(
+    run_id: int | None = None,
+    instrument_id: int | None = None,
+    session: Session = Depends(get_db_session),
+) -> list[BacktestTradeRead]:
+    trades = query_backtest_trades(session, run_id=run_id, instrument_id=instrument_id)
+    return [BacktestTradeRead.model_validate(trade) for trade in trades]
+
+
+@router.get("/runs/{run_id}/export")
+async def export_backtest_run_route(
+    run_id: int,
+    export_format: Literal["json", "csv"] = Query(default="json"),
+    session: Session = Depends(get_db_session),
+) -> Response:
+    try:
+        file_name, content = export_backtest_run(session, run_id=run_id, export_format=export_format)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    media_type = "application/json" if export_format == "json" else "text/csv"
+    return Response(content=content, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="{file_name}"'})
 
 
 @router.post("/searches", response_model=BacktestSearchResponse)

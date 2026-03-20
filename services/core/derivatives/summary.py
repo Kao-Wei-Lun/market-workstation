@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from services.models.tw_derivatives_feature import TwDerivativesFeature
 
@@ -61,6 +62,36 @@ def generate_daily_institutional_bias_summary(
         overall_regime=_label_overall_regime(average_bias_score),
         highlights=highlights,
     )
+
+
+def load_daily_institutional_bias_summary(
+    session: Session,
+    *,
+    trade_date: date,
+) -> DailyInstitutionalBiasSummary:
+    features = (
+        session.query(TwDerivativesFeature)
+        .filter(TwDerivativesFeature.trade_date == trade_date)
+        .order_by(
+            TwDerivativesFeature.institution.asc(),
+            TwDerivativesFeature.product_code.asc(),
+            TwDerivativesFeature.call_put.asc(),
+        )
+        .all()
+    )
+    return generate_daily_institutional_bias_summary(trade_date, features)
+
+
+def get_latest_institutional_bias_summary(session: Session) -> DailyInstitutionalBiasSummary | None:
+    trade_date = (
+        session.query(TwDerivativesFeature.trade_date)
+        .order_by(TwDerivativesFeature.trade_date.desc())
+        .limit(1)
+        .scalar()
+    )
+    if trade_date is None:
+        return None
+    return load_daily_institutional_bias_summary(session, trade_date=trade_date)
 
 
 def _label_overall_regime(average_bias_score: Decimal) -> str:

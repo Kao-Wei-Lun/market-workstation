@@ -76,16 +76,20 @@ async def test_classification_routes_cover_tag_watchlist_and_summary() -> None:
         list_tags_response = await client.get(f"/instruments/{instrument.id}/tags")
         watchlist_response = await client.post("/watchlists", json={"name": "chips"})
         watchlist_id = watchlist_response.json()["id"]
+        list_watchlists_response = await client.get("/watchlists")
         add_item_response = await client.post(f"/watchlists/{watchlist_id}/items/{instrument.id}")
         summary_response = await client.get(f"/watchlists/{watchlist_id}/summary", params={"trade_date": "2024-01-05"})
+        latest_watchlists_response = await client.get("/watchlists/latest-summary", params={"trade_date": "2024-01-05"})
 
     app.dependency_overrides.clear()
 
     assert tag_response.status_code == 200
     assert list_tags_response.status_code == 200
     assert watchlist_response.status_code == 200
+    assert list_watchlists_response.status_code == 200
     assert add_item_response.status_code == 200
     assert summary_response.status_code == 200
+    assert latest_watchlists_response.status_code == 200
     assert summary_response.json()["member_count"] == 1
 
 
@@ -173,6 +177,14 @@ async def test_classification_routes_cover_auto_rules_and_scanner() -> None:
                 "volume_lookback_days": 1,
             },
         )
+        scanner_summary_response = await client.get(
+            "/scanner/summary",
+            params={"trade_date": "2024-01-05", "tag": "tw-market"},
+        )
+        scanner_export_response = await client.get(
+            "/scanner/export",
+            params={"trade_date": "2024-01-05", "tag": "tw-market", "export_format": "csv"},
+        )
 
     app.dependency_overrides.clear()
 
@@ -180,6 +192,9 @@ async def test_classification_routes_cover_auto_rules_and_scanner() -> None:
     assert evaluate_response.status_code == 200
     assert list_rules_response.status_code == 200
     assert scanner_response.status_code == 200
+    assert scanner_summary_response.status_code == 200
+    assert scanner_export_response.status_code == 200
     assert evaluate_response.json()["tags_added"] == 1
     assert list_rules_response.json()[0]["target_tag"] == "tw-market"
     assert scanner_response.json()["member_count"] == 1
+    assert "member_count" in scanner_export_response.text

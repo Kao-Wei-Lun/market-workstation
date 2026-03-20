@@ -64,11 +64,24 @@ class ReportDailyRepository:
 
     def list_by_date(
         self,
-        report_date: date,
+        report_date: date | None = None,
         *,
         report_type: str | None = None,
+        limit: int | None = None,
     ) -> list[ReportDaily]:
-        query = self.session.query(ReportDaily).filter(ReportDaily.report_date == report_date)
+        query = self.session.query(ReportDaily)
+        if report_date is not None:
+            query = query.filter(ReportDaily.report_date == report_date)
         if report_type is not None:
             query = query.filter(ReportDaily.report_type == report_type)
-        return query.order_by(ReportDaily.report_type.asc(), ReportDaily.report_key.asc()).all()
+        query = query.order_by(ReportDaily.report_date.desc(), ReportDaily.report_type.asc(), ReportDaily.report_key.asc())
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
+    def get_latest_report_date(self, *, report_type: str | None = None) -> date | None:
+        query = self.session.query(ReportDaily.report_date)
+        if report_type is not None:
+            query = query.filter(ReportDaily.report_type == report_type)
+        row = query.order_by(ReportDaily.report_date.desc()).first()
+        return row[0] if row is not None else None

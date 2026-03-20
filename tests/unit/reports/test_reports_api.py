@@ -60,10 +60,20 @@ async def test_report_query_routes(
             params={"report_key": watchlist_key},
         )
         bundle_response = await client.get(f"/reports/{report_date.isoformat()}/bundle")
+        bundle_export_response = await client.get(
+            f"/reports/{report_date.isoformat()}/bundle/export",
+            params={"export_format": "csv"},
+        )
         section_response = await client.get(
             f"/reports/{report_date.isoformat()}/bundle/sections/technical_breadth_summary"
         )
         list_response = await client.get("/reports", params={"report_date": report_date.isoformat()})
+        latest_response = await client.get("/reports/latest")
+        dashboard_response = await client.get(
+            "/dashboard/overview/latest",
+            params={"trade_date": report_date.isoformat(), "watchlist_id": watchlist_id},
+        )
+        derivatives_response = await client.get(f"/derivatives/summary/{report_date.isoformat()}")
         missing_response = await client.get(
             f"/reports/{report_date.isoformat()}/{WATCHLIST_SUMMARY_REPORT}"
         )
@@ -75,9 +85,17 @@ async def test_report_query_routes(
     assert watchlist_response.status_code == 200
     assert watchlist_response.json()["report_key"] == watchlist_key
     assert bundle_response.status_code == 200
+    assert bundle_export_response.status_code == 200
+    assert "section_type" in bundle_export_response.text
     assert bundle_response.json()["metadata"]["strongest_group_name"] == "semiconductor"
     assert section_response.status_code == 200
     assert section_response.json()["section_type"] == "technical_breadth_summary"
     assert list_response.status_code == 200
     assert len(list_response.json()) == 3
+    assert latest_response.status_code == 200
+    assert len(latest_response.json()) == 3
+    assert dashboard_response.status_code == 200
+    assert dashboard_response.json()["market_snapshot"]["instrument_count"] == 3
+    assert derivatives_response.status_code == 200
+    assert derivatives_response.json()["trade_date"] == report_date.isoformat()
     assert missing_response.status_code == 404

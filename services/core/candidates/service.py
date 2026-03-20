@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+import json
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from services.core.classification.scanner import scan_tag_group, scan_watchlist_group
 from services.core.derivatives.summary import generate_daily_institutional_bias_summary
+from services.core.exports import rows_to_csv
 from services.db.repositories.candidates import CandidateItemRepository, CandidateRunRepository
 from services.models.candidate_item import CandidateItem
 from services.models.candidate_run import CandidateRun
@@ -162,8 +164,70 @@ def get_latest_candidate_run_for_date(session: Session, candidate_date: date) ->
     return CandidateRunRepository(session).get_latest_by_date(candidate_date)
 
 
-def list_candidate_items(session: Session, run_id: int) -> list[CandidateItem]:
-    return CandidateItemRepository(session).list_for_run(run_id)
+def get_latest_candidate_run(session: Session) -> CandidateRun | None:
+    return CandidateRunRepository(session).get_latest_run()
+
+
+def list_candidate_runs(
+    session: Session,
+    *,
+    candidate_date: date | None = None,
+    limit: int | None = None,
+) -> list[CandidateRun]:
+    return CandidateRunRepository(session).list_runs(candidate_date=candidate_date, limit=limit)
+
+
+def list_candidate_items(
+    session: Session,
+    run_id: int | None = None,
+    *,
+    candidate_date: date | None = None,
+    symbol: str | None = None,
+) -> list[CandidateItem]:
+    if run_id is not None and candidate_date is None and symbol is None:
+        return CandidateItemRepository(session).list_for_run(run_id)
+    return CandidateItemRepository(session).list_items(run_id=run_id, candidate_date=candidate_date, symbol=symbol)
+
+
+def export_candidate_items(
+    session: Session,
+    *,
+    run_id: int,
+    export_format: str,
+) -> tuple[str, str]:
+    items = list_candidate_items(session, run_id)
+    if export_format == "json":
+        return (
+            f"candidate_run_{run_id}.json",
+            json.dumps(
+                [
+                    {
+                        "run_id": item.run_id,
+                        "candidate_date": item.candidate_date.isoformat(),
+                        "symbol": item.symbol,
+                        "score": str(item.score),
+                        "rank": item.rank,
+                        "candidate_reasons": item.candidate_reasons_json,
+                        "supporting_metrics": item.supporting_metrics_json,
+                    }
+                    for item in items
+                ],
+                indent=2,
+            ),
+        )
+    rows = [
+        {
+            "run_id": item.run_id,
+            "candidate_date": item.candidate_date.isoformat(),
+            "symbol": item.symbol,
+            "score": str(item.score),
+            "rank": item.rank,
+            "candidate_reasons": item.candidate_reasons_json,
+            "supporting_metrics": item.supporting_metrics_json,
+        }
+        for item in items
+    ]
+    return f"candidate_run_{run_id}.csv", rows_to_csv(rows)
 
 
 def _score_instrument(

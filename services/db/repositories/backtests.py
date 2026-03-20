@@ -46,6 +46,20 @@ class BacktestRunRepository:
     def get(self, run_id: int) -> BacktestRun | None:
         return self.session.query(BacktestRun).filter(BacktestRun.id == run_id).one_or_none()
 
+    def list_runs(
+        self,
+        *,
+        strategy_id: int | None = None,
+        limit: int | None = None,
+    ) -> list[BacktestRun]:
+        query = self.session.query(BacktestRun)
+        if strategy_id is not None:
+            query = query.filter(BacktestRun.strategy_id == strategy_id)
+        query = query.order_by(BacktestRun.created_at.desc(), BacktestRun.id.desc())
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
 
 class BacktestTradeRepository:
     def __init__(self, session: Session) -> None:
@@ -65,6 +79,19 @@ class BacktestTradeRepository:
             .order_by(BacktestTrade.entry_date.asc(), BacktestTrade.instrument_id.asc())
             .all()
         )
+
+    def list_trades(
+        self,
+        *,
+        run_id: int | None = None,
+        instrument_id: int | None = None,
+    ) -> list[BacktestTrade]:
+        query = self.session.query(BacktestTrade)
+        if run_id is not None:
+            query = query.filter(BacktestTrade.run_id == run_id)
+        if instrument_id is not None:
+            query = query.filter(BacktestTrade.instrument_id == instrument_id)
+        return query.order_by(BacktestTrade.entry_date.asc(), BacktestTrade.instrument_id.asc()).all()
 
 
 class BacktestSearchRunRepository:

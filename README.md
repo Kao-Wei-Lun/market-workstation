@@ -147,6 +147,28 @@ After running the quickstart commands:
 - Retrieve walk-forward windows:
   `curl http://localhost:8000/backtests/walk-forward/<walk_forward_run_id>/windows`
 
+## API Output And Export
+
+- Dashboard overview:
+  `curl "http://localhost:8000/dashboard/overview/latest?trade_date=2026-03-20&watchlist_id=1"`
+- Latest derivatives bias summary:
+  `curl http://localhost:8000/derivatives/summary/latest`
+- List latest reports:
+  `curl http://localhost:8000/reports/latest`
+- Export a report bundle as CSV:
+  `curl "http://localhost:8000/reports/2026-03-20/bundle/export?export_format=csv"`
+- List candidate runs or filter candidate items:
+  `curl "http://localhost:8000/candidates/runs?candidate_date=2026-03-20"`
+  `curl "http://localhost:8000/candidates/items?candidate_date=2026-03-20&symbol=2330"`
+- Export a candidate run:
+  `curl "http://localhost:8000/candidates/runs/<run_id>/export?export_format=csv"`
+- Query scanner summaries and export them:
+  `curl "http://localhost:8000/scanner/summary?trade_date=2026-03-20&tag=semiconductor"`
+  `curl "http://localhost:8000/scanner/export?trade_date=2026-03-20&watchlist_id=1&export_format=csv"`
+- List backtest runs or export trades:
+  `curl http://localhost:8000/backtests/runs`
+  `curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"`
+
 ## Verification
 
 - `pytest -q`

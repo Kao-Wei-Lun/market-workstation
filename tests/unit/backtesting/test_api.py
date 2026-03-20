@@ -102,7 +102,10 @@ async def test_backtest_api_supports_run_search_and_walk_forward_routes() -> Non
         )
         run_id = create_response.json()["run"]["id"]
         run_response = await client.get(f"/backtests/runs/{run_id}")
+        list_runs_response = await client.get("/backtests/runs")
         trades_response = await client.get(f"/backtests/runs/{run_id}/trades")
+        filtered_trades_response = await client.get("/backtests/trades", params={"run_id": run_id, "instrument_id": instrument.id})
+        export_response = await client.get(f"/backtests/runs/{run_id}/export", params={"export_format": "csv"})
         search_response = await client.post(
             "/backtests/searches",
             json={
@@ -166,9 +169,13 @@ async def test_backtest_api_supports_run_search_and_walk_forward_routes() -> Non
 
     assert create_response.status_code == 200
     assert run_response.status_code == 200
+    assert list_runs_response.status_code == 200
     assert trades_response.status_code == 200
+    assert filtered_trades_response.status_code == 200
+    assert export_response.status_code == 200
     assert search_response.status_code == 200
     assert search_results_response.status_code == 200
     assert walk_forward_response.status_code == 200
     assert walk_forward_windows_response.status_code == 200
     assert len(search_results_response.json()) == 4
+    assert "entry_date" in export_response.text

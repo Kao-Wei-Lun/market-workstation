@@ -67,3 +67,7 @@ def list_watchlist_items(session: Session, *, watchlist_id: int) -> list[Watchli
 
 def get_watchlist(session: Session, *, watchlist_id: int) -> Watchlist | None:
     return session.query(Watchlist).filter(Watchlist.id == watchlist_id).one_or_none()
+
+
+def list_watchlists(session: Session) -> list[Watchlist]:
+    return session.query(Watchlist).order_by(Watchlist.id.asc()).all()

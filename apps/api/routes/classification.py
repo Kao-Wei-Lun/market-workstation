@@ -1,8 +1,10 @@
 from datetime import date
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
+from services.core.exports import rows_to_csv
 from services.core.classification.rules import (
     create_auto_classification_rule,
     delete_auto_classification_rule,
@@ -12,12 +14,13 @@ from services.core.classification.rules import (
     update_auto_classification_rule,
 )
 from services.core.classification.scanner import scan_tag_group, scan_watchlist_group
-from services.core.classification.summary import summarize_tag_group, summarize_watchlist_group
+from services.core.classification.summary import summarize_scanner_scope, summarize_tag_group, summarize_watchlist_group
 from services.core.classification.tags import add_tag_to_instrument, list_tags_for_instrument, remove_tag_from_instrument
 from services.core.classification.watchlists import (
     add_instrument_to_watchlist,
     create_watchlist,
     get_watchlist,
+    list_watchlists,
     list_watchlist_items,
     remove_instrument_from_watchlist,
 )
@@ -39,6 +42,7 @@ from services.schemas.classification import (
     WatchlistItemRead,
     WatchlistRead,
 )
+from services.schemas.output import WatchlistSummarySnapshotRead
 
 router = APIRouter(tags=["classification"])
 
@@ -97,6 +101,13 @@ async def create_watchlist_route(
     watchlist = create_watchlist(session, name=payload.name, description=payload.description)
     session.commit()
     return WatchlistRead.model_validate(watchlist)
+
+
+@router.get("/watchlists", response_model=list[WatchlistRead])
+async def list_watchlists_route(
+    session: Session = Depends(get_db_session),
+) -> list[WatchlistRead]:
+    return [WatchlistRead.model_validate(item) for item in list_watchlists(session)]
 
 
 @router.post("/watchlists/{watchlist_id}/items/{instrument_id}", response_model=WatchlistItemRead)
@@ -217,6 +228,44 @@ async def get_watchlist_summary_route(
     return summarize_watchlist_group(session, watchlist_id=watchlist_id, trade_date=trade_date)
 
 
+@router.get("/watchlists/latest-summary", response_model=list[WatchlistSummarySnapshotRead])
+async def list_latest_watchlist_summaries_route(
+    trade_date: date,
+    session: Session = Depends(get_db_session),
+) -> list[WatchlistSummarySnapshotRead]:
+    snapshots: list[WatchlistSummarySnapshotRead] = []
+    for watchlist in list_watchlists(session):
+        snapshots.append(
+            WatchlistSummarySnapshotRead(
+                watchlist=WatchlistRead.model_validate(watchlist),
+                trade_date=trade_date,
+                summary=summarize_watchlist_group(session, watchlist_id=watchlist.id, trade_date=trade_date),
+            )
+        )
+    return snapshots
+
+
+@router.get("/scanner/summary", response_model=GroupSummaryRead)
+async def get_scanner_summary_route(
+    trade_date: date,
+    tag: str | None = None,
+    watchlist_id: int | None = None,
+    sma_parameter_signature: str = "period=20",
+    session: Session = Depends(get_db_session),
+) -> GroupSummaryRead:
+    if tag is None and watchlist_id is None:
+        raise HTTPException(status_code=422, detail="tag or watchlist_id is required")
+    if watchlist_id is not None and get_watchlist(session, watchlist_id=watchlist_id) is None:
+        raise HTTPException(status_code=404, detail="watchlist not found")
+    return summarize_scanner_scope(
+        session,
+        trade_date=trade_date,
+        tag=tag,
+        watchlist_id=watchlist_id,
+        sma_parameter_signature=sma_parameter_signature,
+    )
+
+
 @router.post("/scanner/run", response_model=GroupScannerRead)
 async def run_group_scanner_route(
     payload: GroupScannerRequest,
@@ -245,3 +294,32 @@ async def run_group_scanner_route(
         volume_lookback_days=payload.volume_lookback_days,
         flag_conditions=payload.flag_conditions,
     )
+
+
+@router.get("/scanner/export")
+async def export_group_scanner_route(
+    trade_date: date,
+    tag: str | None = None,
+    watchlist_id: int | None = None,
+    export_format: Literal["json", "csv"] = Query(default="json"),
+    session: Session = Depends(get_db_session),
+) -> Response:
+    if tag is None and watchlist_id is None:
+        raise HTTPException(status_code=422, detail="tag or watchlist_id is required")
+    if watchlist_id is not None and get_watchlist(session, watchlist_id=watchlist_id) is None:
+        raise HTTPException(status_code=404, detail="watchlist not found")
+    summary = summarize_scanner_scope(session, trade_date=trade_date, tag=tag, watchlist_id=watchlist_id)
+    if export_format == "json":
+        return Response(content=summary.model_dump_json(indent=2), media_type="application/json")
+    rows = [
+        {
+            "scope": tag or f"watchlist:{watchlist_id}",
+            "trade_date": trade_date.isoformat(),
+            "member_count": summary.member_count,
+            "average_close_change_pct": str(summary.average_close_change_pct),
+            "percentage_above_sma": str(summary.percentage_above_sma),
+            "top_gainers": [item.symbol for item in summary.top_gainers],
+            "top_losers": [item.symbol for item in summary.top_losers],
+        }
+    ]
+    return Response(content=rows_to_csv(rows), media_type="text/csv")
