@@ -36,15 +36,11 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
    `make migrate`
 3. Seed sample instruments, watchlist membership, and tags:
    `make seed`
-4. Load sample daily market data:
-   `TRADE_DATE=2026-03-20 make sample-etl`
-5. Compute indicators:
-   `TRADE_DATE=2026-03-20 make indicator-update`
-6. Generate daily reports:
-   `TRADE_DATE=2026-03-20 make generate-reports`
-7. Run the startup smoke test:
+4. Generate deterministic frontend-visible demo data:
+   `make demo-data`
+5. Run the startup smoke test:
    `make smoke-test`
-8. Start the frontend:
+6. Start the frontend:
    `make run-frontend`
 
 ## Running services locally
@@ -63,6 +59,7 @@ V1 local daily-data research system for market ETL, indicators, Taiwan derivativ
 All bootstrap commands are available through `scripts/manage.py`:
 - `python scripts/manage.py migrate`
 - `python scripts/manage.py seed`
+- `python scripts/manage.py demo-data --trade-date 2026-03-20`
 - `python scripts/manage.py sample-etl --trade-date 2026-03-20`
 - `python scripts/manage.py indicator-update --trade-date 2026-03-20`
 - `python scripts/manage.py generate-reports --trade-date 2026-03-20`
@@ -97,6 +94,7 @@ After running the quickstart commands:
 - `make setup`
 - `make migrate`
 - `make seed`
+- `make demo-data`
 - `make sample-etl`
 - `make indicator-update`
 - `make generate-reports`
@@ -126,6 +124,31 @@ After running the quickstart commands:
 - Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
 - Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
 - Backtesting now supports composite rule trees, parameterized rule operands, optional universe filters, multi-position daily execution controls, parameter search, and walk-forward evaluation APIs.
+
+## Seed vs Demo Data
+
+- `make seed` only creates reference data such as instruments, watchlists, and tags.
+- `make demo-data` builds on `seed` and generates deterministic frontend-visible datasets for local development:
+  - daily bars
+  - indicator values
+  - Taiwan derivatives rows and features
+  - a candidate run with items
+  - a backtest run with trades
+  - persisted daily reports and a report bundle
+- `make demo-data` is designed to be repeatable for the same `TRADE_DATE` without growing duplicate demo backtests or candidate runs.
+
+## Frontend Demo Flow
+
+- For a visibly usable local frontend, this is the shortest path:
+  `make migrate`
+  `make seed`
+  `make demo-data`
+  `make run-frontend`
+- After running demo data generation, these endpoints should return non-empty payloads:
+  `curl http://localhost:8000/backtests/runs`
+  `curl http://localhost:8000/candidates/runs`
+  `curl http://localhost:8000/reports/latest`
+  `curl http://localhost:8000/derivatives/summary/latest`
 
 ## Next-Day Candidates
 

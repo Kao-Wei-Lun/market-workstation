@@ -36,7 +36,7 @@
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
       title="No candidate data"
-      message="Generate a candidate run from the backend or sample workflow."
+      message="The backend has no candidate runs yet. Run make demo-data to generate a repeatable local candidate list."
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />

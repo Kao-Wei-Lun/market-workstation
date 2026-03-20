@@ -36,7 +36,7 @@
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
       title="No reports available"
-      message="Generate reports from the backend workflow first."
+      message="The backend has no persisted daily reports yet. Run make demo-data to generate a repeatable local report bundle."
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />

@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed demo-data sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -12,6 +12,9 @@ migrate:
 
 seed:
 	$(PYTHON) scripts/manage.py seed
+
+demo-data:
+	$(PYTHON) scripts/manage.py demo-data --trade-date $${TRADE_DATE:-2026-03-20}
 
 sample-etl:
 	$(PYTHON) scripts/manage.py sample-etl --trade-date $${TRADE_DATE:?set TRADE_DATE=YYYY-MM-DD}

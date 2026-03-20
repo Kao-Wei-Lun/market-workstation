@@ -28,7 +28,7 @@
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
       title="No backtests available"
-      message="Create a backtest run from the API or sample data before using this page."
+      message="The backend is healthy but has no backtest runs yet. Run make demo-data to generate a repeatable local demo backtest with trades."
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />

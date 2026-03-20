@@ -36,7 +36,7 @@
     <EmptyState
       v-else-if="overview?.meta.is_empty"
       title="No dashboard data yet"
-      message="Run seed, sample ETL, indicators, and reports to populate the overview."
+      message="The backend has no visible market data yet. Run make demo-data to populate overview cards, reports, candidates, derivatives, and backtests."
     />
     <template v-else-if="overview">
       <SummaryCardGrid :cards="overview.summary_cards" />

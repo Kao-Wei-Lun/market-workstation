@@ -7,7 +7,12 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 
-from services.core.bootstrap import run_sample_daily_market_etl, seed_sample_reference_data
+from services.core.bootstrap import (
+    DEFAULT_DEMO_TRADE_DATE,
+    generate_demo_data,
+    run_sample_daily_market_etl,
+    seed_sample_reference_data,
+)
 from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
 from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
@@ -21,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
     migrate_parser.add_argument("--revision", default="head")
 
     subparsers.add_parser("seed", help="Seed sample reference data.")
+
+    demo_data_parser = subparsers.add_parser("demo-data", help="Generate frontend-visible local demo data.")
+    demo_data_parser.add_argument("--trade-date", type=date.fromisoformat, default=DEFAULT_DEMO_TRADE_DATE)
 
     sample_etl_parser = subparsers.add_parser("sample-etl", help="Run sample ETL data load.")
     sample_etl_parser.add_argument("--trade-date", type=date.fromisoformat, required=True)
@@ -49,6 +57,21 @@ def main(argv: list[str] | None = None) -> int:
             f"instruments_created={seed_result.instruments_created}, "
             f"watchlists_created={seed_result.watchlists_created}, "
             f"tags_created={seed_result.tags_created}"
+        )
+        return 0
+
+    if args.command == "demo-data":
+        with SessionLocal() as session:
+            demo_result = generate_demo_data(session, trade_date=args.trade_date)
+        print(
+            "Generated demo data: "
+            f"trade_date={demo_result.trade_date.isoformat()}, "
+            f"daily_bars_loaded={demo_result.daily_bars_loaded}, "
+            f"indicator_values_persisted={demo_result.indicator_values_persisted}, "
+            f"tw_derivatives_features_persisted={demo_result.tw_derivatives_features_persisted}, "
+            f"candidate_items_created={demo_result.candidate_items_created}, "
+            f"backtest_trades_created={demo_result.backtest_trades_created}, "
+            f"reports_persisted={demo_result.reports_persisted}"
         )
         return 0
 

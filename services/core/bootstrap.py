@@ -6,15 +6,28 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from services.core.backtesting.service import create_and_run_backtest
+from services.core.candidates.service import generate_and_persist_candidate_run
 from services.connectors.base import ConnectorRequest
 from services.connectors.dev_seed import StaticDailyBarConnector
 from services.core.classification.tags import add_tag_to_instrument
 from services.core.classification.watchlists import add_instrument_to_watchlist, create_watchlist
+from services.core.derivatives.features import compute_tw_derivatives_features
 from services.core.etl.pipeline import run_ingestion_pipeline
+from services.db.repositories.tw_derivatives import TwDerivativesDailyRepository, TwDerivativesFeatureRepository
+from services.models.backtest_run import BacktestRun
+from services.models.backtest_trade import BacktestTrade
+from services.models.candidate_item import CandidateItem
+from services.models.candidate_run import CandidateRun
 from services.models.instrument import Instrument
 from services.models.instrument_tag import InstrumentTag
+from services.models.strategy import Strategy
+from services.models.tw_derivatives_daily import TwDerivativesDaily
 from services.models.watchlist import Watchlist
 from services.models.watchlist_item import WatchlistItem
+from services.schemas.backtesting import BacktestCreateRequest
+from services.schemas.etl import NormalizedTwDerivativesDailyRecord
+from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
 
 SAMPLE_INSTRUMENT_DEFINITIONS = [
     {
@@ -46,6 +59,9 @@ SAMPLE_INSTRUMENT_DEFINITIONS = [
     },
 ]
 SAMPLE_INSTRUMENT_SYMBOLS = {item["symbol"] for item in SAMPLE_INSTRUMENT_DEFINITIONS}
+DEFAULT_DEMO_TRADE_DATE = date(2026, 3, 20)
+DEMO_BACKTEST_NAME = "Demo Time Exit Trend"
+DEMO_BACKTEST_DESCRIPTION = "Deterministic local demo backtest"
 
 
 @dataclass(frozen=True)
@@ -59,6 +75,23 @@ class SeedResult:
 class SampleEtlResult:
     instruments_processed: int
     daily_bars_loaded: int
+
+
+@dataclass(frozen=True)
+class DemoDataResult:
+    trade_date: date
+    instruments_created: int
+    watchlists_created: int
+    tags_created: int
+    daily_bars_loaded: int
+    indicator_values_persisted: int
+    tw_derivatives_daily_loaded: int
+    tw_derivatives_features_persisted: int
+    candidate_runs_created: int
+    candidate_items_created: int
+    backtest_runs_created: int
+    backtest_trades_created: int
+    reports_persisted: int
 
 
 def seed_sample_reference_data(session: Session) -> SeedResult:
@@ -135,6 +168,48 @@ def run_sample_daily_market_etl(session: Session, *, trade_date: date) -> Sample
     return SampleEtlResult(
         instruments_processed=instruments_processed,
         daily_bars_loaded=daily_bars_loaded,
+    )
+
+
+def generate_demo_data(session: Session, *, trade_date: date = DEFAULT_DEMO_TRADE_DATE) -> DemoDataResult:
+    seed_result = seed_sample_reference_data(session)
+    etl_result = run_sample_daily_market_etl(session, trade_date=trade_date)
+
+    indicator_result = run_indicator_update_job(session, trade_date)
+    derivatives_daily_loaded, derivatives_features_persisted = _seed_demo_derivatives_data(
+        session,
+        trade_date=trade_date,
+    )
+
+    _delete_existing_demo_candidate_runs(session, candidate_date=trade_date)
+    candidate_run, candidate_items = generate_and_persist_candidate_run(session, candidate_date=trade_date, top_n=10)
+
+    _delete_existing_demo_backtests(session)
+    _strategy, backtest_run = create_and_run_backtest(session, _build_demo_backtest_request(session))
+    session.commit()
+    backtest_run_id = backtest_run.id
+    backtest_trade_count = (
+        session.query(BacktestTrade)
+        .filter(BacktestTrade.run_id == backtest_run_id)
+        .count()
+    )
+
+    report_result = run_daily_report_generation_job(session, trade_date)
+
+    return DemoDataResult(
+        trade_date=trade_date,
+        instruments_created=seed_result.instruments_created,
+        watchlists_created=seed_result.watchlists_created,
+        tags_created=seed_result.tags_created,
+        daily_bars_loaded=etl_result.daily_bars_loaded,
+        indicator_values_persisted=indicator_result.metrics.get("indicator_values_persisted", 0),
+        tw_derivatives_daily_loaded=derivatives_daily_loaded,
+        tw_derivatives_features_persisted=derivatives_features_persisted,
+        candidate_runs_created=int(candidate_run.id > 0),
+        candidate_items_created=len(candidate_items),
+        backtest_runs_created=int(backtest_run_id > 0),
+        backtest_trades_created=backtest_trade_count,
+        reports_persisted=report_result.metrics.get("reports_persisted", 0),
     )
 
 
@@ -226,3 +301,118 @@ def _build_price_series(
         )
         current_close += daily_step if market == "TW" else daily_step + Decimal("0.3")
     return rows
+
+
+def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[int, int]:
+    records: list[NormalizedTwDerivativesDailyRecord] = []
+    for index in range(21):
+        current_date = trade_date - timedelta(days=20 - index)
+        foreign_net = 180 + (index * 18)
+        dealer_net = -60 + (index * 5)
+        records.extend(
+            [
+                NormalizedTwDerivativesDailyRecord(
+                    trade_date=current_date,
+                    market="TAIFEX",
+                    product_code="TX",
+                    product_name="TAIEX Futures",
+                    contract_period=trade_date.strftime("%Y%m"),
+                    institution="foreign_investors",
+                    call_put=None,
+                    long_open_interest=1_000 + (index * 25),
+                    short_open_interest=820 + (index * 7),
+                    net_open_interest=foreign_net,
+                    long_amount=Decimal("1200000") + (Decimal(index) * Decimal("25000")),
+                    short_amount=Decimal("940000") + (Decimal(index) * Decimal("9000")),
+                    net_amount=Decimal(foreign_net) * Decimal("1000"),
+                    source_route="demo_seed",
+                    is_options=False,
+                ),
+                NormalizedTwDerivativesDailyRecord(
+                    trade_date=current_date,
+                    market="TAIFEX",
+                    product_code="TXO",
+                    product_name="TAIEX Options",
+                    contract_period=trade_date.strftime("%Y%m"),
+                    institution="dealers",
+                    call_put="call",
+                    long_open_interest=420 + (index * 9),
+                    short_open_interest=480 + (index * 4),
+                    net_open_interest=dealer_net,
+                    long_amount=Decimal("280000") + (Decimal(index) * Decimal("5000")),
+                    short_amount=Decimal("320000") + (Decimal(index) * Decimal("2500")),
+                    net_amount=Decimal(dealer_net) * Decimal("800"),
+                    source_route="demo_seed",
+                    is_options=True,
+                ),
+            ]
+        )
+
+    daily_loaded = TwDerivativesDailyRepository(session).upsert_many(records)
+    session.flush()
+    all_records = (
+        session.query(TwDerivativesDaily)
+        .filter(TwDerivativesDaily.trade_date <= trade_date, TwDerivativesDaily.source_route == "demo_seed")
+        .order_by(TwDerivativesDaily.trade_date.asc(), TwDerivativesDaily.id.asc())
+        .all()
+    )
+    features = compute_tw_derivatives_features(all_records)
+    features_persisted = TwDerivativesFeatureRepository(session).replace_many(features)
+    session.commit()
+    return daily_loaded, features_persisted
+
+
+def _delete_existing_demo_candidate_runs(session: Session, *, candidate_date: date) -> None:
+    run_ids = [
+        run_id
+        for (run_id,) in session.query(CandidateRun.id).filter(CandidateRun.candidate_date == candidate_date).all()
+    ]
+    if run_ids:
+        session.query(CandidateItem).filter(CandidateItem.run_id.in_(run_ids)).delete(synchronize_session=False)
+        session.query(CandidateRun).filter(CandidateRun.id.in_(run_ids)).delete(synchronize_session=False)
+        session.commit()
+
+
+def _delete_existing_demo_backtests(session: Session) -> None:
+    strategy_ids = [
+        strategy_id
+        for (strategy_id,) in session.query(Strategy.id).filter(Strategy.name == DEMO_BACKTEST_NAME).all()
+    ]
+    if not strategy_ids:
+        return
+    run_ids = [
+        run_id
+        for (run_id,) in session.query(BacktestRun.id).filter(BacktestRun.strategy_id.in_(strategy_ids)).all()
+    ]
+    if run_ids:
+        session.query(BacktestTrade).filter(BacktestTrade.run_id.in_(run_ids)).delete(synchronize_session=False)
+        session.query(BacktestRun).filter(BacktestRun.id.in_(run_ids)).delete(synchronize_session=False)
+    session.query(Strategy).filter(Strategy.id.in_(strategy_ids)).delete(synchronize_session=False)
+    session.commit()
+
+
+def _build_demo_backtest_request(session: Session) -> BacktestCreateRequest:
+    instrument = session.query(Instrument).filter(Instrument.symbol == "2330").one()
+    return BacktestCreateRequest.model_validate(
+        {
+            "name": DEMO_BACKTEST_NAME,
+            "description": DEMO_BACKTEST_DESCRIPTION,
+            "definition": {
+                "instrument_id": instrument.id,
+                "initial_cash": "100000",
+                "position_size": "0.5",
+                "time_exit_days": 5,
+                "costs": {"fee_rate": "0.0005", "tax_rate": "0", "slippage_rate": "0.0005"},
+                "entry_rule": {
+                    "left": {"kind": "price", "field": "close"},
+                    "operator": "gt",
+                    "right": {"kind": "constant", "value": "0"},
+                },
+                "exit_rule": {
+                    "left": {"kind": "price", "field": "close"},
+                    "operator": "lt",
+                    "right": {"kind": "constant", "value": "0"},
+                },
+            },
+        }
+    )

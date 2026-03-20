@@ -18,6 +18,17 @@ class _JobResult:
     metrics: dict[str, int]
 
 
+@dataclass(frozen=True)
+class _DemoDataResult:
+    trade_date: object
+    daily_bars_loaded: int
+    indicator_values_persisted: int
+    tw_derivatives_features_persisted: int
+    candidate_items_created: int
+    backtest_trades_created: int
+    reports_persisted: int
+
+
 def test_manage_migrate_dispatches_to_alembic(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
@@ -45,6 +56,32 @@ def test_manage_seed_dispatches_to_seed_service(monkeypatch, capsys) -> None:
 
     assert exit_code == 0
     assert "instruments_created=3" in output
+
+
+def test_manage_demo_data_dispatches_to_demo_service(monkeypatch, capsys) -> None:
+    from datetime import date
+
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "generate_demo_data",
+        lambda session, trade_date: _DemoDataResult(
+            trade_date=date(2026, 3, 20),
+            daily_bars_loaded=60,
+            indicator_values_persisted=120,
+            tw_derivatives_features_persisted=42,
+            candidate_items_created=2,
+            backtest_trades_created=3,
+            reports_persisted=7,
+        ),
+    )
+
+    exit_code = manage.main(["demo-data", "--trade-date", "2026-03-20"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "daily_bars_loaded=60" in output
+    assert "candidate_items_created=2" in output
 
 
 def test_manage_indicator_update_dispatches_job(monkeypatch, capsys) -> None:

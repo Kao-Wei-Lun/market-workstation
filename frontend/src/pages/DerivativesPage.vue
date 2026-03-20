@@ -16,7 +16,7 @@
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
       title="No derivatives summary"
-      message="Run the Taiwan derivatives pipeline before opening this page."
+      message="The backend has no Taiwan derivatives summary yet. Run make demo-data to generate a repeatable local derivatives dataset."
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
