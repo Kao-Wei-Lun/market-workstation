@@ -3,7 +3,7 @@
     <aside class="sidebar" :class="{ collapsed: !appStore.sidebarOpen }">
       <div class="brand">
         <strong>MW</strong>
-        <span v-if="appStore.sidebarOpen">Market Workstation</span>
+        <span v-if="appStore.sidebarOpen">市場工作站</span>
       </div>
       <nav class="nav-list">
         <RouterLink
@@ -20,12 +20,12 @@
     <div class="content-shell">
       <header class="topbar">
         <button class="toggle" @click="appStore.toggleSidebar">
-          {{ appStore.sidebarOpen ? "Hide" : "Show" }}
+          {{ appStore.sidebarOpen ? "收合選單" : "展開選單" }}
         </button>
         <div class="topbar-meta">
           <strong>{{ currentPageTitle }}</strong>
           <span v-if="currentPageDescription" class="muted">{{ currentPageDescription }}</span>
-          <span class="muted">API {{ appStore.apiBaseUrl }}</span>
+          <span class="muted">API 位址 {{ appStore.apiBaseUrl }}</span>
         </div>
       </header>
       <main class="page">

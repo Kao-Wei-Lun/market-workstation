@@ -1,15 +1,16 @@
 <template>
   <article class="summary-card panel">
     <div class="panel-body">
-      <span class="muted">{{ card.label }}</span>
+      <span class="muted">{{ t(card.label) }}</span>
       <strong>{{ card.display_value }}</strong>
-      <span class="pill" :class="card.tone">{{ card.tone }}</span>
+      <span class="pill" :class="card.tone">{{ toneLabel(card.tone) }}</span>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
 import type { DashboardSummaryCard } from "@/types/dashboard";
+import { t, toneLabel } from "@/utils/locale";
 
 defineProps<{
   card: DashboardSummaryCard;

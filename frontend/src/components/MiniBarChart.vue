@@ -7,7 +7,7 @@
       <div v-if="normalizedPoints.length" class="chart-stack">
         <div v-for="point in normalizedPoints" :key="point.label" class="chart-row">
           <div class="chart-label-row">
-            <span>{{ point.label }}</span>
+            <span>{{ t(point.label) }}</span>
             <strong>{{ formatValue(point.value) }}</strong>
           </div>
           <div class="chart-track">
@@ -26,6 +26,7 @@ import { computed } from "vue";
 import SectionHeader from "@/components/SectionHeader.vue";
 import type { ChartPointInput } from "@/utils/presentation";
 import { buildChartPoints } from "@/utils/presentation";
+import { t } from "@/utils/locale";
 
 const props = defineProps<{
   title: string;

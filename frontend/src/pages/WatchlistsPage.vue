@@ -1,22 +1,22 @@
 <template>
   <div class="page-grid">
     <PageHeader
-      eyebrow="Dashboard"
-      title="Watchlists"
-      description="Watchlist-level daily snapshot with summary cards, scanner flags, and ranked movers."
+      eyebrow="儀表板"
+      title="觀察清單"
+      description="查看清單級別的每日快照、摘要卡片、掃描旗標與成員狀態。"
     />
 
     <FilterBar
-      title="Watchlist Scope"
-      description="Switch watchlists and inspect scanner signals, membership, and summary metrics."
+      title="清單篩選"
+      description="切換觀察清單，查看成員、掃描訊號與摘要指標。"
     >
       <div class="form-inline">
         <div class="field-group">
-          <label for="watchlist-trade-date">Trade Date</label>
+          <label for="watchlist-trade-date">交易日期</label>
           <input id="watchlist-trade-date" v-model="tradeDate" type="date" />
         </div>
         <div class="field-group">
-          <label for="watchlist-select">Watchlist</label>
+          <label for="watchlist-select">觀察清單</label>
           <select id="watchlist-select" v-model="selectedWatchlistId" @change="loadWatchlist">
             <option v-for="watchlist in watchlistsStore.items" :key="watchlist.id" :value="String(watchlist.id)">
               {{ watchlist.name }}
@@ -25,58 +25,58 @@
         </div>
         <div class="field-group">
           <label>&nbsp;</label>
-          <button @click="loadWatchlist">Refresh</button>
+          <button @click="loadWatchlist">重新整理</button>
         </div>
       </div>
     </FilterBar>
 
     <PageStatusBar
-      title="Watchlist Data Status"
+      title="清單資料狀態"
       :as-of-date="dashboard?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(dashboard?.meta.generated_at)"
       :item-count="dashboard?.meta.item_count"
-      hint="Watchlists combine membership, summary metrics, and scanner flags."
-      demo-hint="Run make demo-data to populate watchlist snapshots."
+      hint="觀察清單頁整合成員、摘要指標與掃描旗標。"
+      demo-hint="若尚無資料，請執行 make demo-data 產生示範快照。"
       :show-refresh="true"
       @refresh="loadWatchlist"
     />
 
-    <LoadingState v-if="isLoading" message="Loading watchlist dashboard..." />
+    <LoadingState v-if="isLoading" message="正在載入觀察清單..." />
     <ErrorState
       v-else-if="errorMessage"
-      title="Watchlist request failed"
-      message="The selected watchlist could not be loaded from the backend."
+      title="觀察清單載入失敗"
+      message="無法從後端載入指定的觀察清單資料。"
       :detail="errorMessage"
     />
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
-      title="No watchlist data"
-      message="The backend has no watchlist snapshot data yet. Run make demo-data to generate daily bars, scanner inputs, and reports."
+      title="尚無清單資料"
+      message="後端目前還沒有觀察清單快照。執行 make demo-data 後即可產生日線、掃描輸入與報表相關資料。"
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
 
       <div class="page-section-grid">
-        <DetailPanel title="Watchlist Snapshot" :description="selectedWatchlistDescription">
+        <DetailPanel title="清單快照" :description="selectedWatchlistDescription">
           <template #header>
             <RouterLink
               :to="{ name: 'overview', query: { watchlistId: selectedWatchlistId, tradeDate: tradeDate || undefined } }"
               class="pill link-pill"
             >
-              Open in overview
+              回到總覽查看
             </RouterLink>
           </template>
           <MetricGrid :metrics="watchlistMetrics" />
         </DetailPanel>
         <MiniBarChart
-          title="Watchlist Balance"
-          description="Daily performance and breadth metrics for the selected watchlist."
+          title="清單強弱分布"
+          description="顯示目前清單的日內表現與廣度指標。"
           :points="watchlistChartPoints"
-          empty-message="No watchlist chart data available."
+          empty-message="目前沒有清單圖表資料。"
         />
       </div>
 
-      <DetailPanel title="Watchlist Highlights" description="Top signals for the selected watchlist.">
+      <DetailPanel title="清單重點" description="整理目前觀察清單最值得注意的訊號。">
         <ul class="highlights">
           <li v-for="item in dashboard.highlights" :key="item">{{ item }}</li>
         </ul>
@@ -85,22 +85,22 @@
       <div class="page-section-grid">
         <RankedListSection v-for="list in dashboard.ranked_lists" :key="list.key" :list="list" />
         <SortableTableSection
-          title="Scanner Flags"
-          description="Flagged instruments from the watchlist scanner output."
+          title="掃描旗標"
+          description="顯示觀察清單掃描器標記出的標的。"
           :columns="flagColumns"
           :rows="flagRows"
           default-sort-by="change_pct"
           default-sort-direction="desc"
-          empty-message="No flagged instruments for the selected watchlist."
+          empty-message="目前清單沒有掃描旗標。"
         />
         <SortableTableSection
-          title="Watchlist Items"
-          description="Current watchlist membership returned by the backend."
+          title="清單成員"
+          description="顯示後端回傳的目前觀察清單成員。"
           :columns="itemColumns"
           :rows="itemRows"
           default-sort-by="instrument_id"
           default-sort-direction="asc"
-          empty-message="No watchlist items found."
+          empty-message="目前沒有清單成員。"
         />
       </div>
     </template>
@@ -145,19 +145,19 @@ const router = useRouter();
 const selectedWatchlistDescription = computed(
   () =>
     watchlistsStore.items.find((watchlist) => String(watchlist.id) === selectedWatchlistId.value)?.description ??
-    "Latest summary, scanner breadth, and membership state.",
+    "顯示最新摘要、掃描廣度與成員狀態。",
 );
 
 const itemColumns = [
-  { key: "instrument_id", label: "Instrument ID" },
-  { key: "added_at", label: "Added" },
+  { key: "instrument_id", label: "標的 ID" },
+  { key: "added_at", label: "加入時間" },
 ];
 
 const flagColumns = [
-  { key: "symbol", label: "Symbol" },
-  { key: "change_pct", label: "Change %" },
-  { key: "volume_ratio", label: "Volume Ratio" },
-  { key: "reasons", label: "Reasons" },
+  { key: "symbol", label: "代號" },
+  { key: "change_pct", label: "漲跌幅 %" },
+  { key: "volume_ratio", label: "量比" },
+  { key: "reasons", label: "原因" },
 ];
 
 const itemRows = computed(() =>
@@ -172,7 +172,7 @@ const flagRows = computed(() =>
     symbol: makeLinkedCell(item.symbol, { name: "candidates", query: { search: item.symbol } }),
     change_pct: Number(item.close_change_pct),
     volume_ratio: item.volume_ratio ? Number(item.volume_ratio) : null,
-    reasons: formatList(item.reasons, "No reasons"),
+    reasons: formatList(item.reasons, "無理由說明"),
   })) ?? [],
 );
 
@@ -182,17 +182,17 @@ const watchlistMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Members", value: formatNumber(snapshot.summary.member_count), hint: "watchlist size" },
-    { label: "Average Change", value: formatPercent(snapshot.summary.average_close_change_pct), hint: "daily move" },
+    { label: "成員數", value: formatNumber(snapshot.summary.member_count), hint: "清單規模" },
+    { label: "平均漲跌", value: formatPercent(snapshot.summary.average_close_change_pct), hint: "每日變化" },
     {
-      label: "Above SMA",
+      label: "站上 SMA",
       value: formatPercent(snapshot.summary.percentage_above_sma),
-      hint: "breadth",
+      hint: "廣度",
     },
     {
-      label: "Flags",
+      label: "旗標數",
       value: formatNumber(snapshot.scanner?.flagged_instruments.length ?? 0),
-      hint: "scanner matches",
+      hint: "掃描命中",
     },
   ];
 });
@@ -204,17 +204,17 @@ const watchlistChartPoints = computed(() => {
   }
   return [
     {
-      label: "Avg Return",
+      label: "平均報酬",
       value: Number(snapshot.scanner?.average_daily_return_pct ?? snapshot.summary.average_close_change_pct),
       tone: "info" as const,
     },
     {
-      label: "Above SMA",
+      label: "站上 SMA",
       value: Number(snapshot.summary.percentage_above_sma),
       tone: "positive" as const,
     },
     {
-      label: "Volume Ratio",
+      label: "量比",
       value: Number(snapshot.scanner?.average_volume_ratio ?? 0),
       tone: "neutral" as const,
     },

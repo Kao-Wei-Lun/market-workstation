@@ -5,7 +5,7 @@ import { formatDate, formatDateTime, formatList, formatNumber, formatPercent, fo
 describe("formatters", () => {
   it("formats numbers and falls back safely", () => {
     expect(formatNumber("1234.5")).toBe("1,234.5");
-    expect(formatNumber(null)).toBe("n/a");
+    expect(formatNumber(null)).toBe("無資料");
   });
 
   it("formats dates and titles", () => {
@@ -17,7 +17,7 @@ describe("formatters", () => {
 
   it("formats optional lists safely", () => {
     expect(formatList(["alpha", "beta"])).toBe("alpha, beta");
-    expect(formatList([])).toBe("n/a");
-    expect(formatList(undefined, "No reasons")).toBe("No reasons");
+    expect(formatList([])).toBe("無資料");
+    expect(formatList(undefined, "無理由說明")).toBe("無理由說明");
   });
 });

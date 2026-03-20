@@ -1,24 +1,24 @@
 export function formatNumber(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
-    return "n/a";
+    return "無資料";
   }
   const numberValue = Number(value);
   if (Number.isNaN(numberValue)) {
     return String(value);
   }
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(numberValue);
+  return new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 2 }).format(numberValue);
 }
 
 export function formatDate(value: string | null | undefined): string {
   if (!value) {
-    return "n/a";
+    return "無資料";
   }
   return value.slice(0, 10);
 }
 
 export function formatPercent(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
-    return "n/a";
+    return "無資料";
   }
   const numberValue = Number(value);
   if (Number.isNaN(numberValue)) {
@@ -29,7 +29,7 @@ export function formatPercent(value: string | number | null | undefined): string
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) {
-    return "n/a";
+    return "無資料";
   }
   return value.replace("T", " ").slice(0, 16);
 }
@@ -40,7 +40,7 @@ export function formatTitle(input: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function formatList(value: string[] | null | undefined, emptyText = "n/a"): string {
+export function formatList(value: string[] | null | undefined, emptyText = "無資料"): string {
   if (!Array.isArray(value) || value.length === 0) {
     return emptyText;
   }

@@ -56,6 +56,7 @@ import { RouterLink } from "vue-router";
 import SectionHeader from "@/components/SectionHeader.vue";
 import type { SortDirection, TableRow } from "@/utils/presentation";
 import { isLinkedCellValue, sortRows } from "@/utils/presentation";
+import { t } from "@/utils/locale";
 
 const props = defineProps<{
   title: string;
@@ -112,7 +113,7 @@ function getLinkedCell(value: unknown) {
 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined || value === "") {
-    return "n/a";
+    return "無資料";
   }
   if (Array.isArray(value)) {
     return value.join(", ");

@@ -1,20 +1,20 @@
 <template>
   <div class="page-grid">
     <PageHeader
-      eyebrow="Dashboard"
-      title="Backtests"
-      description="Recent backtest runs, key metrics, and the latest trade list for local research review."
+      eyebrow="儀表板"
+      title="回測"
+      description="查看近期回測批次、核心指標與交易明細，方便本機研究使用。"
     />
 
     <FilterBar
-      title="Backtest Explorer"
-      description="Choose a persisted run and review returns, metrics, and trades."
+      title="回測探索"
+      description="切換已保存回測批次，查看報酬、指標與交易內容。"
     >
       <div class="form-inline">
         <div class="field-group">
-          <label for="backtest-run">Run</label>
+          <label for="backtest-run">批次</label>
           <select id="backtest-run" v-model="selectedRunIdString" @change="loadSelectedRunTrades">
-            <option value="">Latest</option>
+            <option value="">最新批次</option>
             <option v-for="run in runs" :key="run.id" :value="String(run.id)">
               #{{ run.id }} {{ formatPercent(run.total_return_pct) }}
             </option>
@@ -22,50 +22,50 @@
         </div>
         <div class="field-group">
           <label>&nbsp;</label>
-          <button @click="loadBacktests">Refresh</button>
+          <button @click="loadBacktests">重新整理</button>
         </div>
       </div>
     </FilterBar>
 
     <PageStatusBar
-      title="Backtest Data Status"
+      title="回測資料狀態"
       :as-of-date="dashboard?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(dashboard?.meta.generated_at)"
       :item-count="dashboard?.meta.item_count"
-      hint="Backtests combine run-level metrics, trade lists, and dashboard highlights."
-      demo-hint="Run make demo-data if no backtests are visible."
+      hint="回測頁整合批次指標、交易清單與儀表板重點。"
+      demo-hint="若尚無回測資料，請執行 make demo-data 產生示範回測。"
       :show-refresh="true"
       @refresh="loadBacktests"
     />
 
-    <LoadingState v-if="isLoading" message="Loading backtests dashboard..." />
+    <LoadingState v-if="isLoading" message="正在載入回測資料..." />
     <ErrorState
       v-else-if="errorMessage"
-      title="Backtest request failed"
-      message="Recent runs or trades could not be loaded."
+      title="回測載入失敗"
+      message="無法載入近期批次或交易明細。"
       :detail="errorMessage"
     />
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
-      title="No backtests available"
-      message="The backend is healthy but has no backtest runs yet. Run make demo-data to generate a repeatable local demo backtest with trades."
+      title="尚無回測資料"
+      message="後端目前沒有任何回測批次。執行 make demo-data 後即可產生可重複的本機回測與交易資料。"
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
 
       <div class="page-section-grid">
-        <DetailPanel title="Selected Run" description="Focused metrics for the currently selected backtest run.">
+        <DetailPanel title="目前回測批次" description="顯示目前選定回測批次的核心指標。">
           <MetricGrid :metrics="selectedRunMetrics" />
         </DetailPanel>
         <MiniBarChart
-          title="Return Comparison"
-          description="Recent backtest run returns for quick comparison."
+          title="報酬比較"
+          description="快速比較近期回測批次的報酬表現。"
           :points="runChartPoints"
-          empty-message="No recent run returns available."
+          empty-message="目前沒有近期回測報酬資料。"
         />
       </div>
 
-      <DetailPanel title="Backtest Highlights" description="Recent research outcomes surfaced through the dashboard.">
+      <DetailPanel title="回測重點" description="整理近期研究結果中最值得關注的內容。">
         <ul class="highlights">
           <li v-for="item in dashboard.highlights" :key="item">{{ item }}</li>
         </ul>
@@ -74,8 +74,8 @@
       <div class="page-section-grid">
         <RankedListSection v-for="list in dashboard.ranked_lists" :key="list.key" :list="list" />
         <SortableTableSection
-          title="Recent Runs"
-          description="Most recent backtest runs persisted in the backend."
+          title="近期批次"
+          description="顯示後端保存的近期回測批次。"
           :columns="runColumns"
           :rows="runRows"
           row-key="run_key"
@@ -84,11 +84,11 @@
           @row-select="handleRunRowSelect"
           default-sort-by="return_pct"
           default-sort-direction="desc"
-          empty-message="No backtest runs available."
+          empty-message="目前沒有回測批次。"
         />
         <SortableTableSection
-          title="Selected Run Trades"
-          description="Trade list for the latest available backtest run."
+          title="目前批次交易"
+          description="顯示目前選定回測批次的交易明細。"
           :columns="tradeColumns"
           :rows="tradeRows"
           row-key="trade_key"
@@ -97,11 +97,11 @@
           @row-select="handleTradeRowSelect"
           default-sort-by="entry_date"
           default-sort-direction="asc"
-          empty-message="No trades available for the selected run."
+          empty-message="目前批次沒有交易資料。"
         />
       </div>
 
-      <DetailPanel v-if="selectedTrade" title="Selected Trade Detail" description="Trade-level exit, holding period, and cost context.">
+      <DetailPanel v-if="selectedTrade" title="交易明細" description="顯示單筆交易的出場、持有天數與成本資訊。">
         <MetricGrid :metrics="selectedTradeMetrics" />
       </DetailPanel>
     </template>
@@ -158,25 +158,25 @@ function metricNumber(value: unknown): string {
 }
 
 const runColumns = [
-  { key: "run_id", label: "Run" },
-  { key: "created_at", label: "Created" },
-  { key: "return_pct", label: "Return %" },
-  { key: "trades", label: "Trades" },
-  { key: "status", label: "Status" },
+  { key: "run_id", label: "批次" },
+  { key: "created_at", label: "建立時間" },
+  { key: "return_pct", label: "報酬率 %" },
+  { key: "trades", label: "交易筆數" },
+  { key: "status", label: "狀態" },
 ];
 
 const tradeColumns = [
-  { key: "instrument_id", label: "Instrument" },
-  { key: "entry_date", label: "Entry" },
-  { key: "exit_date", label: "Exit" },
-  { key: "net_pnl", label: "Net PnL" },
-  { key: "reason", label: "Exit Reason" },
+  { key: "instrument_id", label: "標的" },
+  { key: "entry_date", label: "進場" },
+  { key: "exit_date", label: "出場" },
+  { key: "net_pnl", label: "淨損益" },
+  { key: "reason", label: "出場原因" },
 ];
 
 const runRows = computed(() =>
   runs.value.map((run) => ({
     run_key: run.id,
-    run_id: `#${run.id}${run.id === selectedRunId.value ? " (selected)" : ""}`,
+    run_id: `#${run.id}${run.id === selectedRunId.value ? "（目前）" : ""}`,
     created_at: formatDateTime(run.created_at),
     return_pct: Number(run.total_return_pct),
     trades: run.total_trades,
@@ -203,10 +203,10 @@ const selectedRunMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Total Return", value: formatPercent(selectedRun.value.total_return_pct), hint: "net run return" },
-    { label: "Win Rate", value: formatPercent(selectedRun.value.win_rate), hint: "winning trades" },
-    { label: "Sharpe", value: metricNumber(selectedRunMetricsJson.value.sharpe_ratio), hint: "from run metrics" },
-    { label: "Score", value: metricNumber(selectedRunMetricsJson.value.score), hint: "ranking metric" },
+    { label: "總報酬", value: formatPercent(selectedRun.value.total_return_pct), hint: "淨報酬率" },
+    { label: "勝率", value: formatPercent(selectedRun.value.win_rate), hint: "獲利交易比例" },
+    { label: "Sharpe", value: metricNumber(selectedRunMetricsJson.value.sharpe_ratio), hint: "來自回測指標" },
+    { label: "評分", value: metricNumber(selectedRunMetricsJson.value.score), hint: "排序分數" },
   ];
 });
 
@@ -223,10 +223,10 @@ const selectedTradeMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Instrument", value: formatNumber(selectedTrade.value.instrument_id), hint: "instrument id" },
-    { label: "Holding Days", value: formatNumber(selectedTrade.value.holding_period_days), hint: "trade duration" },
-    { label: "Net PnL", value: formatNumber(selectedTrade.value.net_pnl), hint: "after costs" },
-    { label: "Exit Reason", value: selectedTrade.value.exit_reason, hint: "engine exit condition" },
+    { label: "標的", value: formatNumber(selectedTrade.value.instrument_id), hint: "標的 ID" },
+    { label: "持有天數", value: formatNumber(selectedTrade.value.holding_period_days), hint: "交易持有期間" },
+    { label: "淨損益", value: formatNumber(selectedTrade.value.net_pnl), hint: "成本後損益" },
+    { label: "出場原因", value: selectedTrade.value.exit_reason, hint: "回測引擎條件" },
   ];
 });
 

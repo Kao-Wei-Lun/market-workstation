@@ -1,22 +1,22 @@
 <template>
   <div class="page-grid">
     <PageHeader
-      eyebrow="Dashboard"
-      title="Candidates"
-      description="Next-day watch candidates ranked from the backend scoring and scanner context."
+      eyebrow="儀表板"
+      title="候選清單"
+      description="查看隔日觀察候選名單、排序分數與掃描脈絡。"
     />
 
     <FilterBar
-      title="Candidate Explorer"
-      description="Filter and sort ranked candidate items without leaving the page."
+      title="候選探索"
+      description="直接在頁面內篩選與排序候選名單。"
     >
       <div class="form-inline">
         <div class="field-group">
-          <label for="candidate-date">Candidate Date</label>
+          <label for="candidate-date">候選日期</label>
           <input id="candidate-date" v-model="candidateDate" type="date" />
         </div>
         <div class="field-group">
-          <label for="candidate-limit">Limit</label>
+          <label for="candidate-limit">筆數</label>
           <select id="candidate-limit" v-model="limit" @change="loadCandidates">
             <option :value="5">5</option>
             <option :value="10">10</option>
@@ -24,64 +24,64 @@
           </select>
         </div>
         <div class="field-group">
-          <label for="candidate-run">Run</label>
+          <label for="candidate-run">批次</label>
           <select id="candidate-run" v-model="selectedRunIdString" @change="loadSelectedRunItems">
-            <option value="">Latest</option>
+            <option value="">最新批次</option>
             <option v-for="run in runs" :key="run.id" :value="String(run.id)">
               #{{ run.id }} {{ formatDate(run.candidate_date) }}
             </option>
           </select>
         </div>
         <div class="field-group">
-          <label for="candidate-query">Search</label>
-          <input id="candidate-query" v-model="searchQuery" placeholder="symbol or reason" />
+          <label for="candidate-query">搜尋</label>
+          <input id="candidate-query" v-model="searchQuery" placeholder="代號或原因" />
         </div>
         <div class="field-group">
           <label>&nbsp;</label>
-          <button @click="loadCandidates">Refresh</button>
+          <button @click="loadCandidates">重新整理</button>
         </div>
       </div>
     </FilterBar>
 
     <PageStatusBar
-      title="Candidate Data Status"
+      title="候選資料狀態"
       :as-of-date="dashboard?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(dashboard?.meta.generated_at)"
       :item-count="dashboard?.meta.item_count"
-      hint="Candidate runs combine ranking scores, reason lists, and scanner context."
-      demo-hint="Run make demo-data if there are no candidate runs yet."
+      hint="候選批次整合排序分數、理由清單與掃描脈絡。"
+      demo-hint="若尚無候選資料，請執行 make demo-data 產生示範批次。"
       :show-refresh="true"
       @refresh="loadCandidates"
     />
 
-    <LoadingState v-if="isLoading" message="Loading candidate dashboard..." />
+    <LoadingState v-if="isLoading" message="正在載入候選清單..." />
     <ErrorState
       v-else-if="errorMessage"
-      title="Candidate request failed"
-      message="The latest candidate runs could not be loaded."
+      title="候選資料載入失敗"
+      message="無法載入最新候選批次資料。"
       :detail="errorMessage"
     />
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
-      title="No candidate data"
-      message="The backend has no candidate runs yet. Run make demo-data to generate a repeatable local candidate list."
+      title="尚無候選資料"
+      message="後端目前還沒有候選批次。執行 make demo-data 後即可產生可重複的本機候選名單。"
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
 
       <div class="page-section-grid">
-        <DetailPanel title="Selected Candidate Run" description="Current run summary and derivatives context.">
+        <DetailPanel title="目前候選批次" description="顯示目前批次摘要與衍生性商品脈絡。">
           <MetricGrid :metrics="candidateMetrics" />
         </DetailPanel>
         <MiniBarChart
-          title="Candidate Score Ranking"
-          description="Quick visual ranking of the current candidate list."
+          title="候選分數排序"
+          description="快速查看目前候選名單的分數強弱。"
           :points="candidateChartPoints"
-          empty-message="No candidate scores available."
+          empty-message="目前沒有候選分數資料。"
         />
       </div>
 
-      <DetailPanel title="Candidate Context" description="Overview highlights from the latest stored candidate run.">
+      <DetailPanel title="候選脈絡" description="整理最新候選批次的重要觀察。">
         <ul class="highlights">
           <li v-for="item in dashboard.highlights" :key="item">{{ item }}</li>
         </ul>
@@ -90,8 +90,8 @@
       <div class="page-section-grid">
         <RankedListSection v-for="list in dashboard.ranked_lists" :key="list.key" :list="list" />
         <SortableTableSection
-          title="Recent Candidate Runs"
-          description="Recent stored runs that can be inspected in this page."
+          title="近期候選批次"
+          description="顯示可在此頁面切換檢視的近期候選批次。"
           :columns="runColumns"
           :rows="runRows"
           row-key="run_key"
@@ -100,11 +100,11 @@
           @row-select="handleRunRowSelect"
           default-sort-by="date"
           default-sort-direction="desc"
-          empty-message="No candidate runs available."
+          empty-message="目前沒有候選批次。"
         />
         <SortableTableSection
-          title="Selected Run Items"
-          description="Ranked candidates for the selected run."
+          title="目前批次項目"
+          description="顯示所選批次的候選名單與排序。"
           :columns="itemColumns"
           :rows="filteredItemRows"
           row-key="item_key"
@@ -113,14 +113,14 @@
           @row-select="handleItemRowSelect"
           default-sort-by="score"
           default-sort-direction="desc"
-          empty-message="No candidate items available."
+          empty-message="目前沒有候選項目。"
         />
       </div>
 
       <DetailPanel
         v-if="selectedCandidateItem"
-        title="Selected Candidate Detail"
-        description="Reason list and supporting metrics for the highlighted candidate."
+        title="候選明細"
+        description="顯示目前候選標的的理由與支援指標。"
       >
         <MetricGrid :metrics="selectedCandidateMetrics" />
       </DetailPanel>
@@ -182,23 +182,23 @@ function summaryNumber(value: unknown): string {
 }
 
 const runColumns = [
-  { key: "run_id", label: "Run" },
-  { key: "date", label: "Date" },
-  { key: "status", label: "Status" },
-  { key: "candidates", label: "Candidates" },
+  { key: "run_id", label: "批次" },
+  { key: "date", label: "日期" },
+  { key: "status", label: "狀態" },
+  { key: "candidates", label: "候選數" },
 ];
 
 const itemColumns = [
-  { key: "rank", label: "Rank" },
-  { key: "symbol", label: "Symbol" },
-  { key: "score", label: "Score" },
-  { key: "reasons", label: "Reasons" },
+  { key: "rank", label: "排名" },
+  { key: "symbol", label: "代號" },
+  { key: "score", label: "分數" },
+  { key: "reasons", label: "原因" },
 ];
 
 const runRows = computed(() =>
   runs.value.map((run) => ({
     run_key: run.id,
-    run_id: `#${run.id}${run.id === selectedRunId.value ? " (selected)" : ""}`,
+    run_id: `#${run.id}${run.id === selectedRunId.value ? "（目前）" : ""}`,
     date: formatDate(run.candidate_date),
     status: run.status,
     candidates: run.total_candidates,
@@ -211,7 +211,7 @@ const itemRows = computed(() =>
     rank: item.rank,
     symbol: item.symbol,
     score: Number(item.score),
-    reasons: formatList(item.candidate_reasons, "No reasons"),
+    reasons: formatList(item.candidate_reasons, "無理由說明"),
   })),
 );
 
@@ -225,24 +225,24 @@ const candidateMetrics = computed(() => {
   }
   return [
     {
-      label: "Candidates",
+      label: "候選數",
       value: formatNumber(selectedRun.value.total_candidates),
-      hint: "persisted for the selected date",
+      hint: "該日期已保存",
     },
     {
-      label: "Derivatives Regime",
-      value: String(selectedRunSummaryJson.value.overall_derivatives_regime ?? "n/a"),
-      hint: "market context",
+      label: "衍生性商品狀態",
+      value: String(selectedRunSummaryJson.value.overall_derivatives_regime ?? "無資料"),
+      hint: "市場脈絡",
     },
     {
-      label: "Bias Score",
+      label: "偏向分數",
       value: summaryNumber(selectedRunSummaryJson.value.overall_derivatives_bias_score),
-      hint: "summary score",
+      hint: "摘要分數",
     },
     {
-      label: "Universe Size",
+      label: "評估母體",
       value: summaryNumber(selectedRunSummaryJson.value.instruments_considered),
-      hint: "names evaluated",
+      hint: "參與評分標的",
     },
   ];
 });
@@ -260,13 +260,13 @@ const selectedCandidateMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Symbol", value: selectedCandidateItem.value.symbol, hint: "selected candidate" },
-    { label: "Score", value: formatNumber(selectedCandidateItem.value.score), hint: "overall rank score" },
-    { label: "Reasons", value: formatList(selectedCandidateItem.value.candidate_reasons, "No reasons"), hint: "signal summary" },
+    { label: "代號", value: selectedCandidateItem.value.symbol, hint: "目前候選標的" },
+    { label: "分數", value: formatNumber(selectedCandidateItem.value.score), hint: "整體排序分數" },
+    { label: "原因", value: formatList(selectedCandidateItem.value.candidate_reasons, "無理由說明"), hint: "訊號摘要" },
     {
-      label: "Metrics",
+      label: "支援指標",
       value: JSON.stringify(selectedCandidateItem.value.supporting_metrics),
-      hint: "supporting payload",
+      hint: "原始支援內容",
     },
   ];
 });

@@ -1,18 +1,18 @@
 <template>
   <div class="page-grid">
     <PageHeader
-      eyebrow="Dashboard"
-      title="Reports"
-      description="Latest generated reports, report bundle outputs, and report types ready for frontend display."
+      eyebrow="儀表板"
+      title="報表"
+      description="查看最新生成的日報、bundle 區塊與前端可直接呈現的報表內容。"
     />
 
     <FilterBar
-      title="Report Explorer"
-      description="Browse report bundles by date and focus on one section at a time."
+      title="報表探索"
+      description="依日期瀏覽報表 bundle，並聚焦單一區塊。"
     >
       <div class="form-inline">
         <div class="field-group">
-          <label for="report-limit">Limit</label>
+          <label for="report-limit">筆數</label>
           <select id="report-limit" v-model="limit" @change="loadReports">
             <option :value="5">5</option>
             <option :value="10">10</option>
@@ -20,9 +20,9 @@
           </select>
         </div>
         <div class="field-group">
-          <label for="report-date">Bundle Date</label>
+          <label for="report-date">彙整日期</label>
           <select id="report-date" v-model="selectedReportDate" @change="loadReports">
-            <option value="">Latest</option>
+            <option value="">最新</option>
             <option
               v-for="report in latestReports"
               :key="`${report.report_date}-${report.report_type}-${report.id}`"
@@ -33,13 +33,13 @@
           </select>
         </div>
         <div class="field-group">
-          <label for="report-type-filter">Report Type</label>
-          <input id="report-type-filter" v-model="reportTypeFilter" placeholder="market_summary" />
+          <label for="report-type-filter">報表類型</label>
+          <input id="report-type-filter" v-model="reportTypeFilter" placeholder="market_summary / daily_report_bundle" />
         </div>
         <div class="field-group">
-          <label for="report-section">Bundle Section</label>
+          <label for="report-section">報表區塊</label>
           <select id="report-section" v-model="selectedSectionType">
-            <option value="">First section</option>
+            <option value="">第一個區塊</option>
             <option v-for="section in bundle?.sections ?? []" :key="section.section_type" :value="section.section_type">
               {{ section.title }}
             </option>
@@ -47,50 +47,50 @@
         </div>
         <div class="field-group">
           <label>&nbsp;</label>
-          <button @click="loadReports">Refresh</button>
+          <button @click="loadReports">重新整理</button>
         </div>
       </div>
     </FilterBar>
 
     <PageStatusBar
-      title="Report Data Status"
+      title="報表資料狀態"
       :as-of-date="dashboard?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(dashboard?.meta.generated_at)"
       :item-count="dashboard?.meta.item_count"
-      hint="Report bundles combine structured payloads with markdown sections for daily review."
-      demo-hint="Run make demo-data if no bundles are available."
+      hint="報表頁整合 bundle 區塊、markdown 內容與單筆報表列。"
+      demo-hint="若尚無報表資料，請執行 make demo-data 產生示範 bundle。"
       :show-refresh="true"
       @refresh="loadReports"
     />
 
-    <LoadingState v-if="isLoading" message="Loading reports dashboard..." />
+    <LoadingState v-if="isLoading" message="正在載入報表..." />
     <ErrorState
       v-else-if="errorMessage"
-      title="Report request failed"
-      message="The latest reports or report bundle could not be loaded."
+      title="報表載入失敗"
+      message="無法載入最新報表或報表 bundle。"
       :detail="errorMessage"
     />
     <EmptyState
       v-else-if="dashboard?.meta.is_empty"
-      title="No reports available"
-      message="The backend has no persisted daily reports yet. Run make demo-data to generate a repeatable local report bundle."
+      title="尚無報表資料"
+      message="後端目前還沒有保存的日報。執行 make demo-data 後即可產生可重複的本機報表 bundle。"
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
 
       <div class="page-section-grid">
-        <DetailPanel title="Bundle Metadata" description="High-level context for the selected report bundle.">
+        <DetailPanel title="報表彙整資訊" description="顯示目前報表彙整內容的整體脈絡。">
           <MetricGrid :metrics="bundleMetrics" />
         </DetailPanel>
         <MiniBarChart
-          title="Report Type Mix"
-          description="Counts of the latest visible report rows by report type."
+          title="報表類型分布"
+          description="統計目前可見報表列的類型分布。"
           :points="reportTypeChartPoints"
-          empty-message="No report mix available."
+          empty-message="目前沒有報表分布資料。"
         />
       </div>
 
-      <DetailPanel title="Report Highlights" description="Latest persisted report signals surfaced through the dashboard.">
+      <DetailPanel title="報表重點" description="整理目前儀表板中最重要的報表觀察。">
         <ul class="highlights">
           <li v-for="item in dashboard.highlights" :key="item">{{ item }}</li>
         </ul>
@@ -99,8 +99,8 @@
       <div class="page-section-grid">
         <RankedListSection v-for="list in dashboard.ranked_lists" :key="list.key" :list="list" />
         <SortableTableSection
-          title="Latest Reports"
-          description="Latest individual report rows returned by the report API."
+          title="近期報表"
+          description="顯示報表 API 回傳的近期單筆報表。"
           :columns="reportColumns"
           :rows="filteredReportRows"
           row-key="report_key"
@@ -109,17 +109,17 @@
           @row-select="handleReportRowSelect"
           default-sort-by="date"
           default-sort-direction="desc"
-          empty-message="No reports available."
+          empty-message="目前沒有報表資料。"
         />
       </div>
 
-      <DetailPanel v-if="selectedReport" title="Selected Report Row" description="Direct persisted report metadata and markdown body.">
+      <DetailPanel v-if="selectedReport" title="報表列明細" description="檢視已保存報表的中繼資訊與摘要內容。">
         <MetricGrid :metrics="selectedReportMetrics" />
       </DetailPanel>
 
       <MarkdownSection
         v-if="selectedSection"
-        title="Selected Bundle Section"
+        title="目前報表區塊"
         :section-type="selectedSection.section_type"
         :description="selectedSection.title"
         :body="selectedSection.markdown_body"
@@ -168,9 +168,9 @@ const route = useRoute();
 const router = useRouter();
 
 const reportColumns = [
-  { key: "date", label: "Date" },
-  { key: "type", label: "Type" },
-  { key: "title", label: "Title" },
+  { key: "date", label: "日期" },
+  { key: "type", label: "類型" },
+  { key: "title", label: "標題" },
 ];
 
 const reportRows = computed(() =>
@@ -202,17 +202,17 @@ const bundleMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Bundle Version", value: bundle.value.metadata.bundle_version, hint: "content contract" },
-    { label: "Section Count", value: formatNumber(bundle.value.metadata.section_count), hint: "renderable sections" },
+    { label: "彙整版本", value: bundle.value.metadata.bundle_version, hint: "內容契約" },
+    { label: "區塊數", value: formatNumber(bundle.value.metadata.section_count), hint: "可顯示區塊" },
     {
-      label: "Top Candidates",
-      value: formatList(bundle.value.metadata.top_candidate_symbols, "n/a"),
-      hint: "bundle metadata",
+      label: "高分候選",
+      value: formatList(bundle.value.metadata.top_candidate_symbols, "無資料"),
+      hint: "彙整中繼資訊",
     },
     {
-      label: "Strongest Group",
-      value: bundle.value.metadata.strongest_group_name ?? "n/a",
-      hint: "scanner highlight",
+      label: "最強群組",
+      value: bundle.value.metadata.strongest_group_name ?? "無資料",
+      hint: "掃描重點",
     },
   ];
 });
@@ -222,10 +222,10 @@ const selectedReportMetrics = computed(() => {
     return [];
   }
   return [
-    { label: "Type", value: selectedReport.value.report_type, hint: "report row type" },
-    { label: "Key", value: selectedReport.value.report_key, hint: "report key" },
-    { label: "Date", value: formatDate(selectedReport.value.report_date), hint: "report date" },
-    { label: "Markdown", value: selectedReport.value.markdown_text.slice(0, 120) || "n/a", hint: "preview" },
+    { label: "類型", value: selectedReport.value.report_type, hint: "報表列類型" },
+    { label: "鍵值", value: selectedReport.value.report_key, hint: "報表 key" },
+    { label: "日期", value: formatDate(selectedReport.value.report_date), hint: "報表日期" },
+    { label: "內容摘要", value: selectedReport.value.markdown_text.slice(0, 120) || "無資料", hint: "內容預覽" },
   ];
 });
 

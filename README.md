@@ -229,6 +229,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   - detail panels and metric grids for selected run/report/derivatives context
   - route-query-backed page filters so deeper views can be opened directly from overview links
   - status strips that show `generated_at`, `as_of_date`, refresh actions, and demo-data hints
+  - Traditional Chinese (`zh-TW`) UI labels across navigation, page headings, filters, tables, and state messages
 - Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
 - Typical local setting:
   `VITE_API_BASE_URL=http://localhost:8000`
@@ -241,6 +242,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 - The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
 - Practical daily flow:
   start from Overview, then click candidate symbols, report titles, backtest runs, or the current watchlist/group pills to jump into the deeper filtered page with the same context preserved in the URL query string.
+- The frontend currently uses Traditional Chinese as the default UI language. Backend-generated content may still include source-side labels or markdown text depending on the stored data, but the main navigation, controls, and page chrome are now zh-TW.
 - The API now allows local frontend origins by default through CORS:
   `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`
 - Override allowed browser origins with `CORS_ALLOWED_ORIGINS` in `.env` if your frontend runs on a different host or port.

@@ -9,11 +9,11 @@ import ReportsPage from "@/pages/ReportsPage.vue";
 import WatchlistsPage from "@/pages/WatchlistsPage.vue";
 
 export const routes: RouteRecordRaw[] = [
-  { path: "/", name: "overview", component: OverviewPage, meta: { label: "Overview", title: "Market Overview", description: "Daily market snapshot and cross-page entry point." } },
-  { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "Watchlists", title: "Watchlists", description: "Review watchlist membership, scanner flags, and summary metrics." } },
-  { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "Tag Groups", title: "Tag Groups", description: "Inspect tag-based groups and scanner context." } },
-  { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "Candidates", title: "Next-Day Candidates", description: "Ranked next-day candidate runs with reasons and score breakdowns." } },
-  { path: "/reports", name: "reports", component: ReportsPage, meta: { label: "Reports", title: "Daily Reports", description: "Bundle sections and persisted daily report rows." } },
-  { path: "/backtests", name: "backtests", component: BacktestsPage, meta: { label: "Backtests", title: "Backtests", description: "Recent research runs, metrics, and trade-level results." } },
-  { path: "/derivatives", name: "derivatives", component: DerivativesPage, meta: { label: "Derivatives", title: "Taiwan Derivatives", description: "Institutional futures/options bias and anomaly summaries." } },
+  { path: "/", name: "overview", component: OverviewPage, meta: { label: "總覽", title: "市場總覽", description: "每日市場快照與跨頁面檢視入口。" } },
+  { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "觀察清單", title: "觀察清單", description: "檢視觀察清單成員、掃描訊號與摘要指標。" } },
+  { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "標籤群組", title: "標籤群組", description: "檢視標籤群組、群組強弱與掃描脈絡。" } },
+  { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "候選清單", title: "隔日候選清單", description: "檢視隔日候選名單、評分理由與排名拆解。" } },
+  { path: "/reports", name: "reports", component: ReportsPage, meta: { label: "報表", title: "每日報表", description: "檢視日報彙整區塊與已保存的報表內容。" } },
+  { path: "/backtests", name: "backtests", component: BacktestsPage, meta: { label: "回測", title: "回測研究", description: "檢視近期研究回測、核心指標與交易明細。" } },
+  { path: "/derivatives", name: "derivatives", component: DerivativesPage, meta: { label: "衍生性商品", title: "台灣法人衍生性商品", description: "檢視台灣法人期權偏多偏空與異常摘要。" } },
 ];

@@ -10,11 +10,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+
+import { t } from "@/utils/locale";
+
+const props = defineProps<{
   title: string;
   description: string;
   eyebrow?: string;
 }>();
+
+const title = computed(() => t(props.title));
+const description = computed(() => t(props.description));
+const eyebrow = computed(() => (props.eyebrow ? t(props.eyebrow) : ""));
 </script>
 
 <style scoped>

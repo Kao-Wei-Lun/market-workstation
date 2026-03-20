@@ -1,7 +1,7 @@
 <template>
   <div class="state-box panel">
     <div class="panel-body">
-      <strong>Loading...</strong>
+      <strong>載入中...</strong>
       <p class="muted">{{ message }}</p>
       <div class="skeleton-stack" aria-hidden="true">
         <span class="skeleton-line short" />

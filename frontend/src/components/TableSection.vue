@@ -55,7 +55,7 @@ defineProps<{
 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined || value === "") {
-    return "n/a";
+    return "無資料";
   }
   if (Array.isArray(value)) {
     return value.join(", ");

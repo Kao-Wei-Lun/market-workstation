@@ -6,12 +6,12 @@
         <p v-if="hint" class="muted">{{ hint }}</p>
       </div>
       <div class="status-items">
-        <span v-if="asOfDate" class="pill info">As of {{ asOfDate }}</span>
-        <span v-if="generatedAt" class="pill">Generated {{ generatedAt }}</span>
-        <span v-if="itemCount !== undefined" class="pill">{{ itemCount }} items</span>
+        <span v-if="asOfDate" class="pill info">資料日期 {{ asOfDate }}</span>
+        <span v-if="generatedAt" class="pill">更新時間 {{ generatedAt }}</span>
+        <span v-if="itemCount !== undefined" class="pill">{{ itemCount }} 筆</span>
         <span v-if="demoHint" class="pill neutral">{{ demoHint }}</span>
         <button v-if="showRefresh" class="refresh-button" type="button" @click="$emit('refresh')">
-          {{ refreshLabel }}
+          {{ refreshLabel || "重新整理" }}
         </button>
       </div>
     </div>
