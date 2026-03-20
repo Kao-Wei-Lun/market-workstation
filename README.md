@@ -110,6 +110,7 @@ After running the quickstart commands:
 - Technical indicators currently include `SMA`, `EMA`, `MACD`, `RSI`, and `Bollinger Bands`.
 - Taiwan derivatives analysis persists raw daily rows to `tw_derivatives_daily` and derived analytics to `tw_derivatives_features`.
 - Daily reports persist to `reports_daily`, and query APIs are exposed under `/reports`.
+- Daily reporting now includes a richer persisted `daily_report_bundle` with structured sections for market summary, watchlist highlights, group scanner highlights, derivatives context, next-day candidates, top movers, and technical breadth.
 - Next-day watch candidate runs persist to `candidate_runs` and `candidate_items`, with generation and query APIs exposed under `/candidates`.
 - Scheduler and analysis workers share a registered-job runtime and persist heartbeat state to `worker_health`.
 - Auto-classification rules can tag instruments from market, asset type, symbol, name, and existing-tag rules, and the group scanner can scan either a tag group or a watchlist.
@@ -123,6 +124,14 @@ After running the quickstart commands:
 - List candidate items for a run:
   `curl http://localhost:8000/candidates/runs/<run_id>/items`
 - The daily next-day candidates report reuses the same scoring service as the candidate run API.
+
+## Daily Report Bundle
+
+- Retrieve the richer daily report bundle:
+  `curl http://localhost:8000/reports/2026-03-20/bundle`
+- Retrieve one bundle section:
+  `curl http://localhost:8000/reports/2026-03-20/bundle/sections/technical_breadth_summary`
+- The bundle includes structured sections and markdown-friendly content for market review and next-day planning.
 
 ## Verification
 

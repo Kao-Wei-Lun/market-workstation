@@ -3,11 +3,34 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from services.core.reports.service import get_report, list_reports
+from services.core.reports.service import get_report, get_report_bundle, get_report_section, list_reports
 from services.db.session import get_db_session
-from services.schemas.reporting import ReportDailyRead
+from services.schemas.reporting import DailyReportBundleContent, ReportDailyRead, ReportSectionRead
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@router.get("/{report_date}/bundle", response_model=DailyReportBundleContent)
+async def get_report_bundle_route(
+    report_date: date,
+    session: Session = Depends(get_db_session),
+) -> DailyReportBundleContent:
+    bundle = get_report_bundle(session, report_date=report_date)
+    if bundle is None:
+        raise HTTPException(status_code=404, detail="report bundle not found")
+    return bundle
+
+
+@router.get("/{report_date}/bundle/sections/{section_type}", response_model=ReportSectionRead)
+async def get_report_section_route(
+    report_date: date,
+    section_type: str,
+    session: Session = Depends(get_db_session),
+) -> ReportSectionRead:
+    section = get_report_section(session, report_date=report_date, section_type=section_type)
+    if section is None:
+        raise HTTPException(status_code=404, detail="report section not found")
+    return section
 
 
 @router.get("/{report_date}/{report_type}", response_model=ReportDailyRead)

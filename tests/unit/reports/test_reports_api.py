@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from apps.api.main import app
+from services.core.reports.bundle import generate_daily_report_bundle
 from services.core.reports.generators import (
     MARKET_SUMMARY_REPORT,
     WATCHLIST_SUMMARY_REPORT,
@@ -39,6 +40,10 @@ async def test_report_query_routes(
             watchlist_id=watchlist_id,
         ),
     )
+    persist_generated_report(
+        reporting_session,
+        generate_daily_report_bundle(reporting_session, report_date=report_date),
+    )
 
     async def override_db():
         try:
@@ -54,6 +59,10 @@ async def test_report_query_routes(
             f"/reports/{report_date.isoformat()}/{WATCHLIST_SUMMARY_REPORT}",
             params={"report_key": watchlist_key},
         )
+        bundle_response = await client.get(f"/reports/{report_date.isoformat()}/bundle")
+        section_response = await client.get(
+            f"/reports/{report_date.isoformat()}/bundle/sections/technical_breadth_summary"
+        )
         list_response = await client.get("/reports", params={"report_date": report_date.isoformat()})
         missing_response = await client.get(
             f"/reports/{report_date.isoformat()}/{WATCHLIST_SUMMARY_REPORT}"
@@ -65,6 +74,10 @@ async def test_report_query_routes(
     assert market_response.json()["content_json"]["instrument_count"] == 3
     assert watchlist_response.status_code == 200
     assert watchlist_response.json()["report_key"] == watchlist_key
+    assert bundle_response.status_code == 200
+    assert bundle_response.json()["metadata"]["strongest_group_name"] == "semiconductor"
+    assert section_response.status_code == 200
+    assert section_response.json()["section_type"] == "technical_breadth_summary"
     assert list_response.status_code == 200
-    assert len(list_response.json()) == 2
+    assert len(list_response.json()) == 3
     assert missing_response.status_code == 404

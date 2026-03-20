@@ -18,6 +18,7 @@ from services.core.indicators.macd import MACDIndicator
 from services.core.indicators.rsi import RSIIndicator
 from services.core.indicators.service import compute_and_persist_indicators
 from services.core.indicators.sma import SMAIndicator
+from services.core.reports.bundle import generate_daily_report_bundle
 from services.core.reports.generators import (
     generate_group_summary_snapshot_report,
     generate_market_summary_report,
@@ -220,6 +221,7 @@ def run_taiwan_derivatives_pipeline_job(session: Session, trade_date: date) -> J
 def run_daily_report_generation_job(session: Session, trade_date: date) -> JobExecutionResult:
     reports_persisted = 0
 
+    reports_persisted += _persist_report(generate_daily_report_bundle(session, report_date=trade_date), session)
     reports_persisted += _persist_report(generate_market_summary_report(session, report_date=trade_date), session)
     reports_persisted += _persist_report(
         generate_taiwan_derivatives_summary_report(session, report_date=trade_date),

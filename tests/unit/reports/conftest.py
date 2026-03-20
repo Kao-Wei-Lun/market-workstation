@@ -158,16 +158,19 @@ def reporting_seed(reporting_session: Session) -> dict[str, object]:
         [
             InstrumentTag(instrument_id=instruments[0].id, tag="semiconductor"),
             InstrumentTag(instrument_id=instruments[2].id, tag="semiconductor"),
+            InstrumentTag(instrument_id=instruments[1].id, tag="hardware"),
         ]
     )
 
     watchlist = Watchlist(name="focus", description="Core watchlist")
-    reporting_session.add(watchlist)
+    laggard_watchlist = Watchlist(name="laggards", description="Weak watchlist")
+    reporting_session.add_all([watchlist, laggard_watchlist])
     reporting_session.flush()
     reporting_session.add_all(
         [
             WatchlistItem(watchlist_id=watchlist.id, instrument_id=instruments[0].id),
             WatchlistItem(watchlist_id=watchlist.id, instrument_id=instruments[1].id),
+            WatchlistItem(watchlist_id=laggard_watchlist.id, instrument_id=instruments[1].id),
         ]
     )
 
@@ -250,5 +253,6 @@ def reporting_seed(reporting_session: Session) -> dict[str, object]:
         "report_date": report_date,
         "watchlist_id": watchlist.id,
         "watchlist_key": f"watchlist:{watchlist.id}",
+        "laggard_watchlist_id": laggard_watchlist.id,
         "tag": "semiconductor",
     }
