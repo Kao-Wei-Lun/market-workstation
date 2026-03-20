@@ -20,20 +20,29 @@
     />
     <template v-else-if="dashboard">
       <SummaryCardGrid :cards="dashboard.summary_cards" />
-      <section class="panel">
-        <div class="panel-header">
-          <SectionHeader title="Bias Context" description="Latest institutional derivatives regime and highlight lines." />
-        </div>
-        <div class="panel-body">
-          <ul class="highlights">
-            <li v-for="item in (summary?.highlights ?? dashboard.highlights)" :key="item">{{ item }}</li>
-          </ul>
-        </div>
-      </section>
+
+      <div class="page-section-grid">
+        <DetailPanel title="Bias Metrics" description="Latest institutional derivatives regime and signal balance.">
+          <MetricGrid :metrics="metricCards" />
+        </DetailPanel>
+        <MiniBarChart
+          title="Regime Composition"
+          description="Bullish, bearish, neutral, and anomaly counts from the latest summary."
+          :points="chartPoints"
+          empty-message="No derivatives composition available."
+        />
+      </div>
+
+      <DetailPanel title="Bias Context" description="Headline observations from the derivatives summary.">
+        <ul class="highlights">
+          <li v-for="item in (summary?.highlights ?? dashboard.highlights)" :key="item">{{ item }}</li>
+        </ul>
+      </DetailPanel>
+
       <div class="page-section-grid">
         <RankedListSection v-for="list in dashboard.ranked_lists" :key="list.key" :list="list" />
-        <TableSection
-          title="Bias Metrics"
+        <SortableTableSection
+          title="Bias Metrics Table"
           description="Direct summary fields from the derivatives API."
           :columns="metricColumns"
           :rows="metricRows"
@@ -50,14 +59,16 @@ import { computed, onMounted, ref } from "vue";
 import { fetchDerivativesDashboard } from "@/api/dashboard";
 import { fetchLatestDerivativesSummary } from "@/api/derivatives";
 import { normalizeApiError } from "@/api/http";
+import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
 import LoadingState from "@/components/LoadingState.vue";
+import MetricGrid from "@/components/MetricGrid.vue";
+import MiniBarChart from "@/components/MiniBarChart.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
-import SectionHeader from "@/components/SectionHeader.vue";
+import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
-import TableSection from "@/components/TableSection.vue";
 import type { DailyInstitutionalBiasSummary, DerivativesDashboardRead } from "@/types/dashboard";
 import { formatNumber } from "@/utils/formatters";
 
@@ -78,10 +89,34 @@ const metricRows = computed(() => {
   return [
     { metric: "Trade Date", value: summary.value.trade_date },
     { metric: "Overall Regime", value: summary.value.overall_regime },
-    { metric: "Average Bias Score", value: formatNumber(summary.value.average_bias_score) },
-    { metric: "Bullish Rows", value: formatNumber(summary.value.bullish_count) },
-    { metric: "Bearish Rows", value: formatNumber(summary.value.bearish_count) },
-    { metric: "Anomalies", value: formatNumber(summary.value.anomaly_count) },
+    { metric: "Average Bias Score", value: Number(summary.value.average_bias_score) },
+    { metric: "Bullish Rows", value: summary.value.bullish_count },
+    { metric: "Bearish Rows", value: summary.value.bearish_count },
+    { metric: "Anomalies", value: summary.value.anomaly_count },
+  ];
+});
+
+const metricCards = computed(() => {
+  if (!summary.value) {
+    return [];
+  }
+  return [
+    { label: "Trade Date", value: summary.value.trade_date, hint: "latest stored summary" },
+    { label: "Regime", value: summary.value.overall_regime, hint: "market-level context" },
+    { label: "Bias Score", value: formatNumber(summary.value.average_bias_score), hint: "aggregate score" },
+    { label: "Anomalies", value: formatNumber(summary.value.anomaly_count), hint: "feature outliers" },
+  ];
+});
+
+const chartPoints = computed(() => {
+  if (!summary.value) {
+    return [];
+  }
+  return [
+    { label: "Bullish", value: summary.value.bullish_count, tone: "positive" as const },
+    { label: "Bearish", value: summary.value.bearish_count, tone: "negative" as const },
+    { label: "Neutral", value: summary.value.neutral_count, tone: "neutral" as const },
+    { label: "Anomalies", value: summary.value.anomaly_count, tone: "info" as const },
   ];
 });
 

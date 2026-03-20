@@ -4,6 +4,11 @@
       eyebrow="Dashboard"
       title="Overview"
       description="Daily market breadth, candidates, groups, reports, and the latest research signals."
+    />
+
+    <FilterBar
+      title="Overview Scope"
+      description="Adjust the watchlist and tag scope used by the aggregate dashboard endpoint."
     >
       <div class="form-inline">
         <div class="field-group">
@@ -24,7 +29,7 @@
           <button @click="loadOverview">Refresh</button>
         </div>
       </div>
-    </PageHeader>
+    </FilterBar>
 
     <LoadingState v-if="isLoading" message="Loading dashboard overview..." />
     <ErrorState
@@ -41,68 +46,60 @@
     <template v-else-if="overview">
       <SummaryCardGrid :cards="overview.summary_cards" />
 
-      <section class="panel">
-        <div class="panel-header">
-          <SectionHeader title="Highlights" description="Top-level review points for the selected dashboard scope.">
-            <span class="pill info">As of {{ overview.meta.as_of_date ?? "n/a" }}</span>
-          </SectionHeader>
-        </div>
-        <div class="panel-body">
-          <ul class="highlights">
-            <li v-for="item in overview.highlights" :key="item">{{ item }}</li>
-          </ul>
-        </div>
-      </section>
+      <DetailPanel
+        title="Session Highlights"
+        description="Top-level review points for the selected dashboard scope."
+      >
+        <template #header>
+          <span class="pill info">As of {{ overview.meta.as_of_date ?? "n/a" }}</span>
+        </template>
+        <ul class="highlights">
+          <li v-for="item in overview.highlights" :key="item">{{ item }}</li>
+        </ul>
+      </DetailPanel>
 
       <div class="page-section-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <SectionHeader title="Market Snapshot" description="Latest stored breadth metrics from daily bars." />
-          </div>
-          <div class="panel-body">
-            <dl v-if="overview.data.market_snapshot" class="metric-list">
-              <div>
-                <dt>Instruments</dt>
-                <dd>{{ formatNumber(overview.data.market_snapshot.instrument_count) }}</dd>
-              </div>
-              <div>
-                <dt>Advancers</dt>
-                <dd>{{ formatNumber(overview.data.market_snapshot.advancers) }}</dd>
-              </div>
-              <div>
-                <dt>Decliners</dt>
-                <dd>{{ formatNumber(overview.data.market_snapshot.decliners) }}</dd>
-              </div>
-              <div>
-                <dt>Above SMA20</dt>
-                <dd>{{ formatPercent(overview.data.market_snapshot.percentage_above_sma20) }}</dd>
-              </div>
-            </dl>
-            <p v-else class="muted">No market snapshot data available.</p>
-          </div>
-        </section>
+        <MetricGrid :metrics="marketMetrics" />
+        <MiniBarChart
+          title="Breadth Snapshot"
+          description="Advancers, decliners, and unchanged names from the latest market summary."
+          :points="breadthChartPoints"
+          empty-message="No breadth data available."
+        />
+        <MiniBarChart
+          title="Candidate Score Ladder"
+          description="Top candidate scores from the latest candidate run."
+          :points="candidateChartPoints"
+          empty-message="No candidate scores available."
+        />
+      </div>
 
-        <TableSection
+      <div class="page-section-grid">
+        <SortableTableSection
           title="Top Candidates"
           description="Highest-ranked next-day candidates from the latest stored run."
           :columns="candidateColumns"
           :rows="candidateRows"
+          default-sort-by="score"
+          default-sort-direction="desc"
           empty-message="No candidate items available."
         />
-
-        <TableSection
+        <SortableTableSection
           title="Recent Reports"
           description="Latest persisted reports for the selected report date."
           :columns="reportColumns"
           :rows="reportRows"
+          default-sort-by="date"
+          default-sort-direction="desc"
           empty-message="No reports available."
         />
-
-        <TableSection
+        <SortableTableSection
           title="Recent Backtests"
           description="Most recent backtest runs available to the dashboard."
           :columns="backtestColumns"
           :rows="backtestRows"
+          default-sort-by="return_pct"
+          default-sort-direction="desc"
           empty-message="No backtests available."
         />
       </div>
@@ -123,14 +120,17 @@ import { computed, onMounted, ref } from "vue";
 
 import { fetchOverview } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
+import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
+import FilterBar from "@/components/FilterBar.vue";
 import LoadingState from "@/components/LoadingState.vue";
+import MiniBarChart from "@/components/MiniBarChart.vue";
+import MetricGrid from "@/components/MetricGrid.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
-import SectionHeader from "@/components/SectionHeader.vue";
+import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
-import TableSection from "@/components/TableSection.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { DashboardOverviewRead } from "@/types/dashboard";
 import { formatDate, formatNumber, formatPercent } from "@/utils/formatters";
@@ -166,7 +166,7 @@ const candidateRows = computed(() =>
   overview.value?.data.candidate_summary?.top_items.map((item) => ({
     rank: item.rank,
     symbol: item.symbol,
-    score: formatNumber(item.score),
+    score: Number(item.score),
     reasons: item.candidate_reasons.join(", "),
   })) ?? [],
 );
@@ -182,9 +182,46 @@ const reportRows = computed(() =>
 const backtestRows = computed(() =>
   overview.value?.data.backtest_summary?.recent_runs.map((run) => ({
     run_id: `#${run.id}`,
-    return_pct: formatPercent(run.total_return_pct),
-    trades: formatNumber(run.total_trades),
+    return_pct: Number(run.total_return_pct),
+    trades: run.total_trades,
     status: run.status,
+  })) ?? [],
+);
+
+const marketMetrics = computed(() => {
+  const marketSnapshot = overview.value?.data.market_snapshot;
+  if (!marketSnapshot) {
+    return [];
+  }
+  return [
+    { label: "Instruments", value: formatNumber(marketSnapshot.instrument_count), hint: "tracked daily bars" },
+    { label: "Average Change", value: formatPercent(marketSnapshot.average_close_change_pct), hint: "close-to-close" },
+    { label: "Above SMA20", value: formatPercent(marketSnapshot.percentage_above_sma20), hint: "breadth strength" },
+    {
+      label: "Top Candidate Count",
+      value: formatNumber(overview.value?.data.candidate_summary?.top_items.length ?? 0),
+      hint: "ranked names",
+    },
+  ];
+});
+
+const breadthChartPoints = computed(() => {
+  const marketSnapshot = overview.value?.data.market_snapshot;
+  if (!marketSnapshot) {
+    return [];
+  }
+  return [
+    { label: "Advancers", value: marketSnapshot.advancers, tone: "positive" as const },
+    { label: "Decliners", value: marketSnapshot.decliners, tone: "negative" as const },
+    { label: "Unchanged", value: marketSnapshot.unchanged, tone: "neutral" as const },
+  ];
+});
+
+const candidateChartPoints = computed(() =>
+  overview.value?.data.candidate_summary?.top_items.map((item) => ({
+    label: item.symbol,
+    value: Number(item.score),
+    tone: "info" as const,
   })) ?? [],
 );
 
@@ -214,30 +251,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.metric-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 0;
-}
-
-.metric-list div {
-  padding: 0.85rem;
-  border-radius: 14px;
-  background: var(--panel-alt);
-}
-
-.metric-list dt {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.metric-list dd {
-  margin: 0.25rem 0 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
 .highlights {
   margin: 0;
   padding-left: 1.1rem;
