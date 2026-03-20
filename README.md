@@ -230,6 +230,7 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
   - route-query-backed page filters so deeper views can be opened directly from overview links
   - status strips that show `generated_at`, `as_of_date`, refresh actions, and demo-data hints
   - Traditional Chinese (`zh-TW`) UI labels across navigation, page headings, filters, tables, and state messages
+  - richer Candidates and Reports drill-down flows, including 候選分數拆解、scanner/watchlist/tag 脈絡、報表 section 快速切換，以及 markdown/structured payload 並排閱讀
 - Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
 - Typical local setting:
   `VITE_API_BASE_URL=http://localhost:8000`
@@ -242,6 +243,10 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 - The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
 - Practical daily flow:
   start from Overview, then click candidate symbols, report titles, backtest runs, or the current watchlist/group pills to jump into the deeper filtered page with the same context preserved in the URL query string.
+- Candidates page workflow:
+  use 日期、代號搜尋、分數/名次排序快速收斂名單，再從右側明細檢查候選理由、評分拆解與 scanner / watchlist / tag 關聯，必要時直接跳到同日報表或相關群組。
+- Reports page workflow:
+  先用日期與類型鎖定當日 bundle，再用 section 快速切換閱讀 markdown 與 structured payload；若 payload 含群組、候選代號或觀察清單資訊，可直接跳往對應頁面延伸查看。
 - The frontend currently uses Traditional Chinese as the default UI language. Backend-generated content may still include source-side labels or markdown text depending on the stored data, but the main navigation, controls, and page chrome are now zh-TW.
 - The API now allows local frontend origins by default through CORS:
   `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173`, and `http://127.0.0.1:4173`

@@ -22,6 +22,18 @@ describe("presentation utils", () => {
     expect(filterRowsByQuery(rows, ["symbol", "reasons"], "trend")).toEqual([rows[0]]);
   });
 
+  it("filters and sorts linked cell values by their visible labels", () => {
+    const rows = [
+      { symbol: makeLinkedCell("AAPL", { name: "candidates", query: { search: "AAPL" } }), score: "10" },
+      { symbol: makeLinkedCell("2330", { name: "candidates", query: { search: "2330" } }), score: "20" },
+    ];
+
+    expect(filterRowsByQuery(rows, ["symbol"], "2330")).toEqual([rows[1]]);
+    expect(
+      sortRows(rows, "symbol", "asc").map((row) => (isLinkedCellValue(row.symbol) ? row.symbol.label : String(row.symbol))),
+    ).toEqual(["2330", "AAPL"]);
+  });
+
   it("normalizes chart points to percentages", () => {
     const points = buildChartPoints([
       { label: "Bullish", value: 10 },

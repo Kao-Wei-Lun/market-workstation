@@ -17,6 +17,9 @@ function normalizeValue(value: unknown): string | number {
   if (value === null || value === undefined) {
     return "";
   }
+  if (isLinkedCellValue(value)) {
+    return value.label.toLowerCase();
+  }
   if (typeof value === "number") {
     return value;
   }
@@ -61,6 +64,9 @@ export function filterRowsByQuery<T extends TableRow>(
       const value = row[key];
       if (value === null || value === undefined) {
         return false;
+      }
+      if (isLinkedCellValue(value)) {
+        return value.label.toLowerCase().includes(normalizedQuery);
       }
       return String(value).toLowerCase().includes(normalizedQuery);
     }),
