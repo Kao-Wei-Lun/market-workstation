@@ -27,7 +27,7 @@
           前往群組頁
         </RouterLink>
         <RouterLink class="pill link-pill" :to="{ name: 'operations' }">
-          系統狀態
+          任務中心
         </RouterLink>
       </div>
     </PageHeader>
@@ -92,7 +92,7 @@
           <template #header>
             <div class="detail-actions">
               <RouterLink class="detail-link" :to="{ name: 'coverage' }">檢查資料覆蓋</RouterLink>
-              <RouterLink class="detail-link" :to="{ name: 'operations' }">檢查系統狀態</RouterLink>
+              <RouterLink class="detail-link" :to="{ name: 'operations' }">打開任務中心</RouterLink>
               <RouterLink class="detail-link" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
                 閱讀當日報表
               </RouterLink>

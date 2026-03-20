@@ -50,10 +50,20 @@ class IngestJobRepository:
         self.session.flush()
         return job
 
-    def list_recent(self, limit: int = 20) -> list[IngestJob]:
+    def list_recent(
+        self,
+        limit: int = 20,
+        *,
+        source_route: str | None = None,
+        job_type_prefix: str | None = None,
+    ) -> list[IngestJob]:
+        query = self.session.query(IngestJob)
+        if source_route is not None:
+            query = query.filter(IngestJob.source_route == source_route)
+        if job_type_prefix is not None:
+            query = query.filter(IngestJob.job_type.like(f"{job_type_prefix}%"))
         return (
-            self.session.query(IngestJob)
-            .order_by(desc(IngestJob.started_at), desc(IngestJob.created_at))
+            query.order_by(desc(IngestJob.started_at), desc(IngestJob.created_at))
             .limit(limit)
             .all()
         )

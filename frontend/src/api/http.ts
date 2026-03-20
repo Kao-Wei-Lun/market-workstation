@@ -85,6 +85,15 @@ export async function getJson<T>(url: string, config?: AxiosRequestConfig): Prom
   return response.data;
 }
 
+export async function postJson<TResponse, TRequest = unknown>(
+  url: string,
+  data?: TRequest,
+  config?: AxiosRequestConfig,
+): Promise<TResponse> {
+  const response = await http.post<TResponse>(url, data, config);
+  return response.data;
+}
+
 export function getApiBaseUrl(): string {
   return baseURL;
 }

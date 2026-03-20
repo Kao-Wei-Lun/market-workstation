@@ -26,6 +26,7 @@
 - [ ] `curl http://localhost:8000/healthz` 回傳 200
 - [ ] `curl http://localhost:8000/api/system/coverage` 可看到 preset / scope / counts
 - [ ] `curl http://localhost:8000/api/system/status` 可看到 datasets / recent_jobs / workers
+- [ ] `curl http://localhost:8000/api/system/tasks` 可看到可執行手動任務與最近任務結果
 - [ ] `python -m workers.scheduler.main --list-jobs` 可列出工作
 - [ ] `python -m workers.analysis.main --list-jobs` 可列出工作
 
@@ -45,7 +46,7 @@
 - [ ] 導覽列可看到：
   - [ ] 總覽
   - [ ] 資料覆蓋
-  - [ ] 系統狀態
+  - [ ] 任務中心
   - [ ] 觀察清單
   - [ ] 標籤群組
   - [ ] 候選清單
@@ -62,6 +63,8 @@
 - [ ] Reports 頁可切換報表區塊並閱讀 markdown / structured payload
 - [ ] Candidates 頁可依日期、代號、分數、名次篩選
 - [ ] Candidates 頁可打開候選明細
+- [ ] 任務中心頁可手動觸發示範資料、技術指標、候選與報表任務
+- [ ] 任務中心頁可看到最近任務結果、資料新鮮度與 worker 狀態
 - [ ] Backtests 頁可切換 run 並查看 trades
 - [ ] Derivatives 頁可看到偏向摘要與重點
 

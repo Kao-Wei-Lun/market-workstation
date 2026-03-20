@@ -138,3 +138,94 @@ async def test_system_routes_handle_empty_status_payload() -> None:
     assert status_response.status_code == 200
     assert status_response.json()["meta"]["is_empty"] is False
     assert status_response.json()["data"]["recent_jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_manual_task_center_route_returns_actions() -> None:
+    session = _build_session()
+    _seed_system_data(session)
+
+    async def override_db():
+        try:
+            yield session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db_session] = override_db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/system/tasks", params={"limit": 5})
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["available_actions"]
+    assert payload["data"]["available_actions"][0]["action_key"] == "demo_data"
+
+
+@pytest.mark.asyncio
+async def test_manual_task_route_executes_and_records_history(monkeypatch) -> None:
+    session = _build_session()
+    _seed_system_data(session)
+
+    async def override_db():
+        try:
+            yield session
+        finally:
+            pass
+
+    def fake_execute_manual_task(session: Session, *, action_key: str, trade_date):
+        assert action_key == "candidate_generation"
+        assert trade_date == date(2026, 3, 20)
+        job = IngestJob(
+            source_route="manual_task_api",
+            job_type="manual_task:candidate_generation",
+            status="success",
+            trade_date=trade_date,
+            started_at=datetime.now(tz=UTC) - timedelta(minutes=1),
+            finished_at=datetime.now(tz=UTC),
+        )
+        session.add(job)
+        session.commit()
+        session.refresh(job)
+        return {
+            "action_key": "candidate_generation",
+            "label": "產生候選清單",
+            "target_label": "候選清單",
+            "target_route_name": "candidates",
+            "status": "success",
+            "trade_date": trade_date,
+            "metrics": {"candidate_items_created": 4},
+            "message": "產生候選清單已完成。",
+            "history_item": {
+                "id": job.id,
+                "action_key": "candidate_generation",
+                "label": "產生候選清單",
+                "description": "依現有指標、群組與衍生性商品脈絡產生隔日候選。",
+                "target_label": "候選清單",
+                "status": "success",
+                "trade_date": trade_date,
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+                "error_summary": None,
+                "source_route": "manual_task_api",
+                "job_type": "manual_task:candidate_generation",
+            },
+        }
+
+    monkeypatch.setattr("apps.api.routes.tasks.execute_manual_task", fake_execute_manual_task)
+    app.dependency_overrides[get_db_session] = override_db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/system/tasks/candidate_generation",
+            json={"trade_date": "2026-03-20"},
+        )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metrics"]["candidate_items_created"] == 4
+    assert payload["history_item"]["job_type"] == "manual_task:candidate_generation"

@@ -84,3 +84,52 @@ export interface SystemStatusRead {
   highlights: string[];
   data: SystemStatusDataRead;
 }
+
+export interface ManualTaskActionRead {
+  action_key: string;
+  label: string;
+  description: string;
+  target_label: string;
+  target_route_name: string | null;
+  requires_trade_date: boolean;
+  suggested_trade_date: string | null;
+}
+
+export interface ManualTaskHistoryItemRead {
+  id: number;
+  action_key: string;
+  label: string;
+  description: string;
+  target_label: string;
+  status: string;
+  trade_date: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  error_summary: string | null;
+  source_route: string;
+  job_type: string;
+}
+
+export interface ManualTaskCenterDataRead {
+  available_actions: ManualTaskActionRead[];
+  recent_tasks: ManualTaskHistoryItemRead[];
+}
+
+export interface ManualTaskCenterRead {
+  meta: DashboardMeta;
+  summary_cards: DashboardSummaryCard[];
+  highlights: string[];
+  data: ManualTaskCenterDataRead;
+}
+
+export interface ManualTaskRunRead {
+  action_key: string;
+  label: string;
+  target_label: string;
+  target_route_name: string | null;
+  status: "success" | "failed";
+  trade_date: string | null;
+  metrics: Record<string, number>;
+  message: string;
+  history_item: ManualTaskHistoryItemRead;
+}
