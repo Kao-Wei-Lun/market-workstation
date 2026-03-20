@@ -3,9 +3,15 @@
     <PageHeader
       eyebrow="儀表板"
       title="總覽"
-      description="快速查看市場廣度、候選名單、群組強弱、日報與近期研究訊號。"
+      description="作為每日工作入口，快速掌握資料新鮮度、候選、報表、觀察清單、族群、法人與回測摘要。"
     >
       <div class="page-actions">
+        <RouterLink class="pill link-pill" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
+          打開報表
+        </RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'candidates', query: { candidateDate: selectedTradeDate || undefined } }">
+          打開候選
+        </RouterLink>
         <RouterLink
           v-if="selectedWatchlistId"
           class="pill link-pill"
@@ -19,6 +25,9 @@
           :to="{ name: 'groups', query: { tag: selectedTag, tradeDate: selectedTradeDate || undefined } }"
         >
           前往群組頁
+        </RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'operations' }">
+          系統狀態
         </RouterLink>
       </div>
     </PageHeader>
@@ -57,17 +66,17 @@
       :as-of-date="overview?.meta.as_of_date ?? null"
       :generated-at="formatDateTime(overview?.meta.generated_at)"
       :item-count="overview?.meta.item_count"
-      hint="可同時用日期、清單與標籤縮小總覽範圍。"
-      demo-hint="若畫面仍為空，請執行 make demo-data 產生本機示範資料。"
+      hint="總覽會同時整合市場摘要、候選、報表、回測與系統新鮮度。"
+      :demo-hint="workspaceReadinessHint"
       :show-refresh="true"
       @refresh="loadOverview"
     />
 
-    <LoadingState v-if="isLoading" message="正在載入總覽儀表板..." />
+    <LoadingState v-if="isLoading" message="正在整理今日工作站總覽..." />
     <ErrorState
       v-else-if="errorMessage"
       title="總覽載入失敗"
-      message="無法從後端載入總覽儀表板資料。"
+      message="無法從後端載入總覽與系統摘要資料。"
       :detail="errorMessage"
     />
     <EmptyState
@@ -78,12 +87,36 @@
     <template v-else-if="overview">
       <SummaryCardGrid :cards="overview.summary_cards" />
 
+      <div class="page-section-grid">
+        <DetailPanel title="今日工作入口" description="先確認資料新鮮度與準備狀態，再決定往哪個研究頁面深入。">
+          <template #header>
+            <div class="detail-actions">
+              <RouterLink class="detail-link" :to="{ name: 'coverage' }">檢查資料覆蓋</RouterLink>
+              <RouterLink class="detail-link" :to="{ name: 'operations' }">檢查系統狀態</RouterLink>
+              <RouterLink class="detail-link" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
+                閱讀當日報表
+              </RouterLink>
+            </div>
+          </template>
+          <MetricGrid :metrics="workspaceMetrics" />
+        </DetailPanel>
+        <DetailPanel
+          title="資料與產出新鮮度"
+          description="顯示最新資料日期、最近成功匯入、最近報表生成與目前就緒資料集數。"
+        >
+          <MetricGrid :metrics="freshnessMetrics" />
+        </DetailPanel>
+      </div>
+
       <DetailPanel
         title="本次重點"
-        description="依目前範圍整理出的高層觀察重點。"
+        description="依目前範圍整理出的高層觀察重點與今日優先查看項目。"
       >
         <template #header>
-          <span class="pill info">資料日期 {{ overview.meta.as_of_date ?? "無資料" }}</span>
+          <div class="detail-actions">
+            <span class="pill info">資料日期 {{ overview.meta.as_of_date ?? "無資料" }}</span>
+            <span class="pill">生成時間 {{ formatDateTime(overview.meta.generated_at) }}</span>
+          </div>
         </template>
         <ul class="highlights">
           <li v-for="item in overview.highlights" :key="item">{{ item }}</li>
@@ -104,6 +137,82 @@
           :points="candidateChartPoints"
           empty-message="目前沒有候選分數資料。"
         />
+      </div>
+
+      <div class="page-section-grid">
+        <DetailPanel
+          title="候選摘要"
+          description="快速檢查當前候選批次的規模、最高分與前往候選頁的入口。"
+        >
+          <template #header>
+            <RouterLink class="detail-link" :to="{ name: 'candidates', query: { candidateDate: selectedTradeDate || undefined } }">
+              查看候選頁
+            </RouterLink>
+          </template>
+          <MetricGrid :metrics="candidateSummaryMetrics" />
+        </DetailPanel>
+        <DetailPanel
+          title="報表摘要"
+          description="快速檢查最近報表日期、類型數與報表頁入口。"
+        >
+          <template #header>
+            <RouterLink class="detail-link" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
+              查看報表頁
+            </RouterLink>
+          </template>
+          <MetricGrid :metrics="reportSummaryMetrics" />
+        </DetailPanel>
+        <DetailPanel
+          title="回測摘要"
+          description="快速檢查最近回測批次、報酬與交易筆數。"
+        >
+          <template #header>
+            <RouterLink class="detail-link" :to="{ name: 'backtests' }">查看回測頁</RouterLink>
+          </template>
+          <MetricGrid :metrics="backtestSummaryMetrics" />
+        </DetailPanel>
+      </div>
+
+      <div class="page-section-grid">
+        <DetailPanel
+          title="觀察清單摘要"
+          description="顯示目前選定觀察清單的成員、平均漲跌與 scanner 命中。"
+        >
+          <template #header>
+            <RouterLink
+              v-if="selectedWatchlistId"
+              class="detail-link"
+              :to="{ name: 'watchlists', query: { watchlistId: selectedWatchlistId, tradeDate: selectedTradeDate || undefined } }"
+            >
+              查看清單頁
+            </RouterLink>
+          </template>
+          <MetricGrid :metrics="watchlistSummaryMetrics" />
+        </DetailPanel>
+        <DetailPanel
+          title="族群摘要"
+          description="顯示目前選定標籤群組的成員、平均漲跌與 scanner 命中。"
+        >
+          <template #header>
+            <RouterLink
+              v-if="selectedTag"
+              class="detail-link"
+              :to="{ name: 'groups', query: { tag: selectedTag, tradeDate: selectedTradeDate || undefined } }"
+            >
+              查看群組頁
+            </RouterLink>
+          </template>
+          <MetricGrid :metrics="groupSummaryMetrics" />
+        </DetailPanel>
+        <DetailPanel
+          title="法人／衍生性商品摘要"
+          description="顯示最新偏向 regime、異常數與重點，方便決定是否先看衍生性商品頁。"
+        >
+          <template #header>
+            <RouterLink class="detail-link" :to="{ name: 'derivatives' }">查看衍生性商品頁</RouterLink>
+          </template>
+          <MetricGrid :metrics="derivativesSummaryMetrics" />
+        </DetailPanel>
       </div>
 
       <div class="page-section-grid">
@@ -153,6 +262,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { fetchOverview } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
+import { fetchSystemStatus } from "@/api/system";
 import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
@@ -167,10 +277,12 @@ import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { DashboardOverviewRead } from "@/types/dashboard";
+import type { SystemStatusRead } from "@/types/system";
 import { formatDate, formatDateTime, formatList, formatNumber, formatPercent } from "@/utils/formatters";
 import { makeLinkedCell } from "@/utils/presentation";
 
 const overview = ref<DashboardOverviewRead | null>(null);
+const systemStatus = ref<SystemStatusRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const selectedTag = ref("semiconductor");
@@ -256,6 +368,128 @@ const marketMetrics = computed(() => {
   ];
 });
 
+const latestSuccessfulJob = computed(() =>
+  systemStatus.value?.data.recent_jobs.find((job) => job.status === "success") ?? null,
+);
+
+const latestReport = computed(() => overview.value?.data.report_summary?.reports[0] ?? null);
+
+const readyDatasetCount = computed(
+  () => systemStatus.value?.data.datasets.filter((dataset) => dataset.status === "ready").length ?? 0,
+);
+
+const workspaceReadinessHint = computed(() => {
+  if ((systemStatus.value?.data.recent_jobs.length ?? 0) === 0) {
+    return "若畫面仍為空，請執行 make demo-data 產生本機示範資料。";
+  }
+  return `目前已有 ${readyDatasetCount.value}/${systemStatus.value?.data.datasets.length ?? 0} 個主要資料集就緒。`;
+});
+
+const workspaceMetrics = computed(() => [
+  { label: "資料日期", value: formatDate(overview.value?.meta.as_of_date ?? null), hint: "目前總覽基準日" },
+  { label: "生成時間", value: formatDateTime(overview.value?.meta.generated_at ?? null), hint: "總覽 API 生成時間" },
+  { label: "就緒資料集", value: `${readyDatasetCount.value}/${systemStatus.value?.data.datasets.length ?? 0}`, hint: "資料可見性" },
+  { label: "最近成功工作", value: formatDateTime(latestSuccessfulJob.value?.finished_at ?? latestSuccessfulJob.value?.started_at ?? null), hint: latestSuccessfulJob.value?.job_type ?? "尚無工作" },
+]);
+
+const freshnessMetrics = computed(() => [
+  {
+    label: "最新資料日期",
+    value: formatDate(systemStatus.value?.data.datasets.find((dataset) => dataset.dataset_key === "daily_bars")?.latest_date ?? null),
+    hint: "daily bars",
+  },
+  {
+    label: "最近 ETL 成功",
+    value: formatDateTime(latestSuccessfulJob.value?.finished_at ?? latestSuccessfulJob.value?.started_at ?? null),
+    hint: latestSuccessfulJob.value?.source_route ?? "尚無成功工作",
+  },
+  {
+    label: "最近報表生成",
+    value: formatDateTime(latestReport.value?.created_at ?? null),
+    hint: latestReport.value?.report_type ?? "尚無報表",
+  },
+  {
+    label: "報表資料日期",
+    value: formatDate(latestReport.value?.report_date ?? null),
+    hint: "最近報表基準日",
+  },
+]);
+
+const candidateSummaryMetrics = computed(() => {
+  const summary = overview.value?.data.candidate_summary;
+  if (!summary) {
+    return [];
+  }
+  return [
+    { label: "批次編號", value: `#${summary.run.id}`, hint: "目前候選 run" },
+    { label: "候選總數", value: formatNumber(summary.run.total_candidates), hint: "同日批次結果" },
+    { label: "最高分", value: formatNumber(summary.top_items[0]?.score ?? null), hint: summary.top_items[0]?.symbol ?? "無資料" },
+    { label: "資料日期", value: formatDate(summary.run.candidate_date), hint: "候選基準日" },
+  ];
+});
+
+const reportSummaryMetrics = computed(() => {
+  const reports = overview.value?.data.report_summary?.reports ?? [];
+  return [
+    { label: "最近報表數", value: formatNumber(reports.length), hint: "目前列表可見" },
+    { label: "最新報表日期", value: formatDate(reports[0]?.report_date ?? null), hint: "最近資料日" },
+    { label: "最新生成時間", value: formatDateTime(reports[0]?.created_at ?? null), hint: reports[0]?.report_type ?? "尚無資料" },
+    { label: "類型數", value: formatNumber(new Set(reports.map((item) => item.report_type)).size), hint: "不同 report_type" },
+  ];
+});
+
+const backtestSummaryMetrics = computed(() => {
+  const summary = overview.value?.data.backtest_summary;
+  if (!summary) {
+    return [];
+  }
+  return [
+    { label: "最近回測", value: summary.latest_run ? `#${summary.latest_run.id}` : "無資料", hint: "最近完成批次" },
+    { label: "批次數", value: formatNumber(summary.recent_runs.length), hint: "目前列表可見" },
+    { label: "最近報酬", value: formatPercent(summary.latest_run?.total_return_pct ?? null), hint: "latest run" },
+    { label: "最近交易筆數", value: formatNumber(summary.latest_run?.total_trades ?? null), hint: "latest run" },
+  ];
+});
+
+const watchlistSummaryMetrics = computed(() => {
+  const summary = overview.value?.data.watchlist_summary;
+  if (!summary) {
+    return [];
+  }
+  return [
+    { label: "觀察清單", value: summary.watchlist.name, hint: "目前焦點清單" },
+    { label: "成員數", value: formatNumber(summary.summary.member_count), hint: "清單規模" },
+    { label: "平均漲跌", value: formatPercent(summary.summary.average_close_change_pct), hint: "日內變化" },
+    { label: "掃描旗標", value: formatNumber(summary.scanner?.flagged_instruments.length ?? 0), hint: "命中數" },
+  ];
+});
+
+const groupSummaryMetrics = computed(() => {
+  const summary = overview.value?.data.group_summary;
+  if (!summary) {
+    return [];
+  }
+  return [
+    { label: "標籤群組", value: summary.tag, hint: "目前焦點群組" },
+    { label: "成員數", value: formatNumber(summary.summary.member_count), hint: "群組規模" },
+    { label: "平均漲跌", value: formatPercent(summary.summary.average_close_change_pct), hint: "日內變化" },
+    { label: "掃描旗標", value: formatNumber(summary.scanner?.flagged_instruments.length ?? 0), hint: "命中數" },
+  ];
+});
+
+const derivativesSummaryMetrics = computed(() => {
+  const summary = overview.value?.data.derivatives_summary;
+  if (!summary) {
+    return [];
+  }
+  return [
+    { label: "資料日期", value: formatDate(summary.trade_date), hint: "法人摘要基準日" },
+    { label: "整體偏向", value: summary.overall_regime, hint: "regime" },
+    { label: "異常數", value: formatNumber(summary.anomaly_count), hint: "需複核" },
+    { label: "平均 bias", value: formatNumber(summary.average_bias_score), hint: "偏向分數" },
+  ];
+});
+
 const breadthChartPoints = computed(() => {
   const marketSnapshot = overview.value?.data.market_snapshot;
   if (!marketSnapshot) {
@@ -280,12 +514,17 @@ async function loadOverview(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    overview.value = await fetchOverview({
-      tradeDate: selectedTradeDate.value || undefined,
-      watchlistId: selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
-      tag: selectedTag.value || undefined,
-      topN: 5,
-    });
+    const [overviewResponse, systemStatusResponse] = await Promise.all([
+      fetchOverview({
+        tradeDate: selectedTradeDate.value || undefined,
+        watchlistId: selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
+        tag: selectedTag.value || undefined,
+        topN: 5,
+      }),
+      fetchSystemStatus({ jobLimit: 10, workerStaleMinutes: 30 }),
+    ]);
+    overview.value = overviewResponse;
+    systemStatus.value = systemStatusResponse;
     await router.replace({
       query: {
         tradeDate: selectedTradeDate.value || undefined,
@@ -328,5 +567,20 @@ onMounted(async () => {
 
 .link-pill {
   text-decoration: none;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detail-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.detail-link:hover {
+  text-decoration: underline;
 }
 </style>

@@ -230,6 +230,7 @@ python scripts/manage.py verify-v1 --api-base-url http://localhost:8000 --trade-
 前端特性：
 
 - 預設介面語言為繁體中文
+- 總覽頁作為每日工作入口，整合資料新鮮度、候選、報表、觀察清單、群組、衍生性商品與回測摘要
 - 以 route query 保留頁面篩選狀態
 - 以 dashboard aggregate API 減少前端自行重組資料
 - 各頁面統一使用 loading / empty / error state
@@ -253,6 +254,12 @@ curl "http://localhost:8000/api/dashboard/reports/latest?report_date=2026-03-20&
 curl "http://localhost:8000/api/dashboard/backtests/latest?limit=5"
 curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-20"
 ```
+
+建議的每日使用順序：
+
+1. 先開「總覽」確認資料日期、最近成功匯入、最近報表生成與今日重點。
+2. 若資料不完整，轉到「系統狀態」與「資料覆蓋」檢查 worker、jobs、universe/bootstrap。
+3. 再從總覽直接跳往「報表」、「候選清單」、「觀察清單」或「標籤群組」深入閱讀。
 
 ### 管理 / 可見性 APIs
 
