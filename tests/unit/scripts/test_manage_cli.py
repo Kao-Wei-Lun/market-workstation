@@ -168,9 +168,9 @@ def test_manage_demo_data_dispatches_to_demo_service(monkeypatch, capsys) -> Non
         "generate_demo_data",
         lambda session, trade_date: _DemoDataResult(
             trade_date=date(2026, 3, 20),
-            daily_bars_loaded=60,
+            daily_bars_loaded=90,
             indicator_values_persisted=120,
-            tw_derivatives_features_persisted=42,
+            tw_derivatives_features_persisted=63,
             candidate_items_created=2,
             backtest_trades_created=3,
             reports_persisted=7,
@@ -181,7 +181,7 @@ def test_manage_demo_data_dispatches_to_demo_service(monkeypatch, capsys) -> Non
     output = capsys.readouterr().out
 
     assert exit_code == 0
-    assert "daily_bars_loaded=60" in output
+    assert "daily_bars_loaded=90" in output
     assert "candidate_items_created=2" in output
 
 

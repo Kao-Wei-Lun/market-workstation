@@ -398,41 +398,15 @@ def _build_market_structure_points(
     )
 
     by_date: dict[date, dict[str, Decimal | int | None]] = {
-        trade_date: {
-            "spot_net_amount": None,
-            "futures_net_open_interest": 0,
-            "futures_net_amount": Decimal("0"),
-            "options_net_open_interest": 0,
-            "options_net_amount": Decimal("0"),
-            "options_directional_bias": None,
-            "average_bias_score": None,
-            "bullish_count": 0,
-            "bearish_count": 0,
-            "anomaly_count": 0,
-        }
-        for trade_date in trade_dates
+        trade_date: _empty_market_structure_bucket() for trade_date in trade_dates
     }
 
     for spot_row in spot_rows:
-        bucket = by_date.setdefault(spot_row.trade_date, {})
+        bucket = by_date.setdefault(spot_row.trade_date, _empty_market_structure_bucket())
         bucket["spot_net_amount"] = spot_row.net_amount
 
     for derivative_row in derivatives_rows:
-        bucket = by_date.setdefault(
-            derivative_row.trade_date,
-            {
-                "spot_net_amount": None,
-                "futures_net_open_interest": 0,
-                "futures_net_amount": Decimal("0"),
-                "options_net_open_interest": 0,
-                "options_net_amount": Decimal("0"),
-                "options_directional_bias": None,
-                "average_bias_score": None,
-                "bullish_count": 0,
-                "bearish_count": 0,
-                "anomaly_count": 0,
-            },
-        )
+        bucket = by_date.setdefault(derivative_row.trade_date, _empty_market_structure_bucket())
         if derivative_row.is_options:
             bucket["options_net_open_interest"] = (
                 int(bucket["options_net_open_interest"] or 0) + derivative_row.net_open_interest
@@ -482,6 +456,21 @@ def _build_market_structure_points(
             )
         )
     return flow_points
+
+
+def _empty_market_structure_bucket() -> dict[str, Decimal | int | None]:
+    return {
+        "spot_net_amount": None,
+        "futures_net_open_interest": 0,
+        "futures_net_amount": Decimal("0"),
+        "options_net_open_interest": 0,
+        "options_net_amount": Decimal("0"),
+        "options_directional_bias": None,
+        "average_bias_score": None,
+        "bullish_count": 0,
+        "bearish_count": 0,
+        "anomaly_count": 0,
+    }
 
 
 def _direction_label(value: Decimal | None) -> str:

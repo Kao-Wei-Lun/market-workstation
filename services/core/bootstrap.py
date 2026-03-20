@@ -326,11 +326,21 @@ def _build_price_series(
 ) -> list[dict[str, str | int]]:
     rows: list[dict[str, str | int]] = []
     current_close = start_price
-    for index in range(30):
-        current_date = trade_date - timedelta(days=29 - index)
-        open_price = current_close - Decimal("1")
-        high_price = current_close + Decimal("2")
-        low_price = current_close - Decimal("2")
+    trading_dates = _build_trading_dates(trade_date, periods=30)
+    drift_pattern = [
+        Decimal("0"),
+        daily_step,
+        daily_step / Decimal("2"),
+        daily_step * Decimal("-0.4"),
+        daily_step * Decimal("1.2"),
+        daily_step * Decimal("-0.2"),
+    ]
+    for index, current_date in enumerate(trading_dates):
+        daily_drift = drift_pattern[index % len(drift_pattern)]
+        current_close += daily_drift if index else Decimal("0")
+        open_price = current_close - (daily_step * Decimal("0.35"))
+        high_price = current_close + (daily_step * Decimal("0.55"))
+        low_price = current_close - (daily_step * Decimal("0.65"))
         change = current_close - open_price
         change_percent = ((change / open_price) * Decimal("100")).quantize(Decimal("0.0001"))
         rows.append(
@@ -347,18 +357,28 @@ def _build_price_series(
                 "change_percent": f"{change_percent:.4f}",
             }
         )
-        current_close += daily_step if market == "TW" else daily_step + Decimal("0.3")
     return rows
+
+
+def _build_trading_dates(trade_date: date, *, periods: int) -> list[date]:
+    dates: list[date] = []
+    current_date = trade_date
+    while len(dates) < periods:
+        if current_date.weekday() < 5:
+            dates.append(current_date)
+        current_date -= timedelta(days=1)
+    return list(reversed(dates))
 
 
 def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[int, int, int]:
     records: list[NormalizedTwDerivativesDailyRecord] = []
     spot_loaded = 0
     spot_repository = TwInstitutionalSpotDailyRepository(session)
-    for index in range(21):
-        current_date = trade_date - timedelta(days=20 - index)
+    trading_dates = _build_trading_dates(trade_date, periods=21)
+    for index, current_date in enumerate(trading_dates):
         foreign_net = 180 + (index * 18)
-        dealer_net = -60 + (index * 5)
+        foreign_options_call_net = 90 + (index * 7)
+        foreign_options_put_net = -70 + (index * 4)
         spot_net = Decimal("-1200000000") + (Decimal(index) * Decimal("185000000"))
         spot_buy = Decimal("2600000000") + (Decimal(index) * Decimal("120000000"))
         spot_sell = spot_buy - spot_net
@@ -397,14 +417,31 @@ def _seed_demo_derivatives_data(session: Session, *, trade_date: date) -> tuple[
                     product_code="TXO",
                     product_name="TAIEX Options",
                     contract_period=trade_date.strftime("%Y%m"),
-                    institution="dealers",
+                    institution="foreign_investors",
                     call_put="call",
-                    long_open_interest=420 + (index * 9),
-                    short_open_interest=480 + (index * 4),
-                    net_open_interest=dealer_net,
-                    long_amount=Decimal("280000") + (Decimal(index) * Decimal("5000")),
-                    short_amount=Decimal("320000") + (Decimal(index) * Decimal("2500")),
-                    net_amount=Decimal(dealer_net) * Decimal("800"),
+                    long_open_interest=520 + (index * 11),
+                    short_open_interest=430 + (index * 4),
+                    net_open_interest=foreign_options_call_net,
+                    long_amount=Decimal("340000") + (Decimal(index) * Decimal("7000")),
+                    short_amount=Decimal("260000") + (Decimal(index) * Decimal("3000")),
+                    net_amount=Decimal(foreign_options_call_net) * Decimal("850"),
+                    source_route="demo_seed",
+                    is_options=True,
+                ),
+                NormalizedTwDerivativesDailyRecord(
+                    trade_date=current_date,
+                    market="TAIFEX",
+                    product_code="TXO",
+                    product_name="TAIEX Options",
+                    contract_period=trade_date.strftime("%Y%m"),
+                    institution="foreign_investors",
+                    call_put="put",
+                    long_open_interest=390 + (index * 5),
+                    short_open_interest=460 + index,
+                    net_open_interest=foreign_options_put_net,
+                    long_amount=Decimal("255000") + (Decimal(index) * Decimal("2500")),
+                    short_amount=Decimal("315000") + (Decimal(index) * Decimal("4500")),
+                    net_amount=Decimal(foreign_options_put_net) * Decimal("780"),
                     source_route="demo_seed",
                     is_options=True,
                 ),

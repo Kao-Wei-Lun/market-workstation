@@ -13,6 +13,7 @@ from services.core.bootstrap import (
     seed_sample_reference_data,
 )
 from services.core.derivatives.summary import get_latest_institutional_bias_summary
+from services.core.charts import load_market_structure_chart
 from services.db.base import Base
 from services.models import import_models
 from services.models.backtest_run import BacktestRun
@@ -117,11 +118,13 @@ def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables(
     assert session.query(Strategy).count() == 1
     assert session.query(BacktestRun).count() == 1
     assert session.query(BacktestTrade).count() == second.backtest_trades_created
-    assert session.query(TwDerivativesDaily).count() == 42
-    assert session.query(TwDerivativesFeature).count() == 42
+    assert session.query(TwDerivativesDaily).count() == 63
+    assert session.query(TwDerivativesFeature).count() == 63
     assert session.query(TwInstitutionalSpotDaily).count() == 21
     assert session.query(ReportDaily).count() > 0
 
     latest_summary = get_latest_institutional_bias_summary(session)
     assert latest_summary is not None
     assert latest_summary.trade_date == DEFAULT_DEMO_TRADE_DATE
+    market_structure = load_market_structure_chart(session, symbol="^TWII")
+    assert market_structure.flow_points[-1].options_directional_bias is not None
