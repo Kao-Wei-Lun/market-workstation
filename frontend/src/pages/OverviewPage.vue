@@ -262,7 +262,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { fetchOverview } from "@/api/dashboard";
 import { normalizeApiError } from "@/api/http";
-import { fetchSystemStatus } from "@/api/system";
+import { fetchSystemStatus, fetchUniverseCoverage } from "@/api/system";
 import DetailPanel from "@/components/DetailPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
@@ -277,12 +277,13 @@ import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import { useWatchlistsStore } from "@/stores/watchlists";
 import type { DashboardOverviewRead } from "@/types/dashboard";
-import type { SystemStatusRead } from "@/types/system";
+import type { SystemStatusRead, UniverseCoverageRead } from "@/types/system";
 import { formatDate, formatDateTime, formatList, formatNumber, formatPercent } from "@/utils/formatters";
 import { makeLinkedCell } from "@/utils/presentation";
 
 const overview = ref<DashboardOverviewRead | null>(null);
 const systemStatus = ref<SystemStatusRead | null>(null);
+const universeCoverage = ref<UniverseCoverageRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const selectedTag = ref("semiconductor");
@@ -382,6 +383,9 @@ const workspaceReadinessHint = computed(() => {
   if ((systemStatus.value?.data.recent_jobs.length ?? 0) === 0) {
     return "若畫面仍為空，請執行 make demo-data 產生本機示範資料。";
   }
+  if ((universeCoverage.value?.data.completeness.attention_scope_count ?? 0) > 0) {
+    return `目前有 ${universeCoverage.value?.data.completeness.attention_scope_count ?? 0} 個 coverage 區段需要補資料或補跑。`;
+  }
   return `目前已有 ${readyDatasetCount.value}/${systemStatus.value?.data.datasets.length ?? 0} 個主要資料集就緒。`;
 });
 
@@ -390,6 +394,16 @@ const workspaceMetrics = computed(() => [
   { label: "生成時間", value: formatDateTime(overview.value?.meta.generated_at ?? null), hint: "總覽 API 生成時間" },
   { label: "就緒資料集", value: `${readyDatasetCount.value}/${systemStatus.value?.data.datasets.length ?? 0}`, hint: "資料可見性" },
   { label: "最近成功工作", value: formatDateTime(latestSuccessfulJob.value?.finished_at ?? latestSuccessfulJob.value?.started_at ?? null), hint: latestSuccessfulJob.value?.job_type ?? "尚無工作" },
+  {
+    label: "需補跑區段",
+    value: formatNumber(universeCoverage.value?.data.completeness.attention_scope_count ?? 0),
+    hint: "缺資料 / 過期",
+  },
+  {
+    label: "coverage 基準日",
+    value: formatDate(universeCoverage.value?.data.completeness.reference_latest_date ?? null),
+    hint: "完整度參考日期",
+  },
 ]);
 
 const freshnessMetrics = computed(() => [
@@ -412,6 +426,16 @@ const freshnessMetrics = computed(() => [
     label: "報表資料日期",
     value: formatDate(latestReport.value?.report_date ?? null),
     hint: "最近報表基準日",
+  },
+  {
+    label: "缺資料標的",
+    value: formatNumber(universeCoverage.value?.data.completeness.missing_data_count ?? 0),
+    hint: "可到資料覆蓋頁查看",
+  },
+  {
+    label: "過期標的",
+    value: formatNumber(universeCoverage.value?.data.completeness.stale_data_count ?? 0),
+    hint: "建議補跑 ETL",
   },
 ]);
 
@@ -514,7 +538,7 @@ async function loadOverview(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    const [overviewResponse, systemStatusResponse] = await Promise.all([
+    const [overviewResponse, systemStatusResponse, coverageResponse] = await Promise.all([
       fetchOverview({
         tradeDate: selectedTradeDate.value || undefined,
         watchlistId: selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
@@ -522,9 +546,11 @@ async function loadOverview(): Promise<void> {
         topN: 5,
       }),
       fetchSystemStatus({ jobLimit: 10, workerStaleMinutes: 30 }),
+      fetchUniverseCoverage("v1_market_expanded"),
     ]);
     overview.value = overviewResponse;
     systemStatus.value = systemStatusResponse;
+    universeCoverage.value = coverageResponse;
     await router.replace({
       query: {
         tradeDate: selectedTradeDate.value || undefined,

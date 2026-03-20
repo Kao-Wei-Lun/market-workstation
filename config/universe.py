@@ -12,11 +12,13 @@ UNIVERSE_DIR = Path(__file__).resolve().parent / "universes"
 class UniverseScopeDefinition:
     key: str
     label: str
+    group_label: str
     market: str
     asset_type: str
     source_route: str
     coverage: str
     description: str
+    stale_after_days: int = 3
 
 
 @dataclass(frozen=True)
@@ -160,15 +162,30 @@ def _as_string_list(value: object) -> list[str]:
     return [str(item) for item in value]
 
 
+def _as_int(value: object, default: int) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
 def _parse_scope(payload: dict[str, object]) -> UniverseScopeDefinition:
     return UniverseScopeDefinition(
         key=str(payload["key"]),
         label=str(payload["label"]),
+        group_label=str(payload.get("group_label", payload["market"])),
         market=str(payload["market"]),
         asset_type=str(payload["asset_type"]),
         source_route=str(payload["source_route"]),
         coverage=str(payload["coverage"]),
         description=str(payload["description"]),
+        stale_after_days=_as_int(payload.get("stale_after_days"), 3),
     )
 
 

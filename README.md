@@ -155,6 +155,31 @@ python scripts/manage.py load-universe --preset v1_market_expanded --scope macro
 
 `make demo-data` 針對同一 `TRADE_DATE` 設計為可重跑，不應不斷膨脹重複的 demo run。
 
+## V1.1 資料完整度策略
+
+V1.1 的重點不是改架構，而是讓本機使用者更容易看出「哪些 universe 已準備好、哪些還缺資料、哪些資料過期需要補跑」。
+
+目前策略：
+
+- universe 仍以 `config/universes/` 下的 preset 與 scope 定義為準
+- 每個 scope 會宣告 market、asset_type、source_route、coverage 類型與 `stale_after_days`
+- coverage API 會比對：
+  - 預設宣告標的數
+  - 已 bootstrap 標的數
+  - 已有資料標的數
+  - 缺資料標的數
+  - 過期標的數
+  - scope / category 最新資料日期
+- 前端的「資料覆蓋」與「任務中心」會直接顯示缺資料 / 過期 scope，作為補跑依據
+
+換句話說，V1.1 的日常流程是：
+
+1. `make load-universe`
+2. 開前端看「資料覆蓋」
+3. 找出缺資料或過期 scope
+4. 到「任務中心」執行示範資料、ETL、指標、報表任務
+5. 回到總覽、候選、報表確認結果
+
 ## 日常 demo flow
 
 若要讓前端幾乎每一頁都有可看資料，建議流程：
@@ -178,6 +203,19 @@ curl http://localhost:8000/derivatives/summary/latest
 curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"
 curl "http://localhost:8000/api/system/status?job_limit=20&worker_stale_minutes=30"
 ```
+
+若要檢查缺資料或過期狀態，優先看：
+
+```bash
+curl "http://localhost:8000/api/system/coverage?preset_name=v1_market_expanded"
+```
+
+該 payload 會包含 scope 級與 category 級的：
+
+- `latest_data_date`
+- `missing_data_count`
+- `stale_data_count`
+- `status`
 
 ## 常用命令
 
@@ -285,6 +323,14 @@ curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-
 2. 若資料不完整，轉到「任務中心」與「資料覆蓋」檢查 worker、jobs、universe/bootstrap。
 3. 在「任務中心」直接手動觸發示範資料、日線 ETL、技術指標、候選或報表任務。
 4. 再從總覽或任務中心直接跳往「報表」、「候選清單」、「觀察清單」或「標籤群組」深入閱讀。
+
+### 如何檢查缺資料 / 過期資料
+
+1. 打開「資料覆蓋」頁
+2. 先看「需補資料 / 補跑的區段」表格
+3. 再看「市場統計」與「資料來源統計」中的最新日期、缺資料、過期數
+4. 若需要補跑，前往「任務中心」執行對應任務
+5. 補跑完成後回到「資料覆蓋」與「總覽」確認狀態是否改善
 
 ### 任務中心 / 系統狀態使用方式
 

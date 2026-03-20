@@ -31,12 +31,12 @@ def _build_session() -> Session:
 
 def _seed_system_data(session: Session) -> None:
     load_instrument_universe(session, preset_name=DEFAULT_V1_UNIVERSE_PRESET)
-    instrument = session.query(Instrument).order_by(Instrument.id.asc()).first()
-    assert instrument is not None
     trade_date = date(2026, 3, 20)
+    tw_instrument = session.query(Instrument).filter(Instrument.symbol == "2330").one()
+    us_instrument = session.query(Instrument).filter(Instrument.symbol == "AAPL").one()
     session.add(
         DailyBar(
-            instrument_id=instrument.id,
+            instrument_id=tw_instrument.id,
             trade_date=trade_date,
             open=Decimal("100"),
             high=Decimal("102"),
@@ -48,12 +48,24 @@ def _seed_system_data(session: Session) -> None:
     )
     session.add(
         IndicatorValue(
-            instrument_id=instrument.id,
+            instrument_id=tw_instrument.id,
             trade_date=trade_date,
             indicator_name="ema",
             component="value",
             parameter_signature="period=20",
             value=Decimal("100"),
+        )
+    )
+    session.add(
+        DailyBar(
+            instrument_id=us_instrument.id,
+            trade_date=trade_date - timedelta(days=10),
+            open=Decimal("200"),
+            high=Decimal("202"),
+            low=Decimal("198"),
+            close=Decimal("201"),
+            volume=2000,
+            change_percent=Decimal("0.5"),
         )
     )
     session.add(
@@ -112,6 +124,9 @@ async def test_system_routes_return_coverage_and_status_payloads() -> None:
     assert coverage_response.status_code == 200
     assert coverage_response.json()["data"]["preset"]["preset_name"] == DEFAULT_V1_UNIVERSE_PRESET
     assert coverage_response.json()["data"]["scopes"]
+    assert coverage_response.json()["data"]["completeness"]["reference_latest_date"] == "2026-03-20"
+    assert any(scope["status"] in {"partial", "stale", "ready", "missing"} for scope in coverage_response.json()["data"]["scopes"])
+    assert any(scope["stale_data_count"] >= 1 for scope in coverage_response.json()["data"]["scopes"])
     assert status_response.status_code == 200
     assert status_response.json()["data"]["datasets"]
     assert status_response.json()["data"]["recent_jobs"][0]["job_type"] == "daily_market_etl"

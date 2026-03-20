@@ -21,16 +21,25 @@ class UniversePresetSummaryRead(BaseModel):
 class UniverseScopeCoverageRead(BaseModel):
     key: str
     label: str
+    group_label: str
     market: str
     asset_type: str
     source_route: str
     coverage: str
     description: str
+    stale_after_days: int
     configured_instrument_count: int
     loaded_instrument_count: int
+    instruments_with_data_count: int
+    missing_data_count: int
+    stale_data_count: int
+    latest_data_date: date | None = None
+    status: Literal["ready", "partial", "missing", "stale"] = "missing"
     configured_watchlist_count: int
     loaded_watchlist_count: int
     sample_symbols: list[str] = Field(default_factory=list)
+    sample_missing_symbols: list[str] = Field(default_factory=list)
+    sample_stale_symbols: list[str] = Field(default_factory=list)
 
 
 class InstrumentCategoryCountRead(BaseModel):
@@ -38,10 +47,28 @@ class InstrumentCategoryCountRead(BaseModel):
     key: str
     label: str
     instrument_count: int
+    instruments_with_data_count: int = 0
+    missing_data_count: int = 0
+    stale_data_count: int = 0
+    latest_data_date: date | None = None
+
+
+class UniverseCompletenessSummaryRead(BaseModel):
+    reference_latest_date: date | None = None
+    configured_instrument_count: int
+    loaded_instrument_count: int
+    instruments_with_data_count: int
+    missing_data_count: int
+    stale_data_count: int
+    scopes_declared: int
+    bootstrapped_scope_count: int
+    ready_scope_count: int
+    attention_scope_count: int
 
 
 class UniverseCoverageDataRead(BaseModel):
     preset: UniversePresetSummaryRead
+    completeness: UniverseCompletenessSummaryRead
     scopes: list[UniverseScopeCoverageRead] = Field(default_factory=list)
     market_counts: list[InstrumentCategoryCountRead] = Field(default_factory=list)
     asset_type_counts: list[InstrumentCategoryCountRead] = Field(default_factory=list)

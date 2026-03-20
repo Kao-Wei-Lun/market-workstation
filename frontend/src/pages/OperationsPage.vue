@@ -55,7 +55,7 @@
       message="無法從後端取得手動任務、近期工作與健康狀態。"
       :detail="errorMessage"
     />
-    <template v-else-if="status && taskCenter">
+    <template v-else-if="status && taskCenter && coverage">
       <SummaryCardGrid :cards="taskSummaryCards" />
 
       <DetailPanel title="任務與營運重點" description="先檢查最近手動任務，再確認資料集、匯入工作與 worker 是否正常。">
@@ -119,6 +119,7 @@
         </DetailPanel>
 
         <MetricGrid :metrics="systemMetrics" />
+        <MetricGrid :metrics="coverageMetrics" />
         <MiniBarChart
           title="資料集新鮮度"
           description="顯示主要資料集目前可用筆數。"
@@ -134,6 +135,15 @@
       </div>
 
       <div class="page-section-grid">
+        <SortableTableSection
+          title="需補跑的 universe / scope"
+          description="快速查看哪些區段尚未完成 bootstrap、缺資料或資料已過期。"
+          :columns="coverageColumns"
+          :rows="coverageRows"
+          default-sort-by="attention_score"
+          default-sort-direction="desc"
+          empty-message="目前沒有需要補跑的 universe 區段。"
+        />
         <SortableTableSection
           title="最近手動任務"
           description="查看本機手動觸發的示範資料、ETL、指標、候選與報表執行情況。"
@@ -181,7 +191,7 @@ import { RouterLink } from "vue-router";
 import { useRoute, useRouter } from "vue-router";
 
 import { normalizeApiError } from "@/api/http";
-import { fetchManualTaskCenter, fetchSystemStatus, runManualTask } from "@/api/system";
+import { fetchManualTaskCenter, fetchSystemStatus, fetchUniverseCoverage, runManualTask } from "@/api/system";
 import DetailPanel from "@/components/DetailPanel.vue";
 import ErrorState from "@/components/ErrorState.vue";
 import FilterBar from "@/components/FilterBar.vue";
@@ -192,12 +202,13 @@ import PageHeader from "@/components/PageHeader.vue";
 import PageStatusBar from "@/components/PageStatusBar.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
-import type { ManualTaskCenterRead, ManualTaskRunRead, SystemStatusRead } from "@/types/system";
-import { formatDate, formatDateTime, formatNumber } from "@/utils/formatters";
+import type { ManualTaskCenterRead, ManualTaskRunRead, SystemStatusRead, UniverseCoverageRead } from "@/types/system";
+import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
 import { makeLinkedCell } from "@/utils/presentation";
 
 const status = ref<SystemStatusRead | null>(null);
 const taskCenter = ref<ManualTaskCenterRead | null>(null);
+const coverage = ref<UniverseCoverageRead | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const actionFeedback = ref<string | null>(null);
@@ -240,6 +251,15 @@ const taskColumns = [
   { key: "finished_at", label: "完成時間" },
   { key: "target", label: "結果頁" },
   { key: "error", label: "錯誤摘要" },
+];
+
+const coverageColumns = [
+  { key: "scope", label: "區段" },
+  { key: "status", label: "狀態" },
+  { key: "latest_data_date", label: "最新日期" },
+  { key: "missing_data", label: "缺資料" },
+  { key: "stale_data", label: "過期" },
+  { key: "sample_symbols", label: "樣本代號" },
 ];
 
 const datasetRows = computed(() =>
@@ -285,6 +305,23 @@ const taskRows = computed(() =>
   })),
 );
 
+const coverageRows = computed(() =>
+  (coverage.value?.data.scopes ?? [])
+    .filter((scope) => scope.status !== "ready")
+    .map((scope) => ({
+      scope: scope.label,
+      status: scope.status === "stale" ? "資料過期" : scope.status === "partial" ? "部分完成" : "缺資料",
+      latest_data_date: formatDate(scope.latest_data_date),
+      missing_data: scope.missing_data_count,
+      stale_data: scope.stale_data_count,
+      attention_score: scope.missing_data_count * 10 + scope.stale_data_count,
+      sample_symbols: formatList(
+        scope.sample_missing_symbols.length > 0 ? scope.sample_missing_symbols : scope.sample_stale_symbols,
+        "無",
+      ),
+    })),
+);
+
 const taskSummaryCards = computed(() => [...(taskCenter.value?.summary_cards ?? []), ...(status.value?.summary_cards ?? [])]);
 
 const combinedHighlights = computed(() => [...(taskCenter.value?.highlights ?? []), ...(status.value?.highlights ?? [])]);
@@ -303,6 +340,29 @@ const systemMetrics = computed(() => [
       status.value?.data.job_status_counts.find((item) => item.status === "failed")?.count ?? 0,
     ),
     hint: "僅統計 ingest_jobs",
+  },
+]);
+
+const coverageMetrics = computed(() => [
+  {
+    label: "已 bootstrap 區段",
+    value: formatNumber(coverage.value?.data.completeness.bootstrapped_scope_count ?? 0),
+    hint: `共 ${coverage.value?.data.completeness.scopes_declared ?? 0} 個 scope`,
+  },
+  {
+    label: "就緒區段",
+    value: formatNumber(coverage.value?.data.completeness.ready_scope_count ?? 0),
+    hint: "沒有缺資料或過期",
+  },
+  {
+    label: "需補跑區段",
+    value: formatNumber(coverage.value?.data.completeness.attention_scope_count ?? 0),
+    hint: "可先補 ETL 或 bootstrap",
+  },
+  {
+    label: "有資料標的",
+    value: formatNumber(coverage.value?.data.completeness.instruments_with_data_count ?? 0),
+    hint: "含日線或序列資料",
   },
 ]);
 
@@ -345,15 +405,17 @@ async function loadPage(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-    const [taskPayload, statusPayload] = await Promise.all([
+    const [taskPayload, statusPayload, coveragePayload] = await Promise.all([
       fetchManualTaskCenter({ limit: jobLimit.value }),
       fetchSystemStatus({
         jobLimit: jobLimit.value,
         workerStaleMinutes: workerStaleMinutes.value,
       }),
+      fetchUniverseCoverage("v1_market_expanded"),
     ]);
     taskCenter.value = taskPayload;
     status.value = statusPayload;
+    coverage.value = coveragePayload;
     await router.replace({
       query: {
         tradeDate: selectedTradeDate.value || undefined,

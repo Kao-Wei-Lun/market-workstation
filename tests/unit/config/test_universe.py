@@ -18,6 +18,8 @@ def test_load_directory_backed_universe_preset_combines_segments() -> None:
 
     assert preset.preset_name == "v1_market_expanded"
     assert len(preset.scopes) >= 5
+    assert all(scope.group_label for scope in preset.scopes)
+    assert all(scope.stale_after_days > 0 for scope in preset.scopes)
     assert any(item.asset_type == "commodity" for item in preset.instruments)
     assert any(item.asset_type == "macro" for item in preset.instruments)
     assert any(watchlist.name == "us-core" for watchlist in preset.watchlists)

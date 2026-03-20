@@ -13,16 +13,25 @@ export interface UniversePresetSummaryRead {
 export interface UniverseScopeCoverageRead {
   key: string;
   label: string;
+  group_label: string;
   market: string;
   asset_type: string;
   source_route: string;
   coverage: string;
   description: string;
+  stale_after_days: number;
   configured_instrument_count: number;
   loaded_instrument_count: number;
+  instruments_with_data_count: number;
+  missing_data_count: number;
+  stale_data_count: number;
+  latest_data_date: string | null;
+  status: "ready" | "partial" | "missing" | "stale";
   configured_watchlist_count: number;
   loaded_watchlist_count: number;
   sample_symbols: string[];
+  sample_missing_symbols: string[];
+  sample_stale_symbols: string[];
 }
 
 export interface InstrumentCategoryCountRead {
@@ -30,10 +39,28 @@ export interface InstrumentCategoryCountRead {
   key: string;
   label: string;
   instrument_count: number;
+  instruments_with_data_count: number;
+  missing_data_count: number;
+  stale_data_count: number;
+  latest_data_date: string | null;
+}
+
+export interface UniverseCompletenessSummaryRead {
+  reference_latest_date: string | null;
+  configured_instrument_count: number;
+  loaded_instrument_count: number;
+  instruments_with_data_count: number;
+  missing_data_count: number;
+  stale_data_count: number;
+  scopes_declared: number;
+  bootstrapped_scope_count: number;
+  ready_scope_count: number;
+  attention_scope_count: number;
 }
 
 export interface UniverseCoverageDataRead {
   preset: UniversePresetSummaryRead;
+  completeness: UniverseCompletenessSummaryRead;
   scopes: UniverseScopeCoverageRead[];
   market_counts: InstrumentCategoryCountRead[];
   asset_type_counts: InstrumentCategoryCountRead[];

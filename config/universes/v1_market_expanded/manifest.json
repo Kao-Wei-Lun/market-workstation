@@ -4,84 +4,102 @@
   "scopes": [
     {
       "key": "tw_equities_full",
-      "label": "Taiwan listed equities full market target",
+      "label": "台股上市櫃股票全市場目標",
+      "group_label": "台灣市場",
       "market": "TW",
       "asset_type": "stock",
       "source_route": "twse_openapi",
       "coverage": "full_market_registry_sync",
-      "description": "Target full TWSE/TPEX listed-equity daily coverage through an official registry sync flow while keeping the initial preset curated."
+      "description": "以官方上市櫃名單同步為長期目標，現階段先用精選 preset 建立 V1 盤後覆蓋。",
+      "stale_after_days": 3
     },
     {
       "key": "tw_etfs_major",
-      "label": "Taiwan major ETFs",
+      "label": "台灣主要 ETF",
+      "group_label": "台灣市場",
       "market": "TW",
       "asset_type": "etf",
       "source_route": "twse_openapi",
       "coverage": "major_liquidity_set",
-      "description": "High-usage Taiwan ETFs for local post-market monitoring."
+      "description": "本機盤後複核最常使用的台灣 ETF 集合。",
+      "stale_after_days": 3
     },
     {
       "key": "tw_indices_major",
-      "label": "Taiwan major indices",
+      "label": "台灣主要指數",
+      "group_label": "台灣市場",
       "market": "TW",
       "asset_type": "index",
       "source_route": "manual_csv",
       "coverage": "major_benchmarks",
-      "description": "Core Taiwan benchmarks and small-cap context indices."
+      "description": "台股大盤與中小型股背景指數。",
+      "stale_after_days": 7
     },
     {
       "key": "us_equities_curated",
-      "label": "Curated US equities",
+      "label": "精選美股",
+      "group_label": "美股市場",
       "market": "US",
       "asset_type": "stock",
       "source_route": "us_eod_provider",
       "coverage": "curated_research_set",
-      "description": "Large-cap growth, semiconductors, and frequently reviewed US leaders."
+      "description": "以大型成長股、半導體與常看標的為主的研究集合。",
+      "stale_after_days": 3
     },
     {
       "key": "us_etfs_major",
-      "label": "US major ETFs",
+      "label": "美股主要 ETF",
+      "group_label": "美股市場",
       "market": "US",
       "asset_type": "etf",
       "source_route": "us_eod_provider",
       "coverage": "major_benchmarks",
-      "description": "Broad market, growth, and semiconductor ETF coverage."
+      "description": "涵蓋大盤、成長與半導體 ETF 的基礎研究集合。",
+      "stale_after_days": 3
     },
     {
       "key": "us_indices_major",
-      "label": "US major indices",
+      "label": "美股主要指數",
+      "group_label": "美股市場",
       "market": "GLOBAL",
       "asset_type": "index",
       "source_route": "us_eod_provider",
       "coverage": "major_benchmarks",
-      "description": "Primary US benchmark indices sourced through the US EOD route."
+      "description": "透過美股 EOD 路由取得的主要美股基準指數。",
+      "stale_after_days": 3
     },
     {
       "key": "global_indices_major",
-      "label": "Major global indices",
+      "label": "全球主要指數",
+      "group_label": "全球資產",
       "market": "GLOBAL",
       "asset_type": "index",
       "source_route": "manual_csv",
       "coverage": "regional_benchmarks",
-      "description": "Key Europe and Asia regional benchmark indices."
+      "description": "歐洲與亞洲主要區域基準指數。",
+      "stale_after_days": 7
     },
     {
       "key": "commodities_major",
-      "label": "Major commodities",
+      "label": "主要原物料",
+      "group_label": "全球資產",
       "market": "GLOBAL",
       "asset_type": "commodity",
       "source_route": "macro_series_provider",
       "coverage": "macro_risk_inputs",
-      "description": "Gold, silver, oil, and copper as practical risk-cycle inputs."
+      "description": "以黃金、白銀、原油與銅價作為風險循環觀察輸入。",
+      "stale_after_days": 7
     },
     {
       "key": "macro_series_core",
-      "label": "Core macro series",
+      "label": "核心總經序列",
+      "group_label": "宏觀資料",
       "market": "GLOBAL",
       "asset_type": "macro",
       "source_route": "macro_series_provider",
       "coverage": "core_macro_dashboard",
-      "description": "Volatility, dollar, rates, inflation, and labor-market series."
+      "description": "波動率、美元、利率、通膨與勞動市場等核心總經序列。",
+      "stale_after_days": 7
     }
   ],
   "segments": [
