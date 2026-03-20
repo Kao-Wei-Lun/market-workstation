@@ -94,6 +94,14 @@ export async function postJson<TResponse, TRequest = unknown>(
   return response.data;
 }
 
+export async function deleteJson<TResponse = void>(
+  url: string,
+  config?: AxiosRequestConfig,
+): Promise<TResponse> {
+  const response = await http.delete<TResponse>(url, config);
+  return response.data;
+}
+
 export function getApiBaseUrl(): string {
   return baseURL;
 }

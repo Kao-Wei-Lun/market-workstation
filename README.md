@@ -8,6 +8,7 @@
 - 觀察清單、群組、scanner 與候選清單
 - 日線回測、參數搜尋、walk-forward
 - 每日報表與 dashboard 聚合 API
+- 個股 / 大盤日線圖表、基本畫線與法人流圖 foundation
 - Vue 3 前端儀表板，預設介面語言為繁體中文
 
 V1 不包含即時行情、即時警示、訂單執行或多使用者能力；這些會留給 V2。
@@ -36,6 +37,7 @@ V1 建議用途：
 - 報表閱讀與隔日規劃
 - 基礎日線策略研究與回測
 - universe / ETL / worker 狀態檢查
+- 日線 K 線圖與盤後複盤
 
 ## 系統需求
 
@@ -287,6 +289,8 @@ python scripts/manage.py verify-v1 --api-base-url http://localhost:8000 --trade-
 - 報表
 - 回測
 - 衍生性商品
+- 個股圖表
+- 大盤圖表
 
 前端特性：
 
@@ -297,6 +301,8 @@ python scripts/manage.py verify-v1 --api-base-url http://localhost:8000 --trade-
 - 以 dashboard aggregate API 減少前端自行重組資料
 - 各頁面統一使用 loading / empty / error state
 - 報表與候選頁提供較深的 drill-down
+- 個股圖表頁提供日線 K 線、成交量、indicator overlay 與基本畫線
+- 大盤圖表頁提供台灣大盤日線與外資期貨／選擇權流向 foundation
 - 管理頁提供 universe coverage、資料新鮮度、ingest jobs、worker heartbeat 可視性
 
 `VITE_API_BASE_URL` 可在 `.env` 或 `frontend/.env.example` 中設定，典型本機值為：
@@ -323,6 +329,7 @@ curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-
 2. 若資料不完整，轉到「任務中心」與「資料覆蓋」檢查 worker、jobs、universe/bootstrap。
 3. 在「任務中心」直接手動觸發示範資料、日線 ETL、技術指標、候選或報表任務。
 4. 再從總覽或任務中心直接跳往「報表」、「候選清單」、「觀察清單」或「標籤群組」深入閱讀。
+5. 若要做價位複盤或盤勢對照，前往「個股圖表」或「大盤圖表」查看 K 線、成交量、overlay 與畫線。
 
 ### 如何檢查缺資料 / 過期資料
 
@@ -376,6 +383,27 @@ curl "http://localhost:8000/backtests/runs/<run_id>/export?export_format=csv"
 curl "http://localhost:8000/scanner/export?trade_date=2026-03-20&watchlist_id=1&export_format=csv"
 ```
 
+### 圖表 APIs
+
+```bash
+curl "http://localhost:8000/api/charts/instruments?market=TW&limit=20"
+curl "http://localhost:8000/api/charts/ohlcv/2330?indicator_name=sma&indicator_name=ema"
+curl "http://localhost:8000/api/charts/institutional-flow/%5ETWII"
+curl -X POST "http://localhost:8000/api/charts/annotations" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"2330","view_kind":"instrument","annotation_type":"horizontal_line","label":"壓力位","payload_json":{"price":950}}'
+```
+
+圖表頁目前支援：
+
+- 個股 / ETF 日線 K 線圖
+- 大盤 / 指數日線 K 線圖
+- 成交量 pane
+- 已保存 indicator_values overlay
+- 趨勢線與水平線
+- 本機持久化畫線注記
+- 台灣大盤 + 外資期貨／選擇權流向 foundation
+
 ## Release / 驗收
 
 建議閱讀：
@@ -423,6 +451,8 @@ V1 目前仍有以下限制：
 - 不含 production auth / multi-user
 - universe 仍以 config-driven preset 為主，尚未完成 full-market registry auto-sync
 - 報表 markdown rendering 為 lightweight parser，不是完整 markdown engine
+- 圖表目前僅支援日線 / 盤後資料，不含即時更新、縮放拖拉與進階繪圖工具
+- 法人流圖 foundation 目前先整合外資期貨／選擇權資料，現貨買賣超仍待後續資料源補齊
 - 前端目前以本機單人研究使用為前提，未針對大型資料量做完整 pagination / caching
 - 任務中心目前以安全手動觸發為主，不含正式分散式 queue / RBAC / 審批流
 

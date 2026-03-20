@@ -10,6 +10,8 @@ describe("routes", () => {
       "operations",
       "watchlists",
       "groups",
+      "stock-charts",
+      "market-charts",
       "candidates",
       "reports",
       "backtests",

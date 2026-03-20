@@ -9,6 +9,7 @@ from services.models import (
     BacktestWalkForwardWindow,
     CandidateItem,
     CandidateRun,
+    ChartAnnotation,
     DailyBar,
     IndicatorValue,
     IngestJob,
@@ -33,6 +34,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert AutoClassificationRule.__tablename__ == "auto_classification_rules"
     assert CandidateRun.__tablename__ == "candidate_runs"
     assert CandidateItem.__tablename__ == "candidate_items"
+    assert ChartAnnotation.__tablename__ == "chart_annotations"
     assert Strategy.__tablename__ == "strategies"
     assert BacktestRun.__tablename__ == "backtest_runs"
     assert BacktestSearchRun.__tablename__ == "backtest_search_runs"
@@ -56,6 +58,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "auto_classification_rules",
         "candidate_runs",
         "candidate_items",
+        "chart_annotations",
         "strategies",
         "backtest_runs",
         "backtest_search_runs",

@@ -12,6 +12,12 @@
         <RouterLink class="pill link-pill" :to="{ name: 'candidates', query: { candidateDate: selectedTradeDate || undefined } }">
           查看候選
         </RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'stock-charts' }">
+          查看個股圖表
+        </RouterLink>
+        <RouterLink class="pill link-pill" :to="{ name: 'market-charts' }">
+          查看大盤圖表
+        </RouterLink>
         <RouterLink
           v-if="selectedWatchlistId"
           class="pill link-pill"

@@ -9,6 +9,7 @@ from services.models.backtest_walk_forward_run import BacktestWalkForwardRun
 from services.models.backtest_walk_forward_window import BacktestWalkForwardWindow
 from services.models.candidate_item import CandidateItem
 from services.models.candidate_run import CandidateRun
+from services.models.chart_annotation import ChartAnnotation
 from services.models.daily_bar import DailyBar
 from services.models.indicator_value import IndicatorValue
 from services.models.ingest_job import IngestJob
@@ -38,6 +39,7 @@ __all__ = [
     "BacktestWalkForwardWindow",
     "CandidateItem",
     "CandidateRun",
+    "ChartAnnotation",
     "DailyBar",
     "IndicatorValue",
     "IngestJob",

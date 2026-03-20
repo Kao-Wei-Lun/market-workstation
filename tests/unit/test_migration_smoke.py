@@ -15,6 +15,7 @@ def test_initial_migration_renders_offline_sql(capsys) -> None:
     assert "CREATE TABLE auto_classification_rules" in rendered_sql
     assert "CREATE TABLE candidate_runs" in rendered_sql
     assert "CREATE TABLE candidate_items" in rendered_sql
+    assert "CREATE TABLE chart_annotations" in rendered_sql
     assert "CREATE TABLE strategies" in rendered_sql
     assert "CREATE TABLE backtest_runs" in rendered_sql
     assert "CREATE TABLE backtest_search_runs" in rendered_sql
