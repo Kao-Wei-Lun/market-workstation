@@ -14,6 +14,14 @@ export interface ReportMetricItem {
   hint: string;
 }
 
+export interface ReportSectionSummaryItem {
+  key: string;
+  title: string;
+  sectionType: string;
+  payloadFieldCount: number;
+  markdownLineCount: number;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -124,6 +132,25 @@ export function buildReportRelatedLinks(
 
 export function listAvailableReportTypes(reports: ReportDailyRead[]): string[] {
   return [...new Set(reports.map((report) => report.report_type))].sort();
+}
+
+
+export function listAvailableReportDates(reports: ReportDailyRead[]): string[] {
+  return [...new Set(reports.map((report) => report.report_date))].sort().reverse();
+}
+
+
+export function buildReportSectionSummaries(bundle: DailyReportBundleContent | null): ReportSectionSummaryItem[] {
+  if (!bundle) {
+    return [];
+  }
+  return bundle.sections.map((section) => ({
+    key: section.section_type,
+    title: section.title,
+    sectionType: section.section_type,
+    payloadFieldCount: Object.keys(section.payload_json ?? {}).length,
+    markdownLineCount: section.markdown_body.split("\n").filter((line) => line.trim().length > 0).length,
+  }));
 }
 
 

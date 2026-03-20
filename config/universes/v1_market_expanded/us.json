@@ -1,0 +1,21 @@
+{
+  "instruments": [
+    { "symbol": "AAPL", "name": "Apple", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "MSFT", "name": "Microsoft", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "NVDA", "name": "NVIDIA", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-ai"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "AMZN", "name": "Amazon", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-growth"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "GOOGL", "name": "Alphabet", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "META", "name": "Meta Platforms", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-tech"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "TSLA", "name": "Tesla", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-growth"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "AMD", "name": "AMD", "market": "US", "asset_type": "stock", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-core", "us-semiconductor"], "scope_keys": ["us_equities_curated"] },
+    { "symbol": "SPY", "name": "SPDR S&P 500 ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "broad-market"], "scope_keys": ["us_etfs_major"] },
+    { "symbol": "QQQ", "name": "Invesco QQQ", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "growth"], "scope_keys": ["us_etfs_major"] },
+    { "symbol": "IWM", "name": "iShares Russell 2000 ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "small-cap"], "scope_keys": ["us_etfs_major"] },
+    { "symbol": "SOXX", "name": "iShares Semiconductor ETF", "market": "US", "asset_type": "etf", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["us-etf", "semiconductor"], "scope_keys": ["us_etfs_major"] },
+    { "symbol": "^GSPC", "name": "S&P 500", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-benchmark"], "scope_keys": ["us_indices_major"] },
+    { "symbol": "^IXIC", "name": "NASDAQ Composite", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-growth"], "scope_keys": ["us_indices_major"] },
+    { "symbol": "^DJI", "name": "Dow Jones Industrial Average", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-benchmark"], "scope_keys": ["us_indices_major"] },
+    { "symbol": "^NDX", "name": "NASDAQ 100", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "us-growth"], "scope_keys": ["us_indices_major"] },
+    { "symbol": "^RUT", "name": "Russell 2000", "market": "GLOBAL", "asset_type": "index", "currency": "USD", "timezone": "America/New_York", "source_route": "us_eod_provider", "tags": ["global-index", "small-cap"], "scope_keys": ["us_indices_major"] }
+  ]
+}

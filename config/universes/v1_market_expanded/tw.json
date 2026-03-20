@@ -1,0 +1,19 @@
+{
+  "instruments": [
+    { "symbol": "2330", "name": "TSMC", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "semiconductor"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2317", "name": "Hon Hai", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "electronics"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2454", "name": "MediaTek", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "semiconductor"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2308", "name": "Delta Electronics", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "electronics"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2603", "name": "Evergreen Marine", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "shipping"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2881", "name": "Fubon Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2882", "name": "Cathay Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "2884", "name": "E.Sun Financial", "market": "TW", "asset_type": "stock", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-core", "financial"], "scope_keys": ["tw_equities_full"] },
+    { "symbol": "0050", "name": "Yuanta Taiwan 50 ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "broad-market"], "scope_keys": ["tw_etfs_major"] },
+    { "symbol": "0056", "name": "Yuanta High Dividend ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"], "scope_keys": ["tw_etfs_major"] },
+    { "symbol": "006208", "name": "Fubon Taiwan 50 ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "broad-market"], "scope_keys": ["tw_etfs_major"] },
+    { "symbol": "00878", "name": "Cathay Sustainable High Dividend ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"], "scope_keys": ["tw_etfs_major"] },
+    { "symbol": "00919", "name": "Capital Taiwan Dividend Plus ETF", "market": "TW", "asset_type": "etf", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "twse_openapi", "tags": ["tw-etf", "dividend"], "scope_keys": ["tw_etfs_major"] },
+    { "symbol": "^TWII", "name": "TAIEX", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "broad-market"], "scope_keys": ["tw_indices_major"] },
+    { "symbol": "^TPEX", "name": "TPEx OTC Index", "market": "TW", "asset_type": "index", "currency": "TWD", "timezone": "Asia/Taipei", "source_route": "manual_csv", "tags": ["tw-index", "small-cap"], "scope_keys": ["tw_indices_major"] }
+  ]
+}

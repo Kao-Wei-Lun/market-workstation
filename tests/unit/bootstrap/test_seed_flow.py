@@ -69,7 +69,7 @@ def test_load_instrument_universe_supports_broader_v1_preset_idempotently() -> N
     second = load_instrument_universe(session, preset_name="v1_market_expanded")
 
     assert first.total_instruments > 20
-    assert first.scopes_declared == 1
+    assert first.scopes_declared >= 5
     assert first.watchlists_created >= 1
     assert first.watchlist_items_added >= 1
 
@@ -79,6 +79,18 @@ def test_load_instrument_universe_supports_broader_v1_preset_idempotently() -> N
     assert session.query(Instrument).filter(Instrument.asset_type == "macro").count() >= 4
     assert session.query(Watchlist).count() >= 4
     assert session.query(InstrumentTag).count() > 20
+
+
+def test_load_instrument_universe_can_limit_loading_to_a_scope() -> None:
+    session = _build_session()
+
+    result = load_instrument_universe(session, preset_name="v1_market_expanded", scope_keys=("macro_series_core",))
+
+    assert result.requested_scope_keys == ("macro_series_core",)
+    assert result.total_instruments == 6
+    assert session.query(Instrument).count() == 6
+    assert session.query(Watchlist).count() == 2
+    assert session.query(Instrument).filter(Instrument.asset_type == "macro").count() == 6
 
 
 def test_generate_demo_data_is_idempotent_and_populates_frontend_visible_tables() -> None:

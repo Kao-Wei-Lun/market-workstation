@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { buildReportRelatedLinks, buildReportSectionMetrics, listAvailableReportTypes } from "@/utils/reports";
+import {
+  buildReportRelatedLinks,
+  buildReportSectionMetrics,
+  buildReportSectionSummaries,
+  listAvailableReportDates,
+  listAvailableReportTypes,
+} from "@/utils/reports";
 
 describe("report related link helpers", () => {
   it("builds cross-page links from bundle metadata and section payload", () => {
@@ -80,6 +86,29 @@ describe("report related link helpers", () => {
     };
 
     const metrics = buildReportSectionMetrics(bundle, bundle.sections[0], 2);
+    const sectionSummaries = buildReportSectionSummaries(bundle);
+    const reportDates = listAvailableReportDates([
+      {
+        id: 1,
+        report_date: "2026-03-21",
+        report_type: "daily_report_bundle",
+        report_key: "daily-2",
+        title: "Daily 2",
+        content_json: {},
+        markdown_text: "demo",
+        created_at: "2026-03-21T08:00:00",
+      },
+      {
+        id: 2,
+        report_date: "2026-03-20",
+        report_type: "market_summary",
+        report_key: "market",
+        title: "Market",
+        content_json: {},
+        markdown_text: "demo",
+        created_at: "2026-03-20T08:05:00",
+      },
+    ]);
     const reportTypes = listAvailableReportTypes([
       {
         id: 1,
@@ -116,6 +145,11 @@ describe("report related link helpers", () => {
     expect(metrics.map((item) => item.label)).toEqual(
       expect.arrayContaining(["報表日期", "目前區塊", "內容行數", "結構欄位數", "相關導頁"]),
     );
+    expect(sectionSummaries[0]).toMatchObject({
+      key: "market_summary",
+      payloadFieldCount: 2,
+    });
+    expect(reportDates).toEqual(["2026-03-21", "2026-03-20"]);
     expect(reportTypes).toEqual(["daily_report_bundle", "market_summary"]);
   });
 });

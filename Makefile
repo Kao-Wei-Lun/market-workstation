@@ -1,4 +1,4 @@
-.PHONY: setup migrate seed load-universe demo-data sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
+.PHONY: setup migrate seed list-universes load-universe demo-data sample-etl indicator-update generate-reports smoke-test run-api run-scheduler run-analysis run-frontend frontend-install frontend-build frontend-test test lint typecheck format dev-up dev-down backup-commit
 
 PYTHON := .venv/bin/python
 PIP_INSTALL := . .venv/bin/activate && python -m pip install -e .
@@ -13,8 +13,11 @@ migrate:
 seed:
 	$(PYTHON) scripts/manage.py seed
 
+list-universes:
+	$(PYTHON) scripts/manage.py list-universes
+
 load-universe:
-	$(PYTHON) scripts/manage.py load-universe --preset $${PRESET:-v1_market_expanded}
+	$(PYTHON) scripts/manage.py load-universe --preset $${PRESET:-v1_market_expanded} $${SCOPE:+--scope $$SCOPE}
 
 demo-data:
 	$(PYTHON) scripts/manage.py demo-data --trade-date $${TRADE_DATE:-2026-03-20}

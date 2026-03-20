@@ -48,6 +48,22 @@
       </div>
     </FilterBar>
 
+    <DetailPanel title="常用日期" description="快速切換近期有資料的報表日期。">
+      <div v-if="availableReportDates.length" class="quick-date-list">
+        <button
+          v-for="reportDate in availableReportDates"
+          :key="reportDate"
+          class="quick-date-button"
+          :class="{ active: selectedReportDate === reportDate }"
+          type="button"
+          @click="selectReportDate(reportDate)"
+        >
+          {{ formatDate(reportDate) }}
+        </button>
+      </div>
+      <p v-else class="muted">目前沒有可快速切換的報表日期。</p>
+    </DetailPanel>
+
     <PageStatusBar
       title="報表資料狀態"
       :as-of-date="dashboard?.meta.as_of_date ?? null"
@@ -121,25 +137,6 @@
       </DetailPanel>
 
       <DetailPanel
-        v-if="bundle?.sections.length"
-        title="區塊導覽"
-        description="快速切換 bundle 內的重點區塊，方便逐段閱讀日報。"
-      >
-        <div class="section-tabs">
-          <button
-            v-for="section in bundle.sections"
-            :key="section.section_type"
-            class="section-tab"
-            :class="{ active: selectedSection?.section_type === section.section_type }"
-            type="button"
-            @click="selectedSectionType = section.section_type"
-          >
-            {{ section.title }}
-          </button>
-        </div>
-      </DetailPanel>
-
-      <DetailPanel
         v-if="selectedSection"
         title="區塊摘要"
         description="顯示目前 section 的欄位規模、閱讀密度與可延伸查看的導頁。"
@@ -161,6 +158,13 @@
       />
 
       <div v-if="selectedSection" class="page-section-grid">
+        <ReportSectionNavigator
+          title="區塊導覽"
+          description="快速切換 bundle 內的重點區塊，方便逐段閱讀日報。"
+          :sections="sectionSummaries"
+          :selected-key="selectedSection.section_type"
+          @select="handleSectionSelect"
+        />
         <MarkdownSection
           title="目前報表區塊"
           :section-type="selectedSection.section_type"
@@ -197,13 +201,20 @@ import MiniBarChart from "@/components/MiniBarChart.vue";
 import PageStatusBar from "@/components/PageStatusBar.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import RankedListSection from "@/components/RankedListSection.vue";
+import ReportSectionNavigator from "@/components/ReportSectionNavigator.vue";
 import SortableTableSection from "@/components/SortableTableSection.vue";
 import StructuredPayloadSection from "@/components/StructuredPayloadSection.vue";
 import SummaryCardGrid from "@/components/SummaryCardGrid.vue";
 import type { DailyReportBundleContent } from "@/types/api";
 import type { ReportDailyRead, ReportsDashboardRead } from "@/types/dashboard";
 import { formatDate, formatDateTime, formatList, formatNumber } from "@/utils/formatters";
-import { buildReportRelatedLinks, buildReportSectionMetrics, listAvailableReportTypes } from "@/utils/reports";
+import {
+  buildReportRelatedLinks,
+  buildReportSectionMetrics,
+  buildReportSectionSummaries,
+  listAvailableReportDates,
+  listAvailableReportTypes,
+} from "@/utils/reports";
 import type { TableRow } from "@/utils/presentation";
 import { filterRowsByQuery, makeLinkedCell } from "@/utils/presentation";
 
@@ -255,8 +266,12 @@ const selectedSection = computed(() => {
 
 const selectedReport = computed(() => latestReports.value.find((report) => report.id === selectedReportId.value) ?? null);
 const selectedReportRowKey = computed(() => (selectedReportId.value ? String(selectedReportId.value) : null));
+const availableReportDates = computed(() =>
+  listAvailableReportDates(dashboard.value?.data?.reports?.length ? dashboard.value.data.reports : latestReports.value),
+);
 const availableReportTypes = computed(() => listAvailableReportTypes(latestReports.value));
 const reportRelatedLinks = computed(() => buildReportRelatedLinks(bundle.value, selectedSection.value));
+const sectionSummaries = computed(() => buildReportSectionSummaries(bundle.value));
 const selectedSectionMetrics = computed(() =>
   buildReportSectionMetrics(bundle.value, selectedSection.value, reportRelatedLinks.value.length),
 );
@@ -296,6 +311,15 @@ const selectedReportMetrics = computed(() => {
 
 function handleReportRowSelect(row: TableRow): void {
   selectedReportId.value = Number(row.report_key);
+}
+
+function handleSectionSelect(sectionType: string): void {
+  selectedSectionType.value = sectionType;
+}
+
+function selectReportDate(reportDate: string): void {
+  selectedReportDate.value = reportDate;
+  void loadReports();
 }
 
 const reportTypeChartPoints = computed(() => {
@@ -424,13 +448,13 @@ watch([reportTypeFilter, selectedSectionType, selectedReportDate], syncRouteQuer
   text-decoration: underline;
 }
 
-.section-tabs {
+.quick-date-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
 }
 
-.section-tab {
+.quick-date-button {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--panel-bg);
@@ -438,7 +462,7 @@ watch([reportTypeFilter, selectedSectionType, selectedReportDate], syncRouteQuer
   cursor: pointer;
 }
 
-.section-tab.active {
+.quick-date-button.active {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(22, 89, 146, 0.08);

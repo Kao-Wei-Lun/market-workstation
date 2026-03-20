@@ -18,6 +18,7 @@ from services.core.bootstrap import (
 from services.core.smoke import run_smoke_test
 from services.db.session import SessionLocal
 from workers.shared.jobs import run_daily_report_generation_job, run_indicator_update_job
+from config.universe import describe_universe_preset, list_available_universe_presets
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,8 +30,16 @@ def main(argv: list[str] | None = None) -> int:
 
     subparsers.add_parser("seed", help="Seed sample reference data.")
 
+    subparsers.add_parser("list-universes", help="List available universe presets.")
+
     universe_parser = subparsers.add_parser("load-universe", help="Load a broader instrument universe preset.")
     universe_parser.add_argument("--preset", default=DEFAULT_V1_UNIVERSE_PRESET)
+    universe_parser.add_argument(
+        "--scope",
+        action="append",
+        default=[],
+        help="Limit loading to one or more scope keys declared by the preset.",
+    )
     universe_parser.add_argument(
         "--skip-watchlists",
         action="store_true",
@@ -70,16 +79,29 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
+    if args.command == "list-universes":
+        for preset_name in list_available_universe_presets():
+            description = describe_universe_preset(preset_name)
+            scope_keys = description["scope_keys"]
+            scope_text = ",".join(scope_keys if isinstance(scope_keys, list) else []) or "all"
+            print(
+                f"{preset_name}: instruments={description['instrument_count']}, "
+                f"watchlists={description['watchlist_count']}, scopes={scope_text}"
+            )
+        return 0
+
     if args.command == "load-universe":
         with SessionLocal() as session:
             result = load_instrument_universe(
                 session,
                 preset_name=args.preset,
                 include_watchlists=not args.skip_watchlists,
+                scope_keys=tuple(args.scope),
             )
         print(
             "Loaded instrument universe: "
             f"preset={result.preset_name}, "
+            f"requested_scopes={','.join(result.requested_scope_keys) or 'all'}, "
             f"scopes_declared={result.scopes_declared}, "
             f"instruments_created={result.instruments_created}, "
             f"instruments_updated={result.instruments_updated}, "

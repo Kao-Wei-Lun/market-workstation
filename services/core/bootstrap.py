@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from config.universe import list_available_universe_presets, load_universe_preset
+from config.universe import filter_universe_preset_by_scope, list_available_universe_presets, load_universe_preset
 from services.core.backtesting.service import create_and_run_backtest
 from services.core.candidates.service import generate_and_persist_candidate_run
 from services.connectors.base import ConnectorRequest
@@ -56,6 +56,7 @@ class SampleEtlResult:
 class UniverseLoadResult:
     preset_name: str
     description: str
+    requested_scope_keys: tuple[str, ...]
     scopes_declared: int
     instruments_created: int
     instruments_updated: int
@@ -97,8 +98,9 @@ def load_instrument_universe(
     *,
     preset_name: str = DEFAULT_V1_UNIVERSE_PRESET,
     include_watchlists: bool = True,
+    scope_keys: tuple[str, ...] = (),
 ) -> UniverseLoadResult:
-    preset = load_universe_preset(preset_name)
+    preset = filter_universe_preset_by_scope(load_universe_preset(preset_name), scope_keys)
 
     instruments_created = 0
     instruments_updated = 0
@@ -142,6 +144,7 @@ def load_instrument_universe(
     return UniverseLoadResult(
         preset_name=preset.preset_name,
         description=preset.description,
+        requested_scope_keys=scope_keys,
         scopes_declared=len(preset.scopes),
         instruments_created=instruments_created,
         instruments_updated=instruments_updated,

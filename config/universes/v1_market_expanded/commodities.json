@@ -1,0 +1,8 @@
+{
+  "instruments": [
+    { "symbol": "GC=F", "name": "Gold Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "precious-metal"], "scope_keys": ["commodities_major"] },
+    { "symbol": "SI=F", "name": "Silver Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "precious-metal"], "scope_keys": ["commodities_major"] },
+    { "symbol": "CL=F", "name": "WTI Crude Oil Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "energy"], "scope_keys": ["commodities_major"] },
+    { "symbol": "HG=F", "name": "Copper Futures", "market": "GLOBAL", "asset_type": "commodity", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["commodity", "industrial-metal"], "scope_keys": ["commodities_major"] }
+  ]
+}

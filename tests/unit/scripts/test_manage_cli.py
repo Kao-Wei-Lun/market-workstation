@@ -33,6 +33,7 @@ class _DemoDataResult:
 class _UniverseLoadResult:
     preset_name: str
     description: str
+    requested_scope_keys: tuple[str, ...]
     scopes_declared: int
     instruments_created: int
     instruments_updated: int
@@ -77,9 +78,10 @@ def test_manage_load_universe_dispatches_to_universe_service(monkeypatch, capsys
     monkeypatch.setattr(
         manage,
         "load_instrument_universe",
-        lambda session, preset_name, include_watchlists: _UniverseLoadResult(
+        lambda session, preset_name, include_watchlists, scope_keys: _UniverseLoadResult(
             preset_name=preset_name,
             description="demo",
+            requested_scope_keys=scope_keys,
             scopes_declared=1,
             instruments_created=20,
             instruments_updated=5,
@@ -97,6 +99,54 @@ def test_manage_load_universe_dispatches_to_universe_service(monkeypatch, capsys
     assert exit_code == 0
     assert "preset=v1_market_expanded" in output
     assert "instruments_created=20" in output
+
+
+def test_manage_load_universe_accepts_scope_filters(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "SessionLocal", lambda: _session_context())
+    monkeypatch.setattr(
+        manage,
+        "load_instrument_universe",
+        lambda session, preset_name, include_watchlists, scope_keys: _UniverseLoadResult(
+            preset_name=preset_name,
+            description="demo",
+            requested_scope_keys=scope_keys,
+            scopes_declared=1,
+            instruments_created=6,
+            instruments_updated=0,
+            tags_created=12,
+            watchlists_created=1,
+            watchlist_items_added=6,
+            total_instruments=6,
+            available_presets=("sample_reference", "v1_market_expanded"),
+        ),
+    )
+
+    exit_code = manage.main(["load-universe", "--preset", "v1_market_expanded", "--scope", "macro_series_core"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "requested_scopes=macro_series_core" in output
+
+
+def test_manage_list_universes_prints_available_presets(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(manage, "list_available_universe_presets", lambda: ["sample_reference", "v1_market_expanded"])
+    monkeypatch.setattr(
+        manage,
+        "describe_universe_preset",
+        lambda preset_name: {
+            "preset_name": preset_name,
+            "instrument_count": 3 if preset_name == "sample_reference" else 10,
+            "watchlist_count": 1 if preset_name == "sample_reference" else 4,
+            "scope_keys": [] if preset_name == "sample_reference" else ["tw_equities_full", "macro_series_core"],
+        },
+    )
+
+    exit_code = manage.main(["list-universes"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "sample_reference" in output
+    assert "v1_market_expanded" in output
 
 
 def test_manage_demo_data_dispatches_to_demo_service(monkeypatch, capsys) -> None:

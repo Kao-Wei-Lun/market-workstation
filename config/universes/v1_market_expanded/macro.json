@@ -1,0 +1,10 @@
+{
+  "instruments": [
+    { "symbol": "VIX", "name": "CBOE Volatility Index", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "risk"], "scope_keys": ["macro_series_core"] },
+    { "symbol": "DXY", "name": "US Dollar Index", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "fx"], "scope_keys": ["macro_series_core"] },
+    { "symbol": "US10Y", "name": "US 10Y Treasury Yield", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "rates"], "scope_keys": ["macro_series_core"] },
+    { "symbol": "FEDFUNDS", "name": "Effective Federal Funds Rate", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "rates"], "scope_keys": ["macro_series_core"] },
+    { "symbol": "CPIAUCSL", "name": "US CPI", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "inflation"], "scope_keys": ["macro_series_core"] },
+    { "symbol": "UNRATE", "name": "US Unemployment Rate", "market": "GLOBAL", "asset_type": "macro", "currency": "USD", "timezone": "America/New_York", "source_route": "macro_series_provider", "tags": ["macro", "labor"], "scope_keys": ["macro_series_core"] }
+  ]
+}

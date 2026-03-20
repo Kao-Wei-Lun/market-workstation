@@ -1,0 +1,28 @@
+{
+  "watchlists": [
+    {
+      "name": "tw-core",
+      "description": "Taiwan core research watchlist",
+      "symbols": ["2330", "2317", "2454", "2308", "0050", "0056", "^TWII"],
+      "scope_keys": ["tw_equities_full", "tw_etfs_major", "tw_indices_major"]
+    },
+    {
+      "name": "us-core",
+      "description": "Curated US growth and benchmark universe",
+      "symbols": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "QQQ", "SPY", "SOXX"],
+      "scope_keys": ["us_equities_curated", "us_etfs_major"]
+    },
+    {
+      "name": "global-risk",
+      "description": "Global index and commodity risk dashboard",
+      "symbols": ["^GSPC", "^IXIC", "^N225", "^HSI", "GC=F", "CL=F", "VIX", "DXY", "US10Y"],
+      "scope_keys": ["us_indices_major", "global_indices_major", "commodities_major", "macro_series_core"]
+    },
+    {
+      "name": "macro-dashboard",
+      "description": "Macro and policy monitoring list",
+      "symbols": ["VIX", "DXY", "US10Y", "FEDFUNDS", "CPIAUCSL", "UNRATE"],
+      "scope_keys": ["macro_series_core"]
+    }
+  ]
+}

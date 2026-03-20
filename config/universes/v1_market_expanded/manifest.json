@@ -1,0 +1,95 @@
+{
+  "preset_name": "v1_market_expanded",
+  "description": "Broader V1 universe covering Taiwan daily market targets, curated US names, global benchmarks, commodities, and macro series.",
+  "scopes": [
+    {
+      "key": "tw_equities_full",
+      "label": "Taiwan listed equities full market target",
+      "market": "TW",
+      "asset_type": "stock",
+      "source_route": "twse_openapi",
+      "coverage": "full_market_registry_sync",
+      "description": "Target full TWSE/TPEX listed-equity daily coverage through an official registry sync flow while keeping the initial preset curated."
+    },
+    {
+      "key": "tw_etfs_major",
+      "label": "Taiwan major ETFs",
+      "market": "TW",
+      "asset_type": "etf",
+      "source_route": "twse_openapi",
+      "coverage": "major_liquidity_set",
+      "description": "High-usage Taiwan ETFs for local post-market monitoring."
+    },
+    {
+      "key": "tw_indices_major",
+      "label": "Taiwan major indices",
+      "market": "TW",
+      "asset_type": "index",
+      "source_route": "manual_csv",
+      "coverage": "major_benchmarks",
+      "description": "Core Taiwan benchmarks and small-cap context indices."
+    },
+    {
+      "key": "us_equities_curated",
+      "label": "Curated US equities",
+      "market": "US",
+      "asset_type": "stock",
+      "source_route": "us_eod_provider",
+      "coverage": "curated_research_set",
+      "description": "Large-cap growth, semiconductors, and frequently reviewed US leaders."
+    },
+    {
+      "key": "us_etfs_major",
+      "label": "US major ETFs",
+      "market": "US",
+      "asset_type": "etf",
+      "source_route": "us_eod_provider",
+      "coverage": "major_benchmarks",
+      "description": "Broad market, growth, and semiconductor ETF coverage."
+    },
+    {
+      "key": "us_indices_major",
+      "label": "US major indices",
+      "market": "GLOBAL",
+      "asset_type": "index",
+      "source_route": "us_eod_provider",
+      "coverage": "major_benchmarks",
+      "description": "Primary US benchmark indices sourced through the US EOD route."
+    },
+    {
+      "key": "global_indices_major",
+      "label": "Major global indices",
+      "market": "GLOBAL",
+      "asset_type": "index",
+      "source_route": "manual_csv",
+      "coverage": "regional_benchmarks",
+      "description": "Key Europe and Asia regional benchmark indices."
+    },
+    {
+      "key": "commodities_major",
+      "label": "Major commodities",
+      "market": "GLOBAL",
+      "asset_type": "commodity",
+      "source_route": "macro_series_provider",
+      "coverage": "macro_risk_inputs",
+      "description": "Gold, silver, oil, and copper as practical risk-cycle inputs."
+    },
+    {
+      "key": "macro_series_core",
+      "label": "Core macro series",
+      "market": "GLOBAL",
+      "asset_type": "macro",
+      "source_route": "macro_series_provider",
+      "coverage": "core_macro_dashboard",
+      "description": "Volatility, dollar, rates, inflation, and labor-market series."
+    }
+  ],
+  "segments": [
+    "tw",
+    "us",
+    "global",
+    "commodities",
+    "macro",
+    "watchlists"
+  ]
+}

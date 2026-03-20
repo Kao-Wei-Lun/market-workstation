@@ -29,6 +29,7 @@ class UniverseInstrumentDefinition:
     timezone: str
     source_route: str
     tags: tuple[str, ...] = ()
+    scope_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class UniverseWatchlistDefinition:
     name: str
     description: str
     symbols: tuple[str, ...] = ()
+    scope_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -48,12 +50,13 @@ class UniversePreset:
 
 
 def list_available_universe_presets() -> list[str]:
-    return sorted(path.stem for path in UNIVERSE_DIR.glob("*.json"))
+    names = {path.stem for path in UNIVERSE_DIR.glob("*.json")}
+    names.update(path.name for path in UNIVERSE_DIR.iterdir() if path.is_dir())
+    return sorted(names)
 
 
 def load_universe_preset(preset_name: str) -> UniversePreset:
-    path = UNIVERSE_DIR / f"{preset_name}.json"
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _load_preset_payload(preset_name)
     return UniversePreset(
         preset_name=str(payload["preset_name"]),
         description=str(payload["description"]),
@@ -61,6 +64,88 @@ def load_universe_preset(preset_name: str) -> UniversePreset:
         instruments=tuple(_parse_instrument(item) for item in _as_object_list(payload.get("instruments", []))),
         watchlists=tuple(_parse_watchlist(item) for item in _as_object_list(payload.get("watchlists", []))),
     )
+
+
+def describe_universe_preset(preset_name: str) -> dict[str, object]:
+    preset = load_universe_preset(preset_name)
+    return {
+        "preset_name": preset.preset_name,
+        "description": preset.description,
+        "scope_keys": [scope.key for scope in preset.scopes],
+        "instrument_count": len(preset.instruments),
+        "watchlist_count": len(preset.watchlists),
+    }
+
+
+def filter_universe_preset_by_scope(preset: UniversePreset, scope_keys: tuple[str, ...] = ()) -> UniversePreset:
+    normalized = tuple(sorted({scope_key.strip() for scope_key in scope_keys if scope_key.strip()}))
+    if not normalized:
+        return preset
+
+    allowed_scopes = tuple(scope for scope in preset.scopes if scope.key in normalized)
+    filtered_instruments = tuple(
+        instrument
+        for instrument in preset.instruments
+        if not instrument.scope_keys or any(scope_key in normalized for scope_key in instrument.scope_keys)
+    )
+    filtered_symbols = {instrument.symbol for instrument in filtered_instruments}
+    filtered_watchlists = tuple(
+        UniverseWatchlistDefinition(
+            name=watchlist.name,
+            description=watchlist.description,
+            symbols=tuple(symbol for symbol in watchlist.symbols if symbol in filtered_symbols),
+            scope_keys=watchlist.scope_keys,
+        )
+        for watchlist in preset.watchlists
+        if (
+            (not watchlist.scope_keys or any(scope_key in normalized for scope_key in watchlist.scope_keys))
+            and any(symbol in filtered_symbols for symbol in watchlist.symbols)
+        )
+    )
+    return UniversePreset(
+        preset_name=preset.preset_name,
+        description=preset.description,
+        scopes=allowed_scopes,
+        instruments=filtered_instruments,
+        watchlists=filtered_watchlists,
+    )
+
+
+def _load_preset_payload(preset_name: str) -> dict[str, object]:
+    file_path = UNIVERSE_DIR / f"{preset_name}.json"
+    directory_path = UNIVERSE_DIR / preset_name
+    if file_path.is_file():
+        return _read_json(file_path)
+    if directory_path.is_dir():
+        return _load_directory_preset(directory_path)
+    msg = f"unknown universe preset: {preset_name}"
+    raise FileNotFoundError(msg)
+
+
+def _load_directory_preset(directory_path: Path) -> dict[str, object]:
+    manifest_path = directory_path / "manifest.json"
+    manifest = _read_json(manifest_path)
+    instruments: list[dict[str, object]] = []
+    watchlists: list[dict[str, object]] = []
+    for segment_name in _as_string_list(manifest.get("segments", [])):
+        segment_payload = _read_json(directory_path / f"{segment_name}.json")
+        instruments.extend(_as_object_list(segment_payload.get("instruments", [])))
+        watchlists.extend(_as_object_list(segment_payload.get("watchlists", [])))
+    return {
+        "preset_name": manifest["preset_name"],
+        "description": manifest["description"],
+        "scopes": manifest.get("scopes", []),
+        "instruments": instruments,
+        "watchlists": watchlists,
+    }
+
+
+def _read_json(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        msg = f"universe payload must be a JSON object: {path}"
+        raise ValueError(msg)
+    return payload
 
 
 def _as_object_list(value: object) -> list[dict[str, object]]:
@@ -97,6 +182,7 @@ def _parse_instrument(payload: dict[str, object]) -> UniverseInstrumentDefinitio
         timezone=str(payload["timezone"]),
         source_route=str(payload["source_route"]),
         tags=tuple(_as_string_list(payload.get("tags", []))),
+        scope_keys=tuple(_as_string_list(payload.get("scope_keys", []))),
     )
 
 
@@ -105,4 +191,5 @@ def _parse_watchlist(payload: dict[str, object]) -> UniverseWatchlistDefinition:
         name=str(payload["name"]),
         description=str(payload["description"]),
         symbols=tuple(_as_string_list(payload.get("symbols", []))),
+        scope_keys=tuple(_as_string_list(payload.get("scope_keys", []))),
     )

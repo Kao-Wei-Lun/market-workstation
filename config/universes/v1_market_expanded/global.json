@@ -1,0 +1,8 @@
+{
+  "instruments": [
+    { "symbol": "^FTSE", "name": "FTSE 100", "market": "GLOBAL", "asset_type": "index", "currency": "GBP", "timezone": "Europe/London", "source_route": "manual_csv", "tags": ["global-index", "europe"], "scope_keys": ["global_indices_major"] },
+    { "symbol": "^GDAXI", "name": "DAX", "market": "GLOBAL", "asset_type": "index", "currency": "EUR", "timezone": "Europe/Berlin", "source_route": "manual_csv", "tags": ["global-index", "europe"], "scope_keys": ["global_indices_major"] },
+    { "symbol": "^N225", "name": "Nikkei 225", "market": "GLOBAL", "asset_type": "index", "currency": "JPY", "timezone": "Asia/Tokyo", "source_route": "manual_csv", "tags": ["global-index", "asia"], "scope_keys": ["global_indices_major"] },
+    { "symbol": "^HSI", "name": "Hang Seng Index", "market": "GLOBAL", "asset_type": "index", "currency": "HKD", "timezone": "Asia/Hong_Kong", "source_route": "manual_csv", "tags": ["global-index", "asia"], "scope_keys": ["global_indices_major"] }
+  ]
+}
