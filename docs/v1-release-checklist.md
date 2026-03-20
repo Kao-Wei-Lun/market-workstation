@@ -2,6 +2,11 @@
 
 本文件用於本機 V1 release-candidate 驗收。目標不是 production deployment，而是確認目前的日線研究工作站已達到可安裝、可啟動、可 demo、可檢查、可操作的交付狀態。
 
+建議搭配：
+
+- [README](../README.md)
+- [V1 Release Notes](./v1-release-notes.md)
+
 ## 1. 環境與依賴
 
 - [ ] 已安裝 Python 3.12
@@ -19,6 +24,7 @@
 - [ ] `make load-universe` 成功
 - [ ] `make demo-data` 成功
 - [ ] `make smoke-test` 成功
+- [ ] `make verify-v1` 成功
 
 ## 3. 後端健康與可見性
 
@@ -93,6 +99,7 @@ make seed
 make load-universe
 make demo-data
 make smoke-test
+make verify-v1
 make release-check
 ```
 
@@ -101,6 +108,7 @@ make release-check
 - API 是否已啟動於 `http://localhost:8000`
 - `.env` 是否存在且 DB 連線資訊正確
 - `make demo-data` 是否已成功產生可見資料
+- `make verify-v1` 是否已通過核心 demo / 可見性驗證
 - scheduler / analysis 是否有正常心跳
 
 ## 10. 已知非目標

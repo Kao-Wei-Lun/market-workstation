@@ -42,6 +42,30 @@ V1 不包含：
 - 行動推播系統
 - 企業級審批流程
 
+## 1.4 V1 完成定義
+V1 視為完成，需同時滿足以下條件：
+
+- 可在本機以 Docker Compose 啟動 `db`、`api`、`scheduler`、`analysis`、`frontend`
+- 可完成 migration、seed / universe bootstrap、demo-data、smoke-test、verify-v1
+- 可透過總覽、任務中心、候選、報表、回測、衍生性商品頁面完成盤後研究基本流程
+- 可檢查資料覆蓋、資料新鮮度、近期 ingest jobs、worker heartbeat 與手動任務結果
+- 可從本機 API 與前端讀取核心資料，而不依賴即時資料流
+
+V1 已包含：
+
+- 盤後日資料研究流程
+- 技術指標、候選、報表、回測、衍生性商品分析
+- 本機任務中心與系統狀態可視化
+- 以示範資料與驗證命令支撐的交付流程
+
+明確延後到 V2：
+
+- realtime market data ingestion
+- realtime watchlist / group refresh
+- 即時 alerting / push
+- broker / trading execution
+- 多使用者、權限與雲端化能力
+
 ---
 
 # 2. 使用者與使用情境

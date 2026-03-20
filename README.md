@@ -12,6 +12,11 @@
 
 V1 不包含即時行情、即時警示、訂單執行或多使用者能力；這些會留給 V2。
 
+本 README 同時作為目前 V1 交付文件，對應的 release 驗收補充文件請見：
+
+- [V1 Release Checklist](docs/v1-release-checklist.md)
+- [V1 Release Notes](docs/v1-release-notes.md)
+
 ## V1 範圍
 
 V1 目前提供：
@@ -83,6 +88,23 @@ make run-frontend
 - API: `http://localhost:8000/health`
 - API: `http://localhost:8000/healthz`
 - Frontend: `http://localhost:5173`
+
+## Bootstrap / Seed / Demo / Smoke Flow
+
+建議把初始化流程理解成五個層次：
+
+1. `make load-universe`
+用途：載入較完整的 V1 研究 universe、watchlists 與 tag 基礎。
+2. `make seed`
+用途：只建立最小參考資料，適合最小初始化與 smoke test。
+3. `make demo-data`
+用途：建立前端可見的示範日線、指標、候選、報表、衍生性商品與回測資料。
+4. `make smoke-test`
+用途：檢查 DB、API health、schema 與 sample instruments 是否可用。
+5. `make verify-v1`
+用途：跑 demo data、smoke 與核心資料可見性驗證，確認 V1 已達本機交付狀態。
+
+`make release-check` 則是更完整的 RC 驗證，會串起後端/前端測試、lint、typecheck 與 `verify-v1`。
 
 ## Seed / Universe / Demo Data 的差異
 
@@ -191,6 +213,7 @@ make verify-v1
 make test
 make lint
 make typecheck
+make verify-v1
 make frontend-test
 make frontend-build
 make release-check
@@ -263,6 +286,20 @@ curl "http://localhost:8000/api/dashboard/derivatives/latest?trade_date=2026-03-
 3. 在「任務中心」直接手動觸發示範資料、日線 ETL、技術指標、候選或報表任務。
 4. 再從總覽或任務中心直接跳往「報表」、「候選清單」、「觀察清單」或「標籤群組」深入閱讀。
 
+### 任務中心 / 系統狀態使用方式
+
+「任務中心」頁是 V1 的本機操作頁，建議用法：
+
+1. 先看摘要卡與 highlights，確認最近手動任務、失敗數與資料集狀態。
+2. 若資料尚未準備好，手動執行：
+   - `產生示範資料`
+   - `載入示範日線`
+   - `更新技術指標`
+   - `產生候選清單`
+   - `產生每日報表`
+3. 檢查同頁的最近任務結果、最近資料更新、ETL / ingest jobs、worker 心跳。
+4. 成功後直接跳去 Candidates、Reports 或 Overview 確認結果。
+
 ### 管理 / 可見性 APIs
 
 ```bash
@@ -298,6 +335,7 @@ curl "http://localhost:8000/scanner/export?trade_date=2026-03-20&watchlist_id=1&
 建議閱讀：
 
 - [V1 Release Checklist](docs/v1-release-checklist.md)
+- [V1 Release Notes](docs/v1-release-notes.md)
 
 最小 release-candidate 驗證流程：
 
@@ -328,6 +366,7 @@ make release-check
 - backtest runs 可見
 - reports 可見
 - Taiwan derivatives 資料可見
+- V1 demo flow 的核心資料已足夠支撐前端頁面閱讀
 
 ## 已知限制
 
@@ -339,6 +378,7 @@ V1 目前仍有以下限制：
 - universe 仍以 config-driven preset 為主，尚未完成 full-market registry auto-sync
 - 報表 markdown rendering 為 lightweight parser，不是完整 markdown engine
 - 前端目前以本機單人研究使用為前提，未針對大型資料量做完整 pagination / caching
+- 任務中心目前以安全手動觸發為主，不含正式分散式 queue / RBAC / 審批流
 
 ## V2 方向
 

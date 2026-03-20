@@ -7,10 +7,10 @@
     >
       <div class="page-actions">
         <RouterLink class="pill link-pill" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
-          打開報表
+          查看報表
         </RouterLink>
         <RouterLink class="pill link-pill" :to="{ name: 'candidates', query: { candidateDate: selectedTradeDate || undefined } }">
-          打開候選
+          查看候選
         </RouterLink>
         <RouterLink
           v-if="selectedWatchlistId"
@@ -92,9 +92,9 @@
           <template #header>
             <div class="detail-actions">
               <RouterLink class="detail-link" :to="{ name: 'coverage' }">檢查資料覆蓋</RouterLink>
-              <RouterLink class="detail-link" :to="{ name: 'operations' }">打開任務中心</RouterLink>
+              <RouterLink class="detail-link" :to="{ name: 'operations' }">查看任務中心</RouterLink>
               <RouterLink class="detail-link" :to="{ name: 'reports', query: { reportDate: selectedTradeDate || undefined } }">
-                閱讀當日報表
+                查看當日報表
               </RouterLink>
             </div>
           </template>
