@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -6,6 +6,67 @@ export const http = axios.create({
   baseURL,
   timeout: 10000,
 });
+
+export class ApiClientError extends Error {
+  status: number | null;
+  detail: string;
+
+  constructor(message: string, options?: { status?: number | null; detail?: string }) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = options?.status ?? null;
+    this.detail = options?.detail ?? message;
+  }
+}
+
+function extractErrorDetail(payload: unknown): string | null {
+  if (typeof payload === "string") {
+    return payload;
+  }
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  if ("detail" in payload) {
+    const detail = (payload as { detail?: unknown }).detail;
+    if (typeof detail === "string") {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+        .join("; ");
+    }
+  }
+  return null;
+}
+
+export function normalizeApiError(error: unknown): ApiClientError {
+  if (error instanceof ApiClientError) {
+    return error;
+  }
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+    const detail = extractErrorDetail(axiosError.response?.data) ?? axiosError.message ?? "Request failed";
+    return new ApiClientError(detail, {
+      status: axiosError.response?.status ?? null,
+      detail,
+    });
+  }
+  if (error instanceof Error) {
+    return new ApiClientError(error.message);
+  }
+  return new ApiClientError("Unknown API error");
+}
+
+http.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => Promise.reject(normalizeApiError(error)),
+);
+
+export async function getJson<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  const response = await http.get<T>(url, config);
+  return response.data;
+}
 
 export function getApiBaseUrl(): string {
   return baseURL;

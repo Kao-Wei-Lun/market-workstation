@@ -1,8 +1,9 @@
 <template>
   <section class="panel">
     <div class="panel-header">
-      <h2>{{ list.title }}</h2>
-      <span class="pill">{{ list.item_count }} items</span>
+      <SectionHeader :title="list.title" :description="list.key">
+        <span class="pill">{{ list.item_count }} items</span>
+      </SectionHeader>
     </div>
     <div class="panel-body">
       <table class="simple-table" v-if="list.items.length">
@@ -29,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import SectionHeader from "@/components/SectionHeader.vue";
 import type { DashboardRankedList } from "@/types/dashboard";
 
 defineProps<{

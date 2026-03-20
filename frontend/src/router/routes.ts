@@ -9,11 +9,11 @@ import ReportsPage from "@/pages/ReportsPage.vue";
 import WatchlistsPage from "@/pages/WatchlistsPage.vue";
 
 export const routes: RouteRecordRaw[] = [
-  { path: "/", name: "overview", component: OverviewPage, meta: { label: "Overview" } },
-  { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "Watchlists" } },
-  { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "Groups" } },
-  { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "Candidates" } },
-  { path: "/reports", name: "reports", component: ReportsPage, meta: { label: "Reports" } },
-  { path: "/backtests", name: "backtests", component: BacktestsPage, meta: { label: "Backtests" } },
-  { path: "/derivatives", name: "derivatives", component: DerivativesPage, meta: { label: "Derivatives" } },
+  { path: "/", name: "overview", component: OverviewPage, meta: { label: "Overview", title: "Market Overview" } },
+  { path: "/watchlists", name: "watchlists", component: WatchlistsPage, meta: { label: "Watchlists", title: "Watchlists" } },
+  { path: "/groups", name: "groups", component: GroupsPage, meta: { label: "Tag Groups", title: "Tag Groups" } },
+  { path: "/candidates", name: "candidates", component: CandidatesPage, meta: { label: "Candidates", title: "Next-Day Candidates" } },
+  { path: "/reports", name: "reports", component: ReportsPage, meta: { label: "Reports", title: "Daily Reports" } },
+  { path: "/backtests", name: "backtests", component: BacktestsPage, meta: { label: "Backtests", title: "Backtests" } },
+  { path: "/derivatives", name: "derivatives", component: DerivativesPage, meta: { label: "Derivatives", title: "Taiwan Derivatives" } },
 ];

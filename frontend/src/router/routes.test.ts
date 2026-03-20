@@ -14,4 +14,11 @@ describe("routes", () => {
       "derivatives",
     ]);
   });
+
+  it("defines frontend-facing labels and titles", () => {
+    for (const route of routes) {
+      expect(typeof route.meta?.label).toBe("string");
+      expect(typeof route.meta?.title).toBe("string");
+    }
+  });
 });

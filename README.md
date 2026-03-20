@@ -197,15 +197,18 @@ Dashboard-oriented APIs now return a consistent top-level structure with `meta`,
 ## Frontend Dashboard
 
 - The frontend lives under `frontend/` and uses Vue 3, Vite, TypeScript, Vue Router, Pinia, and Axios.
-- Overview, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives pages are scaffolded for local single-user usage.
-- The Overview page is already wired to the dashboard aggregate APIs under `/api/dashboard/...`.
+- Overview, Watchlists, Groups, Candidates, Reports, Backtests, and Derivatives now use the existing backend APIs for local single-user review.
+- The frontend reads aggregate dashboard payloads from `/api/dashboard/...` and also fetches page-specific detail data from `/watchlists`, `/candidates`, `/reports`, `/backtests`, and `/derivatives`.
 - Configure the browser-side API target with `VITE_API_BASE_URL` in `.env` or `frontend/.env.example`.
+- Typical local setting:
+  `VITE_API_BASE_URL=http://localhost:8000`
 - For local development:
   `make frontend-install`
   `make run-frontend`
 - For Docker Compose development:
   `make dev-up`
   Then open `http://localhost:5173`.
+- The frontend expects the backend API to be reachable before loading detail views; if you change the API host or port, restart the Vite dev server after updating `VITE_API_BASE_URL`.
 
 ## Verification
 

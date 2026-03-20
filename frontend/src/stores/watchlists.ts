@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
-import { fetchWatchlists } from "@/api/dashboard";
+import { fetchWatchlists } from "@/api/watchlists";
 import type { WatchlistRead } from "@/types/dashboard";
 
 export const useWatchlistsStore = defineStore("watchlists", () => {

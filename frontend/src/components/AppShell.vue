@@ -23,7 +23,7 @@
           {{ appStore.sidebarOpen ? "Hide" : "Show" }}
         </button>
         <div class="topbar-meta">
-          <strong>{{ appStore.appTitle }}</strong>
+          <strong>{{ currentPageTitle }}</strong>
           <span class="muted">API {{ appStore.apiBaseUrl }}</span>
         </div>
       </header>
@@ -35,13 +35,16 @@
 </template>
 
 <script setup lang="ts">
-import { RouterLink, RouterView } from "vue-router";
+import { computed } from "vue";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 
 import { routes } from "@/router/routes";
 import { useAppStore } from "@/stores/app";
 
 const appStore = useAppStore();
 const navRoutes = routes;
+const route = useRoute();
+const currentPageTitle = computed(() => (typeof route.meta.title === "string" ? route.meta.title : appStore.appTitle));
 </script>
 
 <style scoped>
